@@ -23,9 +23,9 @@ export function Footer() {
             <h3 className="font-bold text-gray-900 mb-4 tracking-wide">Liên kết nhanh</h3>
             <ul className="space-y-3 text-sm text-gray-600">
               <li><Link to="/shop" className="hover:text-primary/80 transition-colors">Cửa hàng</Link></li>
-              <li><a href="#" className="hover:text-primary/80 transition-colors">Về chúng tôi</a></li>
-              <li><a href="#" className="hover:text-primary/80 transition-colors">Mua số lượng lớn</a></li>
-              <li><a href="#" className="hover:text-primary/80 transition-colors">Quà tặng</a></li>
+              <li><Link to="/about" className="hover:text-primary/80 transition-colors">Về chúng tôi</Link></li>
+              <li><Link to="/wholesale" className="hover:text-primary/80 transition-colors">Mua số lượng lớn</Link></li>
+              <li><Link to="/blog" className="hover:text-primary/80 transition-colors">Blog cây cảnh</Link></li>
             </ul>
           </div>
 
@@ -44,8 +44,8 @@ export function Footer() {
           <div>
             <h3 className="font-bold text-gray-900 mb-4 tracking-wide">Hỗ trợ</h3>
             <ul className="space-y-3 text-sm text-gray-600">
-              <li><a href="#" className="hover:text-primary/80 transition-colors">Câu hỏi thường gặp</a></li>
-              <li><a href="#" className="hover:text-primary/80 transition-colors">Liên hệ với chúng tôi</a></li>
+              <li><Link to="/faq" className="hover:text-primary/80 transition-colors">Câu hỏi thường gặp</Link></li>
+              <li><Link to="/contact" className="hover:text-primary/80 transition-colors">Liên hệ với chúng tôi</Link></li>
               <li><Link to="/signin" className="hover:text-primary/80 transition-colors">Đăng nhập</Link></li>
               <li><Link to="/signup" className="hover:text-primary/80 transition-colors">Đăng ký</Link></li>
             </ul>

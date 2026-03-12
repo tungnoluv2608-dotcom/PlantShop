@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Trash, Plus, Minus, ArrowRight, ShieldCheck } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
@@ -6,6 +6,7 @@ import { useCartStore } from "../stores/cartStore";
 import { toast } from "sonner";
 
 export default function CartPage() {
+  const navigate = useNavigate();
   const items = useCartStore((s) => s.items);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
@@ -140,7 +141,10 @@ export default function CartPage() {
                   <p className="text-xs text-foreground/60 text-right mt-1">(Đã bao gồm VAT nếu có)</p>
                 </div>
 
-                <button className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-bold text-lg hover:bg-primary/90 transition-all shadow-md hover:-translate-y-0.5 mb-4 group flex justify-center items-center gap-2 cursor-pointer">
+                <button 
+                  onClick={() => navigate("/checkout")}
+                  className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-bold text-lg hover:bg-primary/90 transition-all shadow-md hover:-translate-y-0.5 mb-4 group flex justify-center items-center gap-2 cursor-pointer"
+                >
                   Tiến hành Thanh toán
                   <ArrowRight weight="bold" className="group-hover:translate-x-1 transition-transform" />
                 </button>

@@ -6,17 +6,36 @@ import ProductPage from './pages/ProductPage'
 import CartPage from './pages/CartPage'
 import ShopPage from './pages/ShopPage'
 import NotFoundPage from './pages/NotFoundPage'
+import CheckoutPage from './pages/CheckoutPage'
+import OrderSuccessPage from './pages/OrderSuccessPage'
+import PaymentFailedPage from './pages/PaymentFailedPage'
+import ProfilePage from './pages/ProfilePage'
+import BlogPage from './pages/BlogPage'
+import BlogDetailPage from './pages/BlogDetailPage'
+import AboutPage from './pages/AboutPage'
+import ContactPage from './pages/ContactPage'
+import WholesalePage from './pages/WholesalePage'
 import { ScrollToTop } from './components/ScrollToTop'
-import {Toaster} from "sonner"
+// Admin
+import AdminLayout from './components/admin/AdminLayout'
+import AdminLoginPage from './pages/admin/AdminLoginPage'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminProducts from './pages/admin/AdminProducts'
+import AdminProductForm from './pages/admin/AdminProductForm'
+import AdminOrders from './pages/admin/AdminOrders'
+import AdminOrderDetail from './pages/admin/AdminOrderDetail'
+import AdminCustomers from './pages/admin/AdminCustomers'
+import AdminBlog from './pages/admin/AdminBlog'
+import AdminCategories from './pages/admin/AdminCategories'
+import AdminReviews from './pages/admin/AdminReviews'
+import AdminPlanters from './pages/admin/AdminPlanters'
 
 function App() {
-
-  return <>
+  return (
     <BrowserRouter>
       <ScrollToTop />
-      <Toaster richColors position="top-right" />
       <Routes>
-        {/* Public routes */}
+        {/* Public / Shop routes */}
         <Route path='/' element={<HomePage />} />
         <Route path='/signin' element={<SignInPage />} />
         <Route path='/signup' element={<SignUpPage />} />
@@ -24,15 +43,43 @@ function App() {
         <Route path='/cart' element={<CartPage />} />
         <Route path='/shop' element={<ShopPage />} />
 
-        {/* Protected routes */}
+        {/* Checkout flow */}
+        <Route path='/checkout' element={<CheckoutPage />} />
+        <Route path='/order-success/:orderId' element={<OrderSuccessPage />} />
+        <Route path='/payment-failed' element={<PaymentFailedPage />} />
+
+        {/* Brand content */}
+        <Route path='/about' element={<AboutPage />} />
+        <Route path='/blog' element={<BlogPage />} />
+        <Route path='/blog/:id' element={<BlogDetailPage />} />
+        <Route path='/contact' element={<ContactPage />} />
+        <Route path='/wholesale' element={<WholesalePage />} />
+
+        {/* User account */}
+        <Route path='/profile' element={<ProfilePage />} />
+        <Route path='/profile/orders' element={<ProfilePage />} />
+
+        {/* ─── Admin ─── */}
+        <Route path='/admin/login' element={<AdminLoginPage />} />
+        <Route path='/admin' element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path='products' element={<AdminProducts />} />
+          <Route path='products/new' element={<AdminProductForm />} />
+          <Route path='products/:id' element={<AdminProductForm />} />
+          <Route path='orders' element={<AdminOrders />} />
+          <Route path='orders/:id' element={<AdminOrderDetail />} />
+          <Route path='customers' element={<AdminCustomers />} />
+          <Route path='reviews' element={<AdminReviews />} />
+          <Route path='categories' element={<AdminCategories />} />
+          <Route path='planters' element={<AdminPlanters />} />
+          <Route path='blog' element={<AdminBlog />} />
+        </Route>
 
         {/* Catch-all 404 */}
         <Route path='*' element={<NotFoundPage />} />
       </Routes>
-
-
     </BrowserRouter>
-  </>
+  )
 }
 
 export default App
