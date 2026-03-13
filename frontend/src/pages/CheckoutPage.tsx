@@ -7,15 +7,13 @@ import {
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
 import { useCartStore } from "../stores/cartStore";
+import { useAuthStore } from "../stores/authStore";
+import { orderApi } from "../services/apiService";
+import { toast } from "sonner";
+
+import { VIETNAM_PROVINCES, getDistricts } from "../data/vietnamLocations";
 
 const steps = ["Giỏ hàng", "Thông tin giao hàng", "Thanh toán", "Xác nhận"];
-
-const provinces = ["TP. Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Cần Thơ", "Hải Phòng", "Bình Dương", "Đồng Nai"];
-const districtsByProvince: Record<string, string[]> = {
-  "TP. Hồ Chí Minh": ["Quận 1", "Quận 3", "Quận 5", "Quận 7", "Thủ Đức", "Bình Thạnh", "Gò Vấp"],
-  "Hà Nội": ["Hoàn Kiếm", "Ba Đình", "Đống Đa", "Hai Bà Trưng", "Cầu Giấy"],
-  default: ["Quận/Huyện 1", "Quận/Huyện 2"],
-};
 
 const shippingMethods = [
   { id: "standard", label: "Giao hàng Tiêu chuẩn", time: "3-5 ngày làm việc", price: 0, note: "Miễn phí từ 500.000đ" },
@@ -33,6 +31,7 @@ const paymentMethods = [
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
   const items = useCartStore((s) => s.items);
   const subtotal = useCartStore((s) => s.subtotal());
   const clearCart = useCartStore((s) => s.clearCart);
@@ -58,11 +57,37 @@ export default function CheckoutPage() {
   const isStep1Valid = form.fullName && form.phone && form.province && form.district && form.address;
 
   const handlePlaceOrder = async () => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để đặt hàng");
+      navigate("/signin");
+      return;
+    }
     setIsPlacing(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    clearCart();
-    const orderId = `PAP-${Date.now()}`;
-    navigate(`/order-success/${orderId}`);
+    try {
+      const shippingAddress = `${form.address}, ${form.district}, ${form.province}`;
+      const { orderId } = await orderApi.create({
+        items: items.map((i) => ({
+          id: i.id,
+          title: i.title,
+          price: i.price,
+          quantity: i.quantity,
+          image: i.image,
+          planter: i.planter,
+        })),
+        shippingAddress,
+        paymentMethod,
+        subtotal,
+        shippingFee,
+        total,
+      });
+      clearCart();
+      navigate(`/order-success/${orderId}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Đặt hàng thất bại. Vui lòng thử lại.";
+      toast.error(message);
+    } finally {
+      setIsPlacing(false);
+    }
   };
 
   if (items.length === 0) {
@@ -80,7 +105,7 @@ export default function CheckoutPage() {
     );
   }
 
-  const districts = districtsByProvince[form.province] ?? districtsByProvince["default"];
+
 
   return (
     <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
@@ -141,7 +166,7 @@ export default function CheckoutPage() {
                     <select name="province" value={form.province} onChange={handleFormChange}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all bg-white">
                       <option value="">Chọn tỉnh/thành</option>
-                      {provinces.map((p) => <option key={p} value={p}>{p}</option>)}
+                      {VIETNAM_PROVINCES.map((p) => <option key={p.name} value={p.name}>{p.name}</option>)}
                     </select>
                   </div>
                   <div>
@@ -149,7 +174,7 @@ export default function CheckoutPage() {
                     <select name="district" value={form.district} onChange={handleFormChange} disabled={!form.province}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all bg-white disabled:opacity-50">
                       <option value="">Chọn quận/huyện</option>
-                      {districts.map((d) => <option key={d} value={d}>{d}</option>)}
+                      {getDistricts(form.province).map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
                     </select>
                   </div>
                   <div className="sm:col-span-2">

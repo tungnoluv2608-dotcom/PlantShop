@@ -18,13 +18,20 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
 
-      setAuth: (user, token) => set({ user, token, isAuthenticated: true }),
-      
-      clearAuth: () => set({ user: null, token: null, isAuthenticated: false }),
+      setAuth: (user, token) => {
+        localStorage.setItem("token", token);
+        set({ user, token, isAuthenticated: true });
+      },
 
-      updateUser: (updatedUser) => set((state) => ({
-        user: state.user ? { ...state.user, ...updatedUser } : null
-      })),
+      clearAuth: () => {
+        localStorage.removeItem("token");
+        set({ user: null, token: null, isAuthenticated: false });
+      },
+
+      updateUser: (updatedUser) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...updatedUser } : null,
+        })),
     }),
     {
       name: "plantweb-auth",

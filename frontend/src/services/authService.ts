@@ -1,52 +1,36 @@
+import axios from "axios";
 import type { SignInData, SignUpData, User } from "../types";
 
-// Simulate network delay
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-// Mock user database
-const mockUsers: (User & { password: string })[] = [
-  { id: "1", name: "Nguyễn Văn A", email: "demo@plantweb.vn", password: "123456" },
-  { id: "2", name: "Test User", email: "test@example.com", password: "password123" },
-];
+const api = axios.create({ baseURL: API_URL });
+
+// Attach token to requests if available
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 export const authService = {
   async signIn(data: SignInData): Promise<{ user: User; token: string }> {
-    await delay(500);
-    const user = mockUsers.find(
-      (u) => u.email === data.email && u.password === data.password
-    );
-    if (!user) {
-      throw new Error("Email hoặc mật khẩu không chính xác.");
-    }
-    const { password: _, ...userWithoutPassword } = user;
-    return {
-      user: userWithoutPassword,
-      token: "mock-jwt-token-" + Date.now(),
-    };
+    const res = await api.post("/auth/signin", data);
+    return res.data;
   },
 
   async signUp(data: SignUpData): Promise<{ user: User; token: string }> {
-    await delay(500);
-    const exists = mockUsers.find((u) => u.email === data.email);
-    if (exists) {
-      throw new Error("Email này đã được sử dụng.");
-    }
-    const newUser: User & { password: string } = {
-      id: String(mockUsers.length + 1),
-      name: data.name,
-      email: data.email,
-      password: data.password,
-    };
-    mockUsers.push(newUser);
-    const { password: _, ...userWithoutPassword } = newUser;
-    return {
-      user: userWithoutPassword,
-      token: "mock-jwt-token-" + Date.now(),
-    };
+    const res = await api.post("/auth/signup", data);
+    return res.data;
   },
 
   async signOut(): Promise<void> {
-    await delay(200);
-    // In real app: invalidate token, clear session
+    localStorage.removeItem("token");
+  },
+
+  async getMe(): Promise<{ user: User }> {
+    const res = await api.get("/auth/me");
+    return res.data;
   },
 };

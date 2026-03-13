@@ -1,37 +1,69 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, CloudArrowUp, Plus, Trash, PencilSimple } from "@phosphor-icons/react";
-import { products, categories, mockPlanters } from "../../data/mockData";
+import { ArrowLeft, CloudArrowUp, Plus, Trash, PencilSimple, Image as ImageIcon } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import type { CareGuide } from "../../types";
+import { useImageUpload } from "../../hooks/useImageUpload";
+import { adminApi, api } from "../../services/apiService";
+import type { CareGuide, Category, Planter } from "../../types";
 
 export default function AdminProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id && id !== "new";
-  const existing = isEdit ? products.find((p) => p.id === id) : null;
+  const [loading, setLoading] = useState(true);
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [plantersList, setPlantersList] = useState<Planter[]>([]);
 
   const [form, setForm] = useState({
-    title: existing?.title ?? "",
-    price: existing?.price ?? 0,
-    originalPrice: existing?.originalPrice ?? "" as number | "",
-    category: existing?.category ?? categories[0].name,
-    description: existing?.description ?? "",
-    imageUrl: existing?.imageUrl ?? "",
-    images: existing?.images ?? [] as string[],
-    bio: existing?.bio ?? "",
-    inStock: existing?.inStock ?? true,
+    title: "",
+    price: 0,
+    originalPrice: "" as number | "",
+    category: "",
+    description: "",
+    imageUrl: "",
+    images: [] as string[],
+    bio: "",
+    inStock: true,
     planterOptions: [] as string[],
   });
 
-  const [careGuide, setCareGuide] = useState<CareGuide[]>(
-    existing?.careGuide ?? []
-  );
+  const [careGuide, setCareGuide] = useState<CareGuide[]>([]);
   const [newCareTitle, setNewCareTitle] = useState("");
   const [newCareContent, setNewCareContent] = useState("");
 
-  // Multi-image
-  const [newImageUrl, setNewImageUrl] = useState("");
+  useEffect(() => {
+    Promise.all([
+      adminApi.listCategories(),
+      adminApi.listPlanters(),
+      isEdit ? api.get(`/products/${id}`).then(r => r.data) : Promise.resolve(null)
+    ]).then(([cats, planters, product]) => {
+      setCategories(cats);
+      setPlantersList(planters);
+      
+      if (product) {
+        setForm({
+          title: product.title ?? "",
+          price: product.price ?? 0,
+          originalPrice: product.originalPrice ?? "",
+          category: product.category ?? (cats.length > 0 ? cats[0].name : ""),
+          description: product.description ?? "",
+          imageUrl: product.imageUrl ?? "",
+          images: product.images ?? [],
+          bio: product.bio ?? "",
+          inStock: product.inStock ?? true,
+          planterOptions: product.planterOptions ?? [],
+        });
+        setCareGuide(product.careGuide ?? []);
+      } else {
+        setForm(prev => ({ ...prev, category: cats.length > 0 ? cats[0].name : "" }));
+      }
+    }).catch(() => {
+      toast.error("Không thể tải thông tin sản phẩm");
+    }).finally(() => {
+      setLoading(false);
+    });
+  }, [id, isEdit]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -49,23 +81,57 @@ export default function AdminProductForm() {
   const updateCareGuide = (idx: number, field: keyof CareGuide, value: string) =>
     setCareGuide((prev) => prev.map((g, i) => i === idx ? { ...g, [field]: value } : g));
 
-  // Image handlers
-  const addImage = () => {
-    if (!newImageUrl.trim()) return;
-    setForm((prev) => ({ ...prev, images: [...prev.images, newImageUrl.trim()] }));
-    setNewImageUrl("");
+  // useImageUpload hooks
+  const { 
+    triggerUpload: triggerMainUpload, 
+    uploading: mainUploading, 
+    InputElement: MainUploadInput 
+  } = useImageUpload({ multiple: false });
+
+  const { 
+    triggerUpload: triggerGalleryUpload, 
+    uploading: galleryUploading, 
+    InputElement: GalleryUploadInput 
+  } = useImageUpload({ multiple: true });
+
+  const handleMainUploadSuccess = (urls: string[]) => {
+    setForm((prev) => ({ ...prev, imageUrl: urls[0] }));
   };
+
+  const handleGalleryUploadSuccess = (urls: string[]) => {
+    setForm((prev) => ({ ...prev, images: [...prev.images, ...urls] }));
+  };
+
   const removeImage = (idx: number) => setForm((prev) => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.price || !form.imageUrl) {
       toast.error("Vui lòng điền đầy đủ thông tin bắt buộc (*)");
       return;
     }
-    toast.success(isEdit ? `Đã cập nhật: ${form.title}` : `Đã thêm sản phẩm: ${form.title}`);
-    navigate("/admin/products");
+    
+    try {
+      if (isEdit) {
+        await adminApi.updateProduct(id!, form);
+        toast.success(`Đã cập nhật: ${form.title}`);
+      } else {
+        await adminApi.createProduct(form);
+        toast.success(`Đã thêm sản phẩm: ${form.title}`);
+      }
+      navigate("/admin/products");
+    } catch {
+      toast.error("Lưu sản phẩm thất bại. Vui lòng thử lại.");
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <span className="w-10 h-10 border-4 border-[#102C26] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -186,7 +252,7 @@ export default function AdminProductForm() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
               <h2 className="font-bold text-gray-900 text-base">Chậu đi kèm có thể chọn</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {mockPlanters.map((planter) => {
+                {plantersList.map((planter) => {
                   const selected = form.planterOptions.includes(planter.id);
                   return (
                     <label key={planter.id}
@@ -211,20 +277,38 @@ export default function AdminProductForm() {
 
           {/* ── RIGHT: Image + Settings ── */}
           <div className="space-y-5">
-            {/* Primary Image */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
               <h2 className="font-bold text-gray-900 text-base">Ảnh đại diện *</h2>
-              <input name="imageUrl" value={form.imageUrl} onChange={handleChange}
-                placeholder="https://..."
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all" />
-              {form.imageUrl ? (
-                <img src={form.imageUrl} alt="preview" className="w-full aspect-square object-cover rounded-xl border border-gray-100" />
-              ) : (
-                <div className="w-full aspect-square rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-400">
-                  <CloudArrowUp size={32} />
-                  <p className="text-xs text-center">Nhập URL để xem trước</p>
-                </div>
-              )}
+              
+              <div 
+                onClick={triggerMainUpload}
+                className={`w-full aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden relative group
+                  ${form.imageUrl ? "border-transparent" : "border-gray-300 hover:border-[#102C26]/50 bg-gray-50 hover:bg-[#102C26]/5"}`}
+              >
+                {form.imageUrl ? (
+                  <>
+                    <img src={form.imageUrl} alt="preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-2">
+                      <CloudArrowUp size={32} />
+                      <span className="text-sm font-semibold">Tải ảnh khác</span>
+                    </div>
+                  </>
+                ) : mainUploading ? (
+                  <>
+                    <span className="animate-spin border-2 border-[#102C26] border-t-transparent rounded-full w-8 h-8 mb-2" />
+                    <p className="text-sm font-semibold text-[#102C26]">Đang tải lên...</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center text-gray-400 mb-2">
+                      <CloudArrowUp size={24} weight="bold" />
+                    </div>
+                    <p className="text-sm font-bold text-gray-700">Click để chọn ảnh đại diện</p>
+                    <p className="text-xs text-gray-400">JPG, PNG, WEBP (Tối đa 5MB)</p>
+                  </>
+                )}
+              </div>
+              <MainUploadInput onSuccess={handleMainUploadSuccess} accept="image/jpeg, image/png, image/webp" />
             </div>
 
             {/* Gallery Images */}
@@ -247,17 +331,20 @@ export default function AdminProductForm() {
                 ))}
               </div>
 
-              {/* Add image url */}
-              <div className="flex gap-2">
-                <input value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addImage())}
-                  placeholder="URL ảnh..."
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all" />
-                <button type="button" onClick={addImage}
-                  className="bg-[#102C26]/10 text-[#102C26] px-3 rounded-lg hover:bg-[#102C26]/20 transition-colors">
-                  <Plus size={16} weight="bold" />
-                </button>
-              </div>
+              {/* Upload image button */}
+              <button 
+                type="button" 
+                onClick={triggerGalleryUpload}
+                disabled={galleryUploading}
+                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold text-gray-500 hover:border-[#102C26]/50 hover:text-[#102C26] hover:bg-[#102C26]/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {galleryUploading ? (
+                  <><span className="animate-spin border-2 border-gray-400 border-t-transparent rounded-full w-4 h-4" /> Đang tải...</>
+                ) : (
+                  <><ImageIcon size={18} /> Chọn nhiều ảnh tải lên</>
+                )}
+              </button>
+              <GalleryUploadInput onSuccess={handleGalleryUploadSuccess} accept="image/jpeg, image/png, image/webp" />
             </div>
 
             {/* Settings */}

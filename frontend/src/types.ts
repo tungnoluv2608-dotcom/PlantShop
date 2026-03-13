@@ -58,6 +58,16 @@ export interface SignInData {
   password: string;
 }
 
+export interface Planter {
+  id: string;
+  name: string;
+  material: string;
+  price: number;
+  imageUrl: string;
+  sizes: string[];
+  inStock: boolean;
+}
+
 export interface SignUpData {
   name: string;
   email: string;

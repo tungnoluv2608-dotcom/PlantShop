@@ -4,35 +4,50 @@ import { ArrowLeft, Plant, Eye, EyeSlash } from "@phosphor-icons/react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { GoogleLogin } from "@react-oauth/google";
 import { authService } from "../services/authService";
+import { oauthApi } from "../services/oauthService";
 import { useAuthStore } from "../stores/authStore";
 import { toast } from "sonner";
 
 const signInSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Vui lòng nhập email")
-    .email("Email không hợp lệ"),
-  password: z
-    .string()
-    .min(1, "Vui lòng nhập mật khẩu")
-    .min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
+  email: z.string().min(1, "Vui lòng nhập email").email("Email không hợp lệ"),
+  password: z.string().min(1, "Vui lòng nhập mật khẩu").min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
   rememberMe: z.boolean().optional(),
 });
 
 type SignInFormData = z.infer<typeof signInSchema>;
 
+// Facebook SDK helper
+declare global {
+  interface Window {
+    FB: {
+      init: (opts: Record<string, unknown>) => void;
+      login: (cb: (r: { authResponse?: { accessToken: string; userID: string } }) => void, opts?: Record<string, unknown>) => void;
+    };
+    fbAsyncInit: () => void;
+  }
+}
+
+function loadFacebookSDK(appId: string) {
+  if (document.getElementById("facebook-jssdk")) return;
+  window.fbAsyncInit = () => {
+    window.FB.init({ appId, cookie: true, xfbml: true, version: "v18.0" });
+  };
+  const js = document.createElement("script");
+  js.id = "facebook-jssdk";
+  js.src = "https://connect.facebook.net/vi_VN/sdk.js";
+  document.body.appendChild(js);
+}
+
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [fbLoading, setFbLoading] = useState(false);
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<SignInFormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
     defaultValues: { rememberMe: false },
   });
@@ -48,25 +63,66 @@ export default function SignInPage() {
       navigate("/");
     } catch (error) {
       toast.error("Đăng nhập thất bại", {
-        description: error instanceof Error ? error.message : "Đã có lỗi xảy ra.",
+        description: error instanceof Error ? error.message : "Email hoặc mật khẩu không đúng.",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
+  // ── Google ────────────────────────────────────────────────────
+  const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
+    if (!credentialResponse.credential) return;
+    try {
+      const { user, token } = await oauthApi.googleLogin(credentialResponse.credential);
+      setAuth(user, token);
+      toast.success("Đăng nhập Google thành công!", { description: `Chào mừng, ${user.name} 🌿` });
+      navigate("/");
+    } catch {
+      toast.error("Đăng nhập Google thất bại. Vui lòng thử lại.");
+    }
+  };
+
+  // ── Facebook ─────────────────────────────────────────────────
+  const handleFacebookLogin = () => {
+    const appId = import.meta.env.VITE_FACEBOOK_APP_ID;
+    if (!appId || appId === "YOUR_FACEBOOK_APP_ID_HERE") {
+      toast.error("Chức năng Facebook Login chưa được cấu hình.", {
+        description: "Vui lòng thêm VITE_FACEBOOK_APP_ID vào file .env",
+      });
+      return;
+    }
+    loadFacebookSDK(appId);
+    setFbLoading(true);
+    const tryLogin = () => {
+      if (!window.FB) { setTimeout(tryLogin, 500); return; }
+      window.FB.login(
+        (response) => {
+          setFbLoading(false);
+          if (response.authResponse) {
+            const { accessToken, userID } = response.authResponse;
+            oauthApi.facebookLogin(accessToken, userID)
+              .then(({ user, token }) => {
+                setAuth(user, token);
+                toast.success("Đăng nhập Facebook thành công!", { description: `Chào mừng, ${user.name} 🌿` });
+                navigate("/");
+              })
+              .catch(() => toast.error("Đăng nhập Facebook thất bại. Vui lòng thử lại."));
+          }
+        },
+        { scope: "public_profile,email" }
+      );
+    };
+    tryLogin();
+  };
+
   const inputClasses = "flex h-11 w-full rounded-md border bg-white px-3 py-2 text-sm text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 transition-all shadow-sm";
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      {/* Back to Home */}
       <div className="absolute top-8 left-8">
-        <Link 
-          to="/" 
-          className="flex items-center gap-2 text-primary/80 hover:text-primary transition-colors font-medium text-sm"
-        >
-          <ArrowLeft size={20} />
-          Về trang chủ
+        <Link to="/" className="flex items-center gap-2 text-primary/80 hover:text-primary transition-colors font-medium text-sm">
+          <ArrowLeft size={20} /> Về trang chủ
         </Link>
       </div>
 
@@ -76,14 +132,10 @@ export default function SignInPage() {
             <Plant size={40} weight="fill" />
           </div>
         </div>
-        <h2 className="mt-2 text-center text-3xl font-extrabold text-foreground tracking-tight">
-          Đăng nhập vào PlantWeb
-        </h2>
+        <h2 className="mt-2 text-center text-3xl font-extrabold text-foreground tracking-tight">Đăng nhập vào PlantWeb</h2>
         <p className="mt-2 text-center text-sm text-foreground/70">
           Chưa có tài khoản?{" "}
-          <Link to="/signup" className="font-semibold text-primary hover:text-primary/80 transition-colors">
-            Đăng ký ngay
-          </Link>
+          <Link to="/signup" className="font-semibold text-primary hover:text-primary/80 transition-colors">Đăng ký ngay</Link>
         </p>
       </div>
 
@@ -91,77 +143,45 @@ export default function SignInPage() {
         <div className="bg-white py-8 px-4 shadow-xl border border-secondary sm:rounded-2xl sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div>
-              <label 
-                htmlFor="email" 
-                className="block text-sm font-medium text-foreground mb-2"
-              >
-                Địa chỉ Email
-              </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="name@example.com"
-                  className={`${inputClasses} ${errors.email ? "border-red-500 focus-visible:ring-red-500" : "border-input"}`}
-                  {...register("email")}
-                />
-                {errors.email && (
-                  <p className="mt-1.5 text-sm text-red-500 font-medium">{errors.email.message}</p>
-                )}
-              </div>
+              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">Địa chỉ Email</label>
+              <input
+                id="email" type="email" autoComplete="email" placeholder="name@example.com"
+                className={`${inputClasses} ${errors.email ? "border-red-500 focus-visible:ring-red-500" : "border-input"}`}
+                {...register("email")}
+              />
+              {errors.email && <p className="mt-1.5 text-sm text-red-500 font-medium">{errors.email.message}</p>}
             </div>
 
             <div>
-               <div className="flex justify-between items-center mb-2">
-                 <label 
-                  htmlFor="password" 
-                  className="block text-sm font-medium text-foreground"
-                 >
-                  Mật khẩu
-                 </label>
-                 <Link to="#" className="text-xs font-semibold text-primary hover:text-primary/80">Quên mật khẩu?</Link>
-               </div>
+              <div className="flex justify-between items-center mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-foreground">Mật khẩu</label>
+                <Link to="#" className="text-xs font-semibold text-primary hover:text-primary/80">Quên mật khẩu?</Link>
+              </div>
               <div className="mt-1 relative">
                 <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  placeholder="••••••••"
+                  id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="••••••••"
                   className={`${inputClasses} pr-10 ${errors.password ? "border-red-500 focus-visible:ring-red-500" : "border-input"}`}
                   {...register("password")}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50 hover:text-foreground/80 transition-colors"
-                >
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50 hover:text-foreground/80 transition-colors">
                   {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
                 </button>
-                {errors.password && (
-                  <p className="mt-1.5 text-sm text-red-500 font-medium">{errors.password.message}</p>
-                )}
+                {errors.password && <p className="mt-1.5 text-sm text-red-500 font-medium">{errors.password.message}</p>}
               </div>
             </div>
 
             <div className="flex items-center">
-              <input
-                id="remember-me"
-                type="checkbox"
+              <input id="remember-me" type="checkbox"
                 className="h-4 w-4 bg-white border-input rounded text-primary focus:ring-primary cursor-pointer"
                 {...register("rememberMe")}
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-foreground cursor-pointer">
-                Ghi nhớ đăng nhập
-              </label>
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-foreground cursor-pointer">Ghi nhớ đăng nhập</label>
             </div>
 
             <div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-4 py-2 w-full shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
-              >
+              <button type="submit" disabled={isLoading}
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-4 py-2 w-full shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
                 {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
               </button>
             </div>
@@ -169,30 +189,36 @@ export default function SignInPage() {
 
           <div className="mt-6">
             <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
-              </div>
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-muted-foreground">
-                  Hoặc tiếp tục với
-                </span>
+                <span className="px-2 bg-white text-muted-foreground">Hoặc tiếp tục với</span>
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="mt-5 flex flex-col gap-3">
+              {/* Google Login - uses @react-oauth/google */}
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => toast.error("Đăng nhập Google thất bại.")}
+                  text="signin_with"
+                  width={380}
+                  shape="rectangular"
+                  size="large"
+                />
+              </div>
+
+              {/* Facebook Login */}
               <button
                 type="button"
-                className="w-full inline-flex justify-center py-2.5 px-4 border border-border rounded-md shadow-sm bg-white text-sm font-medium text-foreground hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={handleFacebookLogin}
+                disabled={fbLoading}
+                className="w-full inline-flex justify-center items-center gap-2 py-2.5 px-4 border border-border rounded-md shadow-sm bg-[#1877F2] text-sm font-medium text-white hover:bg-[#1877F2]/90 transition-colors cursor-pointer disabled:opacity-60"
               >
-                <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5" />
-                <span className="ml-2">Google</span>
-              </button>
-              <button
-                type="button"
-                className="w-full inline-flex justify-center py-2.5 px-4 border border-border rounded-md shadow-sm bg-white text-sm font-medium text-foreground hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                <img src="https://www.svgrepo.com/show/448224/facebook.svg" alt="Facebook" className="h-5 w-5" />
-                <span className="ml-2">Facebook</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                </svg>
+                {fbLoading ? "Đang kết nối..." : "Tiếp tục với Facebook"}
               </button>
             </div>
           </div>

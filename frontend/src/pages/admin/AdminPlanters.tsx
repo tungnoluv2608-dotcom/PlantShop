@@ -1,36 +1,68 @@
-import { useState } from "react";
-import { Plus, PencilSimple, Trash, Check, X } from "@phosphor-icons/react";
-import { mockPlanters, type Planter } from "../../data/mockData";
+import { useState, useEffect } from "react";
+import { Plus, PencilSimple, Trash, Check, X, CloudArrowUp } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { useImageUpload } from "../../hooks/useImageUpload";
+import { adminApi } from "../../services/apiService";
+import type { Planter } from "../../types";
 
 const EMPTY: Omit<Planter, "id"> = { name: "", material: "", price: 0, imageUrl: "", sizes: [], inStock: true };
 
 export default function AdminPlanters() {
-  const [planters, setPlanters] = useState<Planter[]>(mockPlanters);
+  const [planters, setPlanters] = useState<Planter[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Planter | null>(null);
   const [draft, setDraft] = useState<Omit<Planter, "id">>(EMPTY);
   const [newSize, setNewSize] = useState("");
 
+  const fetchPlanters = async () => {
+    try {
+      const data = await adminApi.listPlanters();
+      setPlanters(data as Planter[]);
+    } catch {
+      toast.error("Lỗi khi tải dữ liệu");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlanters();
+  }, []);
+
+  const { triggerUpload, uploading, InputElement } = useImageUpload({ multiple: false });
+
+  const handleImageSuccess = (urls: string[]) => setDraft((p) => ({ ...p, imageUrl: urls[0] }));
+
   const openAdd = () => { setEditing(null); setDraft(EMPTY); setNewSize(""); setModalOpen(true); };
   const openEdit = (p: Planter) => { setEditing(p); setDraft({ ...p }); setNewSize(""); setModalOpen(true); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!draft.name.trim() || !draft.price) { toast.error("Vui lòng điền tên và giá"); return; }
-    if (editing) {
-      setPlanters((prev) => prev.map((p) => p.id === editing.id ? { ...editing, ...draft } : p));
-      toast.success(`Đã cập nhật: ${draft.name}`);
-    } else {
-      setPlanters((prev) => [...prev, { ...draft, id: `p${Date.now()}` }]);
-      toast.success(`Đã thêm: ${draft.name}`);
+    try {
+      if (editing) {
+        await adminApi.updatePlanter(editing.id, draft);
+        toast.success(`Đã cập nhật: ${draft.name}`);
+      } else {
+        await adminApi.createPlanter(draft);
+        toast.success(`Đã thêm: ${draft.name}`);
+      }
+      setModalOpen(false);
+      fetchPlanters();
+    } catch {
+      toast.error("Lưu dữ liệu thất bại");
     }
-    setModalOpen(false);
   };
 
-  const handleDelete = (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (window.confirm(`Xóa "${name}"?`)) {
-      setPlanters((prev) => prev.filter((p) => p.id !== id));
-      toast.success(`Đã xóa: ${name}`);
+      try {
+        await adminApi.deletePlanter(id);
+        toast.success(`Đã xóa: ${name}`);
+        fetchPlanters();
+      } catch {
+        toast.error("Xóa thất bại");
+      }
     }
   };
 
@@ -54,6 +86,11 @@ export default function AdminPlanters() {
       </div>
 
       {/* Planter Table */}
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <span className="w-8 h-8 border-2 border-[#102C26] border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -113,6 +150,7 @@ export default function AdminPlanters() {
           </table>
         </div>
       </div>
+      )}
 
       {/* Modal */}
       {modalOpen && (
@@ -146,10 +184,20 @@ export default function AdminPlanters() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">URL ảnh</label>
-                <input value={draft.imageUrl} onChange={(e) => setDraft((p) => ({ ...p, imageUrl: e.target.value }))}
-                  placeholder="https://..."
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all" />
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ảnh chậu</label>
+                <div onClick={triggerUpload} className={`w-full h-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative group ${draft.imageUrl ? "border-transparent" : "border-gray-300 hover:border-[#102C26]"}`}>
+                  {draft.imageUrl ? (
+                    <>
+                      <img src={draft.imageUrl} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white"><CloudArrowUp size={24}/> Thay đổi</div>
+                    </>
+                  ) : uploading ? (
+                    <span className="animate-spin border-2 border-[#102C26] border-t-transparent w-6 h-6 rounded-full"/>
+                  ) : (
+                    <div className="text-gray-400 text-center"><CloudArrowUp size={24} className="mx-auto mb-1"/><span className="text-sm">Tải ảnh lên</span></div>
+                  )}
+                </div>
+                <InputElement onSuccess={handleImageSuccess} />
               </div>
 
               <div>

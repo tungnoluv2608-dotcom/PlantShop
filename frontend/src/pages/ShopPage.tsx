@@ -8,20 +8,13 @@ import { productService } from "../services/productService";
 import type { Product } from "../types";
 import forestPattern from "../assets/forest_pattern.jpg";
 
-const categoryTree = [
-  {
-    name: "Cây trong nhà (Indoor)",
-    subcategories: ["Cây leo", "Cây trong nhà", "Bonsai"],
-  },
-  {
-    name: "Cây ngoài trời (Outdoor)",
-    subcategories: [],
-  },
-  {
-    name: "Cây dược liệu (Medicinal)",
-    subcategories: [],
-  },
-];
+import { api } from "../services/apiService";
+
+interface Category {
+  id: string;
+  name: string;
+  subcategories: string[];
+}
 
 const priceRanges = [
   { label: "Tất cả", min: undefined, max: undefined },
@@ -37,12 +30,24 @@ export default function ShopPage() {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({ "Cây trong nhà (Indoor)": true });
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(searchParams.get("category") || undefined);
   const [selectedPriceRange, setSelectedPriceRange] = useState(0);
   const [isPriceOpen, setIsPriceOpen] = useState(false);
+  const [categoryTree, setCategoryTree] = useState<Category[]>([]);
 
   const PAGE_SIZE = 6;
+
+  useEffect(() => {
+    api.get<Category[]>("/categories").then((res) => {
+      setCategoryTree(res.data);
+      const initialOpen = res.data.reduce((acc, cat) => {
+        acc[cat.name] = true;
+        return acc;
+      }, {} as Record<string, boolean>);
+      setOpenCategories(initialOpen);
+    }).catch(console.error);
+  }, []);
 
   useEffect(() => {
     const cat = searchParams.get("category");

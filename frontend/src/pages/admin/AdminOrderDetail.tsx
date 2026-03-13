@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { ArrowLeft, CheckCircle, Package, Truck, XCircle, Clock } from "@phosphor-icons/react";
-import { mockOrders } from "../../data/mockData";
+import { adminApi } from "../../services/apiService";
 import type { Order } from "../../types";
 import { toast } from "sonner";
 
@@ -20,8 +20,43 @@ const STATUS_OPTIONS: Order["status"][] = ["pending", "confirmed", "packing", "s
 export default function AdminOrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const order = mockOrders.find((o) => o.id === id);
-  const [status, setStatus] = useState<Order["status"]>(order?.status ?? "pending");
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<Order["status"]>("pending");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    adminApi.getOrderDetail(id)
+      .then((data: Order) => {
+        setOrder(data);
+        setStatus(data.status);
+      })
+      .catch(() => toast.error("Không tìm thấy đơn hàng"))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const handleStatusUpdate = async () => {
+    if (!id) return;
+    setSaving(true);
+    try {
+      await adminApi.updateOrderStatus(id, status);
+      setOrder((prev) => prev ? { ...prev, status } : prev);
+      toast.success(`Đã cập nhật trạng thái: ${statusCfg[status].label}`);
+    } catch {
+      toast.error("Cập nhật thất bại");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center h-64">
+        <span className="w-8 h-8 border-2 border-[#102C26] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!order) {
     return (
@@ -31,10 +66,6 @@ export default function AdminOrderDetail() {
       </div>
     );
   }
-
-  const handleStatusUpdate = () => {
-    toast.success(`Đã cập nhật trạng thái: ${statusCfg[status].label}`);
-  };
 
   const cfg = statusCfg[status];
 
@@ -61,43 +92,41 @@ export default function AdminOrderDetail() {
         <div className="lg:col-span-2 space-y-5">
           {/* Items */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 font-bold text-gray-900">
-              Sản phẩm đặt hàng
-            </div>
+            <div className="px-5 py-4 border-b border-gray-100 font-bold text-gray-900">Sản phẩm đặt hàng</div>
             <div className="divide-y divide-gray-50">
               {order.items.map((item) => (
                 <div key={item.id} className="flex items-center gap-4 p-4">
-                  <img src={item.image} alt={item.title} className="w-14 h-14 rounded-xl object-cover border border-gray-100 shrink-0" />
+                  <img src={item.image} alt={item.title} className="w-14 h-14 rounded-xl object-cover border border-gray-100 shrink-0" onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/56x56?text=🌿"; }} />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 truncate">{item.title}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{item.planter} · x{item.quantity}</p>
                   </div>
-                  <p className="font-bold text-[#102C26] shrink-0">
-                    {(item.price * item.quantity).toLocaleString("vi-VN")}đ
-                  </p>
+                  <p className="font-bold text-[#102C26] shrink-0">{(item.price * item.quantity).toLocaleString("vi-VN")}đ</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Timeline */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <p className="font-bold text-gray-900 mb-5">Lịch sử đơn hàng</p>
-            <div className="flex flex-col gap-3 relative">
-              <div className="absolute left-[11px] top-0 bottom-0 w-px bg-gray-100" />
-              {order.timeline.map((step, i) => (
-                <div key={i} className="flex items-start gap-3 relative">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 border-2 ${step.done ? "bg-[#102C26] border-[#102C26]" : "bg-white border-gray-200"}`}>
-                    {step.done ? <CheckCircle size={12} weight="fill" className="text-white" /> : <span className="w-2 h-2 rounded-full bg-gray-300 block" />}
+          {order.timeline && order.timeline.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <p className="font-bold text-gray-900 mb-5">Lịch sử đơn hàng</p>
+              <div className="flex flex-col gap-3 relative">
+                <div className="absolute left-[11px] top-0 bottom-0 w-px bg-gray-100" />
+                {order.timeline.map((step, i) => (
+                  <div key={i} className="flex items-start gap-3 relative">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 border-2 ${step.done ? "bg-[#102C26] border-[#102C26]" : "bg-white border-gray-200"}`}>
+                      {step.done ? <CheckCircle size={12} weight="fill" className="text-white" /> : <span className="w-2 h-2 rounded-full bg-gray-300 block" />}
+                    </div>
+                    <div className="pb-3">
+                      <p className={`text-sm font-semibold ${step.done ? "text-gray-900" : "text-gray-400"}`}>{step.status}</p>
+                      {step.date && <p className="text-xs text-gray-400 mt-0.5">{step.date}</p>}
+                    </div>
                   </div>
-                  <div className="pb-3">
-                    <p className={`text-sm font-semibold ${step.done ? "text-gray-900" : "text-gray-400"}`}>{step.status}</p>
-                    {step.date && <p className="text-xs text-gray-400 mt-0.5">{step.date}</p>}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Right: Order Info + Update Status */}
@@ -130,17 +159,16 @@ export default function AdminOrderDetail() {
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as Order["status"])}
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 mb-3"
-            >
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 mb-3">
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>{statusCfg[s].label}</option>
               ))}
             </select>
             <button
               onClick={handleStatusUpdate}
-              className="w-full bg-[#102C26] text-[#F7E7CE] font-bold py-2.5 rounded-xl text-sm hover:bg-[#102C26]/90 transition-all shadow-sm"
-            >
-              Lưu thay đổi
+              disabled={saving}
+              className="w-full bg-[#102C26] text-[#F7E7CE] font-bold py-2.5 rounded-xl text-sm hover:bg-[#102C26]/90 transition-all shadow-sm disabled:opacity-60">
+              {saving ? "Đang lưu..." : "Lưu thay đổi"}
             </button>
           </div>
         </div>

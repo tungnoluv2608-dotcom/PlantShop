@@ -7,10 +7,10 @@ import {
 } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
-import { mockOrders } from "../data/mockData";
 import type { Order } from "../types";
 import { toast } from "sonner";
 import { useAuthStore } from "../stores/authStore";
+import { orderApi } from "../services/apiService";
 
 const tabs = [
   { id: "profile", label: "Hồ sơ", icon: User },
@@ -30,7 +30,7 @@ const statusConfig: Record<Order["status"], { label: string; color: string; icon
   returning: { label: "Đang đổi/trả",  color: "text-purple-600 bg-purple-50 border-purple-200", icon: <WarningCircle size={14} weight="fill" /> },
 };
 
-function OrderCard({ order }: { order: Order }) {
+function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
   const cfg = statusConfig[order.status];
 
@@ -86,7 +86,7 @@ function OrderCard({ order }: { order: Order }) {
           )}
           {(order.status === "pending" || order.status === "confirmed") && (
             <button
-              onClick={() => toast.error("Đã gửi yêu cầu hủy đơn hàng")}
+              onClick={() => onCancel(order.id)}
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-red-200 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors">
               <XCircle size={15} /> Hủy đơn
             </button>
@@ -128,13 +128,15 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, isAuthenticated, updateUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState("profile");
-  const [profileForm, setProfileForm] = useState({ 
-    name: user?.name || "", 
-    email: user?.email || "", 
-    phone: "0901 234 567", 
-    dob: "1995-06-15" 
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: "",
+    dob: ""
   });
   const [orderFilter, setOrderFilter] = useState<string>("all");
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -145,15 +147,31 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      setProfileForm(prev => ({
-        ...prev,
-        name: user.name,
-        email: user.email
-      }));
+      setProfileForm(prev => ({ ...prev, name: user.name, email: user.email }));
     }
   }, [user]);
 
-  const filteredOrders = orderFilter === "all" ? mockOrders : mockOrders.filter((o) => o.status === orderFilter);
+  useEffect(() => {
+    if (activeTab === "orders" && isAuthenticated) {
+      setOrdersLoading(true);
+      orderApi.getMyOrders()
+        .then(setOrders)
+        .catch(() => toast.error("Không thể tải đơn hàng"))
+        .finally(() => setOrdersLoading(false));
+    }
+  }, [activeTab, isAuthenticated]);
+
+  const handleCancelOrder = async (orderId: string) => {
+    try {
+      await orderApi.cancel(orderId);
+      toast.success("Đã hủy đơn hàng");
+      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: "cancelled" as Order["status"] } : o));
+    } catch {
+      toast.error("Không thể hủy đơn hàng");
+    }
+  };
+
+  const filteredOrders = orderFilter === "all" ? orders : orders.filter((o) => o.status === orderFilter);
 
   const handleProfileSave = () => {
     updateUser({ name: profileForm.name, email: profileForm.email });
@@ -260,14 +278,18 @@ export default function ProfilePage() {
                     </button>
                   ))}
                 </div>
-                {filteredOrders.length === 0 ? (
+                {ordersLoading ? (
+                  <div className="bg-white rounded-2xl border border-secondary p-12 text-center">
+                    <span className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin inline-block" />
+                  </div>
+                ) : filteredOrders.length === 0 ? (
                   <div className="bg-white rounded-2xl border border-secondary p-12 text-center">
                     <ShoppingBag size={48} className="text-foreground/20 mx-auto mb-4" />
                     <p className="text-foreground/50 font-medium">Không có đơn hàng nào</p>
                     <Link to="/shop" className="mt-4 inline-block text-primary font-bold hover:underline">Mua sắm ngay →</Link>
                   </div>
                 ) : (
-                  filteredOrders.map((order) => <OrderCard key={order.id} order={order} />)
+                  filteredOrders.map((order) => <OrderCard key={order.id} order={order} onCancel={handleCancelOrder} />)
                 )}
               </div>
             )}

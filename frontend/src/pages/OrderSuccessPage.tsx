@@ -1,12 +1,18 @@
+import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router";
 import { CheckCircle, ShoppingBag, ArrowRight, Plant, Leaf } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
-import { products } from "../data/mockData";
+import { productService } from "../services/productService";
+import type { Product } from "../types";
 
 export default function OrderSuccessPage() {
   const { orderId } = useParams();
-  const suggestedProducts = products.slice(0, 4);
+  const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    productService.getProducts({ page: 1, pageSize: 4 }).then((r) => setSuggestedProducts(r.products));
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
@@ -60,7 +66,7 @@ export default function OrderSuccessPage() {
 
         {/* CTA Buttons */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12">
-          <Link to="/profile/orders"
+          <Link to="/profile"
             className="flex items-center justify-center gap-2 bg-primary text-primary-foreground py-4 rounded-2xl font-bold hover:bg-primary/90 transition-all shadow-md hover:-translate-y-0.5">
             <ShoppingBag size={20} weight="fill" />
             Xem đơn hàng của tôi
@@ -73,23 +79,25 @@ export default function OrderSuccessPage() {
         </div>
 
         {/* Recommended Products */}
-        <div>
-          <h2 className="text-xl font-bold mb-5 text-foreground">Bạn có thể thích</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {suggestedProducts.map((product) => (
-              <Link key={product.id} to={`/product/${product.id}`}
-                className="bg-white rounded-2xl overflow-hidden border border-secondary hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
-                <div className="aspect-square overflow-hidden">
-                  <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                </div>
-                <div className="p-3">
-                  <p className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">{product.title}</p>
-                  <p className="text-primary font-bold text-sm mt-1">{product.price.toLocaleString("vi-VN")}đ</p>
-                </div>
-              </Link>
-            ))}
+        {suggestedProducts.length > 0 && (
+          <div>
+            <h2 className="text-xl font-bold mb-5 text-foreground">Bạn có thể thích</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {suggestedProducts.map((product) => (
+                <Link key={product.id} to={`/product/${product.id}`}
+                  className="bg-white rounded-2xl overflow-hidden border border-secondary hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+                  <div className="aspect-square overflow-hidden">
+                    <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  </div>
+                  <div className="p-3">
+                    <p className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">{product.title}</p>
+                    <p className="text-primary font-bold text-sm mt-1">{product.price.toLocaleString("vi-VN")}đ</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </main>
 
       <Footer />

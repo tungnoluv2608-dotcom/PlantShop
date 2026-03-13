@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { MagnifyingGlass, Eye, FunnelSimple } from "@phosphor-icons/react";
-import { mockOrders } from "../../data/mockData";
+import { adminApi } from "../../services/apiService";
 import type { Order } from "../../types";
 
 const statusCfg: Record<Order["status"], { label: string; color: string }> = {
@@ -23,10 +23,18 @@ const filterTabs = [
 ];
 
 export default function AdminOrders() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const filtered = mockOrders.filter((o) => {
+  useEffect(() => {
+    adminApi.listOrders()
+      .then((data) => setOrders(data as Order[]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = orders.filter((o) => {
     const matchSearch = !search.trim() ||
       o.id.toLowerCase().includes(search.toLowerCase()) ||
       o.shippingAddress.toLowerCase().includes(search.toLowerCase());
@@ -67,57 +75,63 @@ export default function AdminOrders() {
 
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/70">
-                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Mã đơn</th>
-                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">Địa chỉ giao</th>
-                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Thanh toán</th>
-                <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Tổng tiền</th>
-                <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Chi tiết</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-12 text-gray-400 font-medium">
-                    Không tìm thấy đơn hàng nào
-                  </td>
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <span className="w-8 h-8 border-2 border-[#102C26] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/70">
+                  <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Mã đơn</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">Địa chỉ giao</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Thanh toán</th>
+                  <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                  <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Tổng tiền</th>
+                  <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Chi tiết</th>
                 </tr>
-              ) : filtered.map((order) => {
-                const cfg = statusCfg[order.status];
-                return (
-                  <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-5 py-4">
-                      <p className="font-bold text-[#102C26] text-xs tracking-wider">{order.id}</p>
-                      <p className="text-gray-400 text-xs mt-0.5">{order.date}</p>
-                    </td>
-                    <td className="px-4 py-4 hidden md:table-cell">
-                      <p className="text-gray-700 text-xs max-w-[200px] truncate">{order.shippingAddress}</p>
-                    </td>
-                    <td className="px-4 py-4 hidden sm:table-cell">
-                      <span className="text-gray-600 text-xs">{order.paymentMethod}</span>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${cfg.color}`}>{cfg.label}</span>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <span className="font-bold text-gray-900">{order.total.toLocaleString("vi-VN")}đ</span>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <Link to={`/admin/orders/${order.id}`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#102C26] hover:underline px-2.5 py-1.5 rounded-lg hover:bg-[#102C26]/5 transition-colors">
-                        <Eye size={14} /> Xem
-                      </Link>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-12 text-gray-400 font-medium">
+                      Không tìm thấy đơn hàng nào
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                ) : filtered.map((order) => {
+                  const cfg = statusCfg[order.status] ?? statusCfg["pending"];
+                  return (
+                    <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-5 py-4">
+                        <p className="font-bold text-[#102C26] text-xs tracking-wider">{order.id}</p>
+                        <p className="text-gray-400 text-xs mt-0.5">{order.date}</p>
+                      </td>
+                      <td className="px-4 py-4 hidden md:table-cell">
+                        <p className="text-gray-700 text-xs max-w-[200px] truncate">{order.shippingAddress}</p>
+                      </td>
+                      <td className="px-4 py-4 hidden sm:table-cell">
+                        <span className="text-gray-600 text-xs">{order.paymentMethod}</span>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${cfg.color}`}>{cfg.label}</span>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className="font-bold text-gray-900">{order.total.toLocaleString("vi-VN")}đ</span>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <Link to={`/admin/orders/${order.id}`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#102C26] hover:underline px-2.5 py-1.5 rounded-lg hover:bg-[#102C26]/5 transition-colors">
+                          <Eye size={14} /> Xem
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

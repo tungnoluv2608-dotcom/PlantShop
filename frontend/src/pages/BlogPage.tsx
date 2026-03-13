@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Clock, ArrowRight, MagnifyingGlass } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
-import { blogPostsFull } from "../data/mockData";
+import { productService } from "../services/productService";
+import type { BlogPost } from "../types";
 import forestPattern from "../assets/forest_pattern.jpg";
 
 const categories = ["Tất cả", "Chăm sóc cây", "Trang trí", "Sức khỏe", "Phong thủy", "DIY"];
@@ -11,9 +12,14 @@ const categories = ["Tất cả", "Chăm sóc cây", "Trang trí", "Sức khỏe
 export default function BlogPage() {
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const [searchQuery, setSearchQuery] = useState("");
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
 
-  const featured = blogPostsFull.find((p) => p.featured);
-  const filtered = blogPostsFull.filter((p) => {
+  useEffect(() => {
+    productService.getBlogPosts().then(setBlogPosts);
+  }, []);
+
+  const featured = blogPosts.find((p) => p.featured);
+  const filtered = blogPosts.filter((p) => {
     const matchCat = selectedCategory === "Tất cả" || p.category === selectedCategory;
     const matchSearch = !searchQuery.trim() || p.title.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCat && matchSearch;

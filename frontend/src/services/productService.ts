@@ -1,87 +1,63 @@
-import { products, categories, blogPosts } from "../data/mockData";
+import axios from "axios";
 import type { Product, Category, BlogPost } from "../types";
 
-// Simulate network delay
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+const api = axios.create({ baseURL: API_URL });
 
 export interface ProductFilters {
   category?: string;
   search?: string;
   minPrice?: number;
   maxPrice?: number;
-  includeType?: string; // "planter" | "combo" | "flowers" | "service"
+  includeType?: string;
   page?: number;
   pageSize?: number;
 }
 
 export const productService = {
   async getProducts(filters?: ProductFilters): Promise<{ products: Product[]; total: number }> {
-    await delay(300);
+    const params: Record<string, string | number | undefined> = {};
+    if (filters?.category) params.category = filters.category;
+    if (filters?.search) params.search = filters.search;
+    if (filters?.minPrice !== undefined) params.minPrice = filters.minPrice;
+    if (filters?.maxPrice !== undefined) params.maxPrice = filters.maxPrice;
+    if (filters?.page) params.page = filters.page;
+    if (filters?.pageSize) params.pageSize = filters.pageSize;
 
-    let filtered = [...products];
-
-    if (filters?.category) {
-      filtered = filtered.filter((p) => p.category === filters.category);
-    }
-
-    if (filters?.search) {
-      const q = filters.search.toLowerCase();
-      filtered = filtered.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q)
-      );
-    }
-
-    if (filters?.minPrice !== undefined) {
-      filtered = filtered.filter((p) => p.price >= filters.minPrice!);
-    }
-
-    if (filters?.maxPrice !== undefined) {
-      filtered = filtered.filter((p) => p.price <= filters.maxPrice!);
-    }
-
-    const total = filtered.length;
-    const page = filters?.page ?? 1;
-    const pageSize = filters?.pageSize ?? 9;
-    const start = (page - 1) * pageSize;
-    const paginated = filtered.slice(start, start + pageSize);
-
-    return { products: paginated, total };
+    const res = await api.get("/products", { params });
+    return res.data;
   },
 
   async getProductById(id: string): Promise<Product | null> {
-    await delay(200);
-    return products.find((p) => p.id === id) ?? null;
+    try {
+      const res = await api.get(`/products/${id}`);
+      return res.data;
+    } catch {
+      return null;
+    }
   },
 
   async getRelatedProducts(id: string, limit = 4): Promise<Product[]> {
-    await delay(200);
-    const target = products.find((p) => p.id === id);
-    if (!target) return products.slice(0, limit);
-
-    return products
-      .filter((p) => p.id !== id && p.category === target.category)
-      .concat(products.filter((p) => p.id !== id && p.category !== target.category))
-      .slice(0, limit);
+    const res = await api.get(`/products/${id}/related`, { params: { limit } });
+    return res.data;
   },
 
   async getCategories(): Promise<Category[]> {
-    await delay(150);
-    return categories;
+    const res = await api.get("/categories");
+    return res.data;
   },
 
   async getBlogPosts(): Promise<BlogPost[]> {
-    await delay(200);
-    return blogPosts;
+    const res = await api.get("/blog");
+    return res.data;
   },
 
-  async searchProducts(query: string, limit = 5): Promise<Pick<Product, "id" | "title" | "category">[]> {
-    await delay(100);
-    const q = query.toLowerCase();
-    return products
-      .filter((p) => p.title.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
-      .slice(0, limit)
-      .map((p) => ({ id: p.id, title: p.title, category: p.category }));
+  async searchProducts(
+    query: string,
+    limit = 5
+  ): Promise<Pick<Product, "id" | "title" | "category">[]> {
+    const res = await api.get("/products/search", { params: { q: query, limit } });
+    return res.data;
   },
 };

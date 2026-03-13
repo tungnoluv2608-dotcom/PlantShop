@@ -54,6 +54,7 @@ frontend/.env
 # Optional eslint cache
 .eslintcache
 frontend/.eslintcache
+.agent
 
 # Vite specific
 *.local

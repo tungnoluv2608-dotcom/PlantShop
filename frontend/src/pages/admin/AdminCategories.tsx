@@ -1,21 +1,36 @@
-import { useState } from "react";
-import { Plus, PencilSimple, Trash, Tag, X } from "@phosphor-icons/react";
-import { categories } from "../../data/mockData";
+import { useState, useEffect } from "react";
+import { Plus, PencilSimple, Trash, Tag, X, CloudArrowUp } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import type { Category } from "../../types";
-
-interface EditableCategory extends Category {
-  deleted?: boolean;
-}
+import { useImageUpload } from "../../hooks/useImageUpload";
+import { adminApi } from "../../services/apiService";
 
 export default function AdminCategories() {
-  const [cats, setCats] = useState<EditableCategory[]>(
-    categories.map((c) => ({ ...c }))
-  );
+  const [cats, setCats] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<EditableCategory | null>(null);
+  const [editing, setEditing] = useState<Category | null>(null);
   const [draft, setDraft] = useState({ name: "", image: "", subcategories: [] as string[] });
+
+  const fetchCats = async () => {
+    try {
+      const data = await adminApi.listCategories();
+      setCats(data as Category[]);
+    } catch {
+      toast.error("Lỗi khi tải danh mục.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCats();
+  }, []);
   const [newSub, setNewSub] = useState("");
+
+  const { triggerUpload, uploading, InputElement } = useImageUpload({ multiple: false });
+
+  const handleImageSuccess = (urls: string[]) => setDraft((prev) => ({ ...prev, image: urls[0] }));
 
   const openAdd = () => {
     setEditing(null);
@@ -24,35 +39,39 @@ export default function AdminCategories() {
     setModalOpen(true);
   };
 
-  const openEdit = (cat: EditableCategory) => {
+  const openEdit = (cat: Category) => {
     setEditing(cat);
     setDraft({ name: cat.name, image: cat.image, subcategories: [...(cat.subcategories ?? [])] });
     setNewSub("");
     setModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!draft.name.trim()) { toast.error("Tên danh mục không được để trống"); return; }
-    if (editing) {
-      setCats((prev) => prev.map((c) => c.id === editing.id ? { ...c, ...draft } : c));
-      toast.success(`Đã cập nhật: ${draft.name}`);
-    } else {
-      const newCat: EditableCategory = {
-        id: String(Date.now()),
-        name: draft.name,
-        image: draft.image || "https://images.unsplash.com/photo-1416879598555-081e6ae76d05?w=500&auto=format&fit=crop",
-        subcategories: draft.subcategories,
-      };
-      setCats((prev) => [...prev, newCat]);
-      toast.success(`Đã thêm: ${draft.name}`);
+    try {
+      if (editing) {
+        await adminApi.updateCategory(editing.id, draft);
+        toast.success(`Đã cập nhật: ${draft.name}`);
+      } else {
+        await adminApi.createCategory(draft);
+        toast.success(`Đã thêm: ${draft.name}`);
+      }
+      setModalOpen(false);
+      fetchCats();
+    } catch {
+      toast.error("Lưu danh mục thất bại");
     }
-    setModalOpen(false);
   };
 
-  const handleDelete = (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (window.confirm(`Xóa danh mục "${name}"?`)) {
-      setCats((prev) => prev.filter((c) => c.id !== id));
-      toast.success(`Đã xóa: ${name}`);
+      try {
+        await adminApi.deleteCategory(id);
+        toast.success(`Đã xóa: ${name}`);
+        fetchCats();
+      } catch {
+        toast.error("Xóa thất bại");
+      }
     }
   };
 
@@ -80,6 +99,11 @@ export default function AdminCategories() {
       </div>
 
       {/* Category Grid */}
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <span className="w-8 h-8 border-2 border-[#102C26] border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {cats.map((cat) => (
           <div key={cat.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-md transition-shadow">
@@ -117,6 +141,7 @@ export default function AdminCategories() {
           </div>
         ))}
       </div>
+      )}
 
       {/* Modal */}
       {modalOpen && (
@@ -138,13 +163,20 @@ export default function AdminCategories() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">URL ảnh đại diện</label>
-                <input value={draft.image} onChange={(e) => setDraft((p) => ({ ...p, image: e.target.value }))}
-                  placeholder="https://..."
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all" />
-                {draft.image && (
-                  <img src={draft.image} alt="preview" className="w-full h-24 object-cover rounded-xl mt-2 border border-gray-100" />
-                )}
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ảnh đại diện</label>
+                <div onClick={triggerUpload} className={`w-full h-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative group ${draft.image ? "border-transparent" : "border-gray-300 hover:border-[#102C26]"}`}>
+                  {draft.image ? (
+                    <>
+                      <img src={draft.image} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white"><CloudArrowUp size={24}/> Thay đổi</div>
+                    </>
+                  ) : uploading ? (
+                    <span className="animate-spin border-2 border-[#102C26] border-t-transparent w-6 h-6 rounded-full"/>
+                  ) : (
+                    <div className="text-gray-400 text-center"><CloudArrowUp size={24} className="mx-auto mb-1"/><span className="text-sm">Tải ảnh lên</span></div>
+                  )}
+                </div>
+                <InputElement onSuccess={handleImageSuccess} />
               </div>
 
               <div>
