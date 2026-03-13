@@ -4,7 +4,6 @@ import { HeroBanner } from "../components/home/HeroBanner";
 import { Categories } from "../components/home/Categories";
 import { BestSelling } from "../components/home/BestSelling";
 import { HotSale } from "../components/home/HotSale";
-import { LandscapePromo } from "../components/home/LandscapePromo";
 import { TrendingPlants } from "../components/home/TrendingPlants";
 import { Blogs } from "../components/home/Blogs";
 
@@ -20,7 +19,6 @@ export default function HomePage() {
         <Categories />
         <BestSelling />
         <HotSale />
-        <LandscapePromo />
         <TrendingPlants />
         <Blogs />
       </main>

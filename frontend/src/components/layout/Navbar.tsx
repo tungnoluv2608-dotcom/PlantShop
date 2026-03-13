@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { MagnifyingGlass, CaretDown, ShoppingCart, UserCircle, Plant, List, X } from "@phosphor-icons/react";
+import { MagnifyingGlass, CaretDown, ShoppingCart, UserCircle, Plant, List, X, SignOut } from "@phosphor-icons/react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { useCartStore } from "../../stores/cartStore";
+import { useAuthStore } from "../../stores/authStore";
 import { productService } from "../../services/productService";
+import { authService } from "../../services/authService";
+import { toast } from "sonner";
 
 interface SearchResult {
   id: string;
@@ -51,17 +54,43 @@ export function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const totalItems = useCartStore((s) => s.totalItems());
+  const { user, isAuthenticated, clearAuth } = useAuthStore();
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close search on outside click
+  // Close search and user dropdown on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setIsSearchFocused(false);
       }
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setIsUserDropdownOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await authService.signOut();
+      clearAuth();
+      toast.success("Đã đăng xuất");
+      navigate("/");
+    } catch (error) {
+      toast.error("Lỗi khi đăng xuất");
+    }
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -241,9 +270,45 @@ export function Navbar() {
                 </span>
               )}
             </Link>
-            <Link to="/signin" className="hover:text-primary transition-colors block">
-              <UserCircle size={24} />
-            </Link>
+            
+            {isAuthenticated ? (
+              <div className="relative" ref={userDropdownRef}>
+                <button 
+                  onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                  className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary border border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer"
+                >
+                  {getInitials(user?.name || "U")}
+                </button>
+                
+                {isUserDropdownOpen && (
+                  <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="px-4 py-3 border-b border-gray-50 bg-gray-50/30">
+                      <p className="text-xs text-gray-400 font-medium truncate uppercase tracking-wider">Tài khoản</p>
+                      <p className="text-sm font-bold text-gray-800 truncate">{user?.name}</p>
+                    </div>
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsUserDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors"
+                    >
+                      <UserCircle size={18} />
+                      Trang cá nhân
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors border-t border-gray-50"
+                    >
+                      <SignOut size={18} />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link to="/signin" className="hover:text-primary transition-colors block">
+                <UserCircle size={24} />
+              </Link>
+            )}
           </div>
         </div>
 
@@ -347,19 +412,47 @@ export function Navbar() {
             </div>
 
             {/* Auth Links */}
-            <div className="border-t border-gray-100 p-4 flex gap-3">
-              <Link
-                to="/signin"
-                className="flex-1 text-center py-3 rounded-xl border border-primary text-primary font-semibold hover:bg-primary/5 transition-colors"
-              >
-                Đăng nhập
-              </Link>
-              <Link
-                to="/signup"
-                className="flex-1 text-center py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
-              >
-                Đăng ký
-              </Link>
+            <div className="border-t border-gray-100 p-4">
+              {isAuthenticated ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-2 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary border border-primary/20">
+                      {getInitials(user?.name || "U")}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">{user?.name}</p>
+                      <p className="text-xs text-gray-500">{user?.email}</p>
+                    </div>
+                  </div>
+                  <Link
+                    to="/profile"
+                    className="block w-full text-center py-3 rounded-xl border border-primary text-primary font-semibold hover:bg-primary/5 transition-colors"
+                  >
+                    Trang cá nhân
+                  </Link>
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full text-center py-3 rounded-xl bg-red-50 text-red-500 font-semibold hover:bg-red-100 transition-colors"
+                  >
+                    Đăng xuất
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-3">
+                  <Link
+                    to="/signin"
+                    className="flex-1 text-center py-3 rounded-xl border border-primary text-primary font-semibold hover:bg-primary/5 transition-colors"
+                  >
+                    Đăng nhập
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="flex-1 text-center py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
+                  >
+                    Đăng ký
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>

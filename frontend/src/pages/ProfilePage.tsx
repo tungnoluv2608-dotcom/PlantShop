@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router";
 import {
   User, ShoppingBag, MapPin, Heart, Key, Package,
   CheckCircle, Truck, Clock, XCircle, WarningCircle,
@@ -10,6 +10,7 @@ import { Footer } from "../components/layout/Footer";
 import { mockOrders } from "../data/mockData";
 import type { Order } from "../types";
 import { toast } from "sonner";
+import { useAuthStore } from "../stores/authStore";
 
 const tabs = [
   { id: "profile", label: "Hồ sơ", icon: User },
@@ -124,13 +125,51 @@ function OrderCard({ order }: { order: Order }) {
 }
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
+  const { user, isAuthenticated, updateUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState("profile");
-  const [profileForm, setProfileForm] = useState({ name: "Nguyễn Văn Minh", email: "minh@email.com", phone: "0901 234 567", dob: "1995-06-15" });
+  const [profileForm, setProfileForm] = useState({ 
+    name: user?.name || "", 
+    email: user?.email || "", 
+    phone: "0901 234 567", 
+    dob: "1995-06-15" 
+  });
   const [orderFilter, setOrderFilter] = useState<string>("all");
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/signin");
+      toast.error("Vui lòng đăng nhập để xem trang cá nhân");
+    }
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      setProfileForm(prev => ({
+        ...prev,
+        name: user.name,
+        email: user.email
+      }));
+    }
+  }, [user]);
 
   const filteredOrders = orderFilter === "all" ? mockOrders : mockOrders.filter((o) => o.status === orderFilter);
 
-  const handleProfileSave = () => toast.success("Đã cập nhật hồ sơ thành công!");
+  const handleProfileSave = () => {
+    updateUser({ name: profileForm.name, email: profileForm.email });
+    toast.success("Đã cập nhật hồ sơ thành công!");
+  };
+
+  if (!isAuthenticated) return null;
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
     <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
@@ -141,7 +180,7 @@ export default function ProfilePage() {
         <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6 flex items-center gap-5 mb-6">
           <div className="relative">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-black text-primary border-2 border-primary/20">
-              NM
+              {getInitials(profileForm.name || "User")}
             </div>
             <button className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow">
               <Camera size={12} weight="fill" className="text-white" />

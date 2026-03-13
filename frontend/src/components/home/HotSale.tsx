@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router";
 import { SectionHeader } from "../ui/SectionHeader";
 import { ProductCard } from "../ui/ProductCard";
 import { products } from "../../data/mockData";
@@ -6,10 +7,19 @@ import { products } from "../../data/mockData";
 const hotProducts = products.filter((p) => p.discount).slice(0, 4);
 
 export function HotSale() {
+  const navigate = useNavigate();
+
+  const handleViewAll = () => {
+    navigate("/shop?filter=sale");
+  };
+
   return (
     <section className="py-16 bg-gray-50">
       <div className="container mx-auto px-6 md:px-12">
-        <SectionHeader title="Khuyến mãi Hot" />
+        <SectionHeader 
+          title="Khuyến mãi Hot" 
+          onViewAllClick={handleViewAll}
+        />
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
           {hotProducts.map(product => (

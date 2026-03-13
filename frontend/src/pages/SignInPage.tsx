@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authService } from "../services/authService";
+import { useAuthStore } from "../stores/authStore";
 import { toast } from "sonner";
 
 const signInSchema = z.object({
@@ -25,6 +26,7 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const setAuth = useAuthStore((state) => state.setAuth);
 
   const {
     register,
@@ -38,9 +40,10 @@ export default function SignInPage() {
   const onSubmit = async (data: SignInFormData) => {
     setIsLoading(true);
     try {
-      await authService.signIn({ email: data.email, password: data.password });
+      const response = await authService.signIn({ email: data.email, password: data.password });
+      setAuth(response.user, response.token);
       toast.success("Đăng nhập thành công!", {
-        description: "Chào mừng bạn quay lại PlantWeb 🌿",
+        description: `Chào mừng bạn quay lại, ${response.user.name} 🌿`,
       });
       navigate("/");
     } catch (error) {

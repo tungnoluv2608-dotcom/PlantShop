@@ -1,4 +1,5 @@
 import { ArrowRight } from "@phosphor-icons/react";
+import { useNavigate } from "react-router";
 
 const categories = [
   { id: 1, name: "Bonsai", image: "https://images.unsplash.com/photo-1613143525642-45e079c65692?w=500&auto=format&fit=crop" },
@@ -10,12 +11,25 @@ const categories = [
 ];
 
 export function Categories() {
+  const navigate = useNavigate();
+
+  const handleCategoryClick = (categoryName: string) => {
+    navigate(`/shop?category=${encodeURIComponent(categoryName)}`);
+  };
+
+  const handleViewAll = () => {
+    navigate("/shop");
+  };
+
   return (
     <section className="py-16">
       <div className="container mx-auto px-6 md:px-12">
         <div className="flex justify-between items-end mb-10">
           <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Danh mục PlantWeb</h2>
-          <button className="flex items-center gap-1 text-primary/80 font-semibold hover:text-primary transition-colors group">
+          <button 
+            onClick={handleViewAll}
+            className="flex items-center gap-1 text-primary/80 font-semibold hover:text-primary transition-colors group cursor-pointer"
+          >
             Xem tất cả
             <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
           </button>
@@ -23,7 +37,11 @@ export function Categories() {
 
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-6 md:gap-8">
           {categories.map((cat) => (
-            <div key={cat.id} className="flex flex-col items-center group cursor-pointer">
+            <div 
+              key={cat.id} 
+              className="flex flex-col items-center group cursor-pointer"
+              onClick={() => handleCategoryClick(cat.name)}
+            >
               <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden mb-4 shadow-sm border-4 border-transparent group-hover:border-secondary transition-all duration-300 relative">
                 <img
                   src={cat.image}

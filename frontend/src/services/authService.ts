@@ -6,6 +6,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // Mock user database
 const mockUsers: (User & { password: string })[] = [
   { id: "1", name: "Nguyễn Văn A", email: "demo@plantweb.vn", password: "123456" },
+  { id: "2", name: "Test User", email: "test@example.com", password: "password123" },
 ];
 
 export const authService = {
