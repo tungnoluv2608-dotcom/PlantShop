@@ -38,7 +38,7 @@ async function getProducts(req, res, next) {
     const result = await request.query(
       `SELECT p.id, p.title, p.price, p.original_price AS originalPrice, p.discount,
               p.description, p.image_url AS imageUrl, c.name AS category,
-              p.bio, p.in_stock AS inStock
+              p.bio, p.in_stock AS inStock, p.planter_options AS planterOptions
        FROM Products p
        LEFT JOIN Categories c ON p.category_id = c.id
        ${where}
@@ -85,7 +85,7 @@ async function getProductById(req, res, next) {
       .query(
         `SELECT p.id, p.title, p.price, p.original_price AS originalPrice, p.discount,
                 p.description, p.image_url AS imageUrl, c.name AS category,
-                p.bio, p.in_stock AS inStock
+                p.bio, p.in_stock AS inStock, p.planter_options AS planterOptions
          FROM Products p
          LEFT JOIN Categories c ON p.category_id = c.id
          WHERE p.id = @id`
@@ -124,7 +124,7 @@ async function getRelatedProducts(req, res, next) {
       .query(
         `SELECT TOP (@limit) p.id, p.title, p.price, p.original_price AS originalPrice,
                 p.discount, p.description, p.image_url AS imageUrl, c.name AS category,
-                p.bio, p.in_stock AS inStock
+                p.bio, p.in_stock AS inStock, p.planter_options AS planterOptions
          FROM Products p
          LEFT JOIN Categories c ON p.category_id = c.id
          WHERE p.id <> @id
@@ -169,6 +169,7 @@ async function enrichProducts(pool, products) {
     ...p,
     images: imagesMap[p.id] || [p.imageUrl],
     careGuide: careMap[p.id] || [],
+    planterOptions: p.planterOptions ? JSON.parse(p.planterOptions) : []
   }));
 }
 

@@ -59,16 +59,20 @@ async function listProducts(req, res, next) {
     const result = await pool.request().query(
       `SELECT p.id, p.title, p.price, p.original_price AS originalPrice, p.discount,
               p.description, p.image_url AS imageUrl, c.name AS category,
-              p.bio, p.in_stock AS inStock
+              p.bio, p.in_stock AS inStock, p.planter_options AS planterOptions
        FROM Products p LEFT JOIN Categories c ON p.category_id = c.id ORDER BY p.id DESC`
     );
-    return res.json(result.recordset);
+    const products = result.recordset.map(p => ({
+      ...p,
+      planterOptions: p.planterOptions ? JSON.parse(p.planterOptions) : []
+    }));
+    return res.json(products);
   } catch (err) { next(err); }
 }
 
 async function createProduct(req, res, next) {
   try {
-    const { title, price, originalPrice, discount, description, imageUrl, categoryId, bio, inStock, images, careGuide } = req.body;
+    const { title, price, originalPrice, discount, description, imageUrl, categoryId, bio, inStock, images, careGuide, planterOptions } = req.body;
     const pool = await getPool();
     const result = await pool.request()
       .input("title", sql.NVarChar, title)
@@ -80,8 +84,9 @@ async function createProduct(req, res, next) {
       .input("categoryId", sql.Int, categoryId)
       .input("bio", sql.NVarChar, bio || null)
       .input("inStock", sql.Bit, inStock !== false)
-      .query(`INSERT INTO Products (title, price, original_price, discount, description, image_url, category_id, bio, in_stock)
-              OUTPUT INSERTED.id VALUES (@title, @price, @originalPrice, @discount, @description, @imageUrl, @categoryId, @bio, @inStock)`);
+      .input("planterOptions", sql.NVarChar, planterOptions ? JSON.stringify(planterOptions) : null)
+      .query(`INSERT INTO Products (title, price, original_price, discount, description, image_url, category_id, bio, in_stock, planter_options)
+              OUTPUT INSERTED.id VALUES (@title, @price, @originalPrice, @discount, @description, @imageUrl, @categoryId, @bio, @inStock, @planterOptions)`);
 
     const productId = result.recordset[0].id;
     if (images?.length) {
@@ -103,7 +108,7 @@ async function createProduct(req, res, next) {
 
 async function updateProduct(req, res, next) {
   try {
-    const { title, price, originalPrice, discount, description, imageUrl, categoryId, bio, inStock, images, careGuide } = req.body;
+    const { title, price, originalPrice, discount, description, imageUrl, categoryId, bio, inStock, images, careGuide, planterOptions } = req.body;
     const pool = await getPool();
     await pool.request()
       .input("id", sql.Int, req.params.id)
@@ -116,8 +121,9 @@ async function updateProduct(req, res, next) {
       .input("categoryId", sql.Int, categoryId)
       .input("bio", sql.NVarChar, bio || null)
       .input("inStock", sql.Bit, inStock !== false)
+      .input("planterOptions", sql.NVarChar, planterOptions ? JSON.stringify(planterOptions) : null)
       .query(`UPDATE Products SET title=@title, price=@price, original_price=@originalPrice, discount=@discount,
-              description=@description, image_url=@imageUrl, category_id=@categoryId, bio=@bio, in_stock=@inStock
+              description=@description, image_url=@imageUrl, category_id=@categoryId, bio=@bio, in_stock=@inStock, planter_options=@planterOptions
               WHERE id=@id`);
 
     // Replace images and care guides

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router";
+import { useParams, useNavigate } from "react-router";
 import { CaretDown, CheckCircle, MapPin, Plus, Minus, CaretLeft, CaretRight, Star, ThumbsUp, Image as ImageIcon } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
 import { ProductCard } from "../components/ui/ProductCard";
 import { productService } from "../services/productService";
+import { planterApi } from "../services/apiService";
 import { useCartStore } from "../stores/cartStore";
+import { useAuthStore } from "../stores/authStore";
 import { toast } from "sonner";
 import type { Product } from "../types";
 import { mockReviews } from "../data/mockData";
@@ -18,24 +20,43 @@ export default function ProductPage() {
   const [mainImageIndex, setMainImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("care");
-  const [planter, setPlanter] = useState("Có");
+  const [planter, setPlanter] = useState("Không"); // Changed default to "Không"
+  const [availablePlanters, setAvailablePlanters] = useState<any[]>([]); // New state for available planters
   const [pincode, setPincode] = useState("");
   const [isCheckingDelivery, setIsCheckingDelivery] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
       const productId = id ?? "1";
+      
       const [productData, related] = await Promise.all([
         productService.getProductById(productId),
         productService.getRelatedProducts(productId),
       ]);
+      
       setProduct(productData);
       setRelatedProducts(related);
       setMainImageIndex(0);
       setQuantity(1);
       setActiveTab("care");
+
+      if (productData.planterOptions && productData.planterOptions.length > 0) {
+        try {
+          const allPlanters = await planterApi.list();
+          const filtered = allPlanters.filter((p: any) => productData.planterOptions.includes(p.id));
+          setAvailablePlanters(filtered);
+          if (filtered.length > 0) {
+            setPlanter(`Có (Kèm ${filtered[0].name})`);
+          }
+        } catch (error) {
+          console.error("Failed to fetch planters", error);
+        }
+      }
+
       setIsLoading(false);
     }
     fetchData();
@@ -56,12 +77,20 @@ export default function ProductPage() {
 
   const handleAddToCart = () => {
     if (!product) return;
+    
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng");
+      navigate("/signin");
+      return;
+    }
+
     addItem({
       id: product.id,
       title: product.title,
       price: product.price,
       image: product.images[0],
       planter: planter,
+      quantity: quantity,
     });
     toast.success("Đã thêm vào giỏ hàng!", {
       description: `${product.title} x${quantity}`,
@@ -194,15 +223,17 @@ export default function ProductPage() {
 
                {/* Include Planter */}
                <div>
-                <span className="block text-sm font-semibold mb-2">Kèm theo chậu</span>
+                <span className="block text-sm font-semibold mb-2">Chậu đi kèm</span>
                 <div className="relative border border-border rounded-md bg-white">
                   <select
                     value={planter}
                     onChange={(e) => setPlanter(e.target.value)}
-                    className="appearance-none outline-none py-2 pl-4 pr-10 bg-transparent text-foreground cursor-pointer font-medium"
+                    className="appearance-none outline-none py-2 pl-4 pr-10 bg-transparent text-foreground cursor-pointer font-medium w-full"
                   >
-                    <option value="Có">Có</option>
-                    <option value="Không">Không</option>
+                    <option value="Không">Không (Chỉ cây và chậu nhựa ươm)</option>
+                    {availablePlanters.map(p => (
+                      <option key={p.id} value={`Có (Kèm ${p.name})`}>Có (Kèm {p.name} {p.price ? `+${p.price.toLocaleString("vi-VN")}đ` : ""})</option>
+                    ))}
                   </select>
                   <CaretDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-foreground" />
                 </div>

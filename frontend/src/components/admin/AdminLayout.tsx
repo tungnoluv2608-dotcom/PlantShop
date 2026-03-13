@@ -6,7 +6,6 @@ import {
   FolderOpen, Star, Flower
 } from "@phosphor-icons/react";
 import { useAdminStore } from "../../stores/adminStore";
-import { Toaster } from "sonner";
 
 const navItems = [
   { to: "/admin", label: "Dashboard", icon: Gauge, exact: true },
@@ -101,8 +100,6 @@ export default function AdminLayout() {
 
   return (
     <div className="flex h-screen bg-[#F4F6F8] font-sans overflow-hidden">
-      <Toaster richColors position="top-right" />
-
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-[#0F1923] border-r border-white/5 shadow-2xl">
         <SidebarContent user={user} onClose={() => {}} onLogout={handleLogout} />

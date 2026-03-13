@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router";
 import { useCartStore } from "../../stores/cartStore";
+import { useAuthStore } from "../../stores/authStore";
 import { toast } from "sonner";
 
 interface CategoryCardProps {
@@ -13,6 +14,7 @@ interface CategoryCardProps {
 export function CategoryCard({ id, title, price, imageUrl, onShopClick }: CategoryCardProps) {
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const handleBuyNow = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -22,6 +24,12 @@ export function CategoryCard({ id, title, price, imageUrl, onShopClick }: Catego
     }
     
     if (id && price) {
+      if (!isAuthenticated) {
+        toast.error("Vui lòng đăng nhập để mua hàng");
+        navigate("/signin");
+        return;
+      }
+
       addItem({
         id,
         title,
@@ -39,7 +47,11 @@ export function CategoryCard({ id, title, price, imageUrl, onShopClick }: Catego
     if (id) {
       navigate(`/product/${id}`);
     } else {
-      onShopClick?.() || navigate("/shop");
+      if (onShopClick) {
+        onShopClick();
+      } else {
+        navigate("/shop");
+      }
     }
   };
 

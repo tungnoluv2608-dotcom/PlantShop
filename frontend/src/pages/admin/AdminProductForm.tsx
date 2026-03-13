@@ -19,6 +19,7 @@ export default function AdminProductForm() {
     title: "",
     price: 0,
     originalPrice: "" as number | "",
+    discount: "",
     category: "",
     description: "",
     imageUrl: "",
@@ -46,6 +47,7 @@ export default function AdminProductForm() {
           title: product.title ?? "",
           price: product.price ?? 0,
           originalPrice: product.originalPrice ?? "",
+          discount: product.discount ?? "",
           category: product.category ?? (cats.length > 0 ? cats[0].name : ""),
           description: product.description ?? "",
           imageUrl: product.imageUrl ?? "",
@@ -112,11 +114,29 @@ export default function AdminProductForm() {
     }
     
     try {
+      const selectedCategory = categories.find(c => c.name === form.category);
+      const categoryIdFilter = selectedCategory ? selectedCategory.id : (categories[0]?.id || 1);
+
+      const payload = {
+        title: form.title,
+        price: form.price,
+        originalPrice: form.originalPrice,
+        discount: form.discount,
+        description: form.description,
+        bio: form.bio,
+        inStock: form.inStock,
+        categoryId: categoryIdFilter,
+        planterOptions: form.planterOptions,
+        imageUrl: form.imageUrl,
+        images: form.images.filter(Boolean),
+        careGuide: careGuide.filter((g) => g.title && g.content),
+      };
+
       if (isEdit) {
-        await adminApi.updateProduct(id!, form);
+        await adminApi.updateProduct(id!, payload);
         toast.success(`Đã cập nhật: ${form.title}`);
       } else {
-        await adminApi.createProduct(form);
+        await adminApi.createProduct(payload);
         toast.success(`Đã thêm sản phẩm: ${form.title}`);
       }
       navigate("/admin/products");

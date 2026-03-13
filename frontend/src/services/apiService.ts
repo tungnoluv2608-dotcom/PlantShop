@@ -42,6 +42,11 @@ export const reviewApi = {
     api.post("/reviews", body).then((r) => r.data),
 };
 
+// ── Planters ───────────────────────────────────────────────────
+export const planterApi = {
+  list: () => api.get("/planters").then((r) => r.data),
+};
+
 // ── Admin ──────────────────────────────────────────────────────
 export const adminApi = {
   login: (email: string, password: string) =>

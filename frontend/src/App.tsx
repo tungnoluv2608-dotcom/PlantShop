@@ -29,11 +29,13 @@ import AdminBlog from './pages/admin/AdminBlog'
 import AdminCategories from './pages/admin/AdminCategories'
 import AdminReviews from './pages/admin/AdminReviews'
 import AdminPlanters from './pages/admin/AdminPlanters'
+import { Toaster } from 'sonner'
 
 function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <Toaster position="bottom-right" richColors />
       <Routes>
         {/* Public / Shop routes */}
         <Route path='/' element={<HomePage />} />
