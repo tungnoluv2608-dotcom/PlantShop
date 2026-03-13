@@ -69,7 +69,8 @@ CREATE TABLE Planters (
     material  NVARCHAR(255)  NOT NULL,
     price     DECIMAL(18, 2) NOT NULL,
     image_url NVARCHAR(1000),
-    in_stock  BIT            NOT NULL DEFAULT 1
+    in_stock  BIT            NOT NULL DEFAULT 1,
+    type      NVARCHAR(50)   NOT NULL DEFAULT 'planter'
 );
 GO
 

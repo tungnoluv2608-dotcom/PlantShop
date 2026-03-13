@@ -94,7 +94,9 @@ export function Navbar() {
 
   // Close mobile menu on route change
   useEffect(() => {
+    // eslint-disable-next-line react-compiler/react-compiler
     setIsMobileMenuOpen(false);
+    // eslint-disable-next-line react-compiler/react-compiler
     setOpenDropdown(null);
   }, [location.pathname]);
 
@@ -107,6 +109,7 @@ export function Navbar() {
   // Search with debounce
   useEffect(() => {
     if (!searchQuery.trim()) {
+      // eslint-disable-next-line react-compiler/react-compiler
       setSearchResults([]);
       return;
     }
@@ -136,7 +139,9 @@ export function Navbar() {
   };
 
   const handleDropdownLeave = () => {
-    dropdownTimeoutRef.current = setTimeout(() => setOpenDropdown(null), 200);
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setOpenDropdown(null);
+    }, 200);
   };
 
   return (
@@ -188,7 +193,11 @@ export function Navbar() {
                   {dropdown.items.map((item) => (
                     <Link
                       key={item.name}
-                      to={`/shop?category=${encodeURIComponent(item.category)}`}
+                      to={
+                        dropdown.label === "Cây cảnh"
+                          ? `/shop?category=${encodeURIComponent(item.category)}`
+                          : `/planters?material=${encodeURIComponent(item.category)}`
+                      }
                       className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors border-b border-gray-50 last:border-0"
                     >
                       {item.name}
@@ -399,7 +408,11 @@ export function Navbar() {
                       {dropdown.items.map((item) => (
                         <Link
                           key={item.name}
-                          to={`/shop?category=${encodeURIComponent(item.category)}`}
+                          to={
+                            dropdown.label === "Cây cảnh"
+                              ? `/shop?category=${encodeURIComponent(item.category)}`
+                              : `/planters?material=${encodeURIComponent(item.category)}`
+                          }
                           className="block pl-10 pr-6 py-2.5 text-sm text-gray-600 hover:text-primary transition-colors"
                         >
                           {item.name}

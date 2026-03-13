@@ -87,15 +87,24 @@ async function createOrder(req, res, next) {
       );
 
     for (const item of items) {
+      // Nếu item là chậu mua lẻ thì id có dạng "planter-12", ta gán productId = null.
+      let productId = item.id;
+      let isPlanterItem = false;
+      
+      if (typeof item.id === "string" && item.id.startsWith("planter-")) {
+        productId = null;
+        isPlanterItem = true;
+      }
+
       await pool
         .request()
         .input("orderId", sql.NVarChar, orderId)
-        .input("productId", sql.Int, item.id)
+        .input("productId", sql.Int, productId)
         .input("title", sql.NVarChar, item.title)
         .input("price", sql.Decimal(18, 2), item.price)
         .input("quantity", sql.Int, item.quantity)
         .input("imageUrl", sql.NVarChar, item.image)
-        .input("planterName", sql.NVarChar, item.planter || "")
+        .input("planterName", sql.NVarChar, isPlanterItem ? item.title : (item.planter || ""))
         .query(
           `INSERT INTO OrderItems (order_id, product_id, title, price, quantity, image_url, planter_name)
            VALUES (@orderId, @productId, @title, @price, @quantity, @imageUrl, @planterName)`

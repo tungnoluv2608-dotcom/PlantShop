@@ -349,7 +349,7 @@ async function deleteReview(req, res, next) {
 async function adminListPlanters(req, res, next) {
   try {
     const pool = await getPool();
-    const plantersResult = await pool.request().query("SELECT id, name, material, price, image_url AS imageUrl, in_stock AS inStock FROM Planters ORDER BY id");
+    const plantersResult = await pool.request().query("SELECT id, name, material, price, image_url AS imageUrl, in_stock AS inStock, type FROM Planters ORDER BY id");
     const sizesResult = await pool.request().query("SELECT planter_id, size_label FROM PlanterSizes ORDER BY id");
     const sizesMap = {};
     for (const s of sizesResult.recordset) {
@@ -362,13 +362,13 @@ async function adminListPlanters(req, res, next) {
 
 async function createPlanter(req, res, next) {
   try {
-    const { name, material, price, imageUrl, inStock, sizes = [] } = req.body;
+    const { name, material, price, imageUrl, inStock, type, sizes = [] } = req.body;
     const pool = await getPool();
     const result = await pool.request()
       .input("name", sql.NVarChar, name).input("material", sql.NVarChar, material)
       .input("price", sql.Decimal(18, 2), price).input("imageUrl", sql.NVarChar, imageUrl)
-      .input("inStock", sql.Bit, inStock !== false)
-      .query("INSERT INTO Planters (name, material, price, image_url, in_stock) OUTPUT INSERTED.id VALUES (@name, @material, @price, @imageUrl, @inStock)");
+      .input("inStock", sql.Bit, inStock !== false).input("type", sql.NVarChar, type || "planter")
+      .query("INSERT INTO Planters (name, material, price, image_url, in_stock, type) OUTPUT INSERTED.id VALUES (@name, @material, @price, @imageUrl, @inStock, @type)");
     const planterId = result.recordset[0].id;
     for (const s of sizes) {
       await pool.request().input("pid", sql.Int, planterId).input("size", sql.NVarChar, s)
@@ -380,13 +380,13 @@ async function createPlanter(req, res, next) {
 
 async function updatePlanter(req, res, next) {
   try {
-    const { name, material, price, imageUrl, inStock, sizes } = req.body;
+    const { name, material, price, imageUrl, inStock, type, sizes } = req.body;
     const pool = await getPool();
     await pool.request().input("id", sql.Int, req.params.id)
       .input("name", sql.NVarChar, name).input("material", sql.NVarChar, material)
       .input("price", sql.Decimal(18, 2), price).input("imageUrl", sql.NVarChar, imageUrl)
-      .input("inStock", sql.Bit, inStock !== false)
-      .query("UPDATE Planters SET name=@name, material=@material, price=@price, image_url=@imageUrl, in_stock=@inStock WHERE id=@id");
+      .input("inStock", sql.Bit, inStock !== false).input("type", sql.NVarChar, type || "planter")
+      .query("UPDATE Planters SET name=@name, material=@material, price=@price, image_url=@imageUrl, in_stock=@inStock, type=@type WHERE id=@id");
     if (sizes) {
       await pool.request().input("id", sql.Int, req.params.id).query("DELETE FROM PlanterSizes WHERE planter_id=@id");
       for (const s of sizes) {

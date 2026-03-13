@@ -5,6 +5,7 @@ import SignUpPage from './pages/SignUpPage'
 import ProductPage from './pages/ProductPage'
 import CartPage from './pages/CartPage'
 import ShopPage from './pages/ShopPage'
+import PlantersPage from './pages/PlantersPage'
 import NotFoundPage from './pages/NotFoundPage'
 import CheckoutPage from './pages/CheckoutPage'
 import OrderSuccessPage from './pages/OrderSuccessPage'
@@ -44,6 +45,7 @@ function App() {
         <Route path='/product/:id' element={<ProductPage />} />
         <Route path='/cart' element={<CartPage />} />
         <Route path='/shop' element={<ShopPage />} />
+        <Route path='/planters' element={<PlantersPage />} />
 
         {/* Checkout flow */}
         <Route path='/checkout' element={<CheckoutPage />} />

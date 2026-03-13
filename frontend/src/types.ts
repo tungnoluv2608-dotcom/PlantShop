@@ -66,6 +66,7 @@ export interface Planter {
   imageUrl: string;
   sizes: string[];
   inStock: boolean;
+  type: 'planter' | 'accessory';
 }
 
 export interface SignUpData {
