@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import {
   User, ShoppingBag, MapPin, Heart, Key, Package,
   CheckCircle, Truck, Clock, XCircle, WarningCircle,
@@ -30,7 +30,9 @@ const statusConfig: Record<Order["status"], { label: string; color: string; icon
   returning: { label: "Đang đổi/trả",  color: "text-purple-600 bg-purple-50 border-purple-200", icon: <WarningCircle size={14} weight="fill" /> },
 };
 
-function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) => void }) {
+const isNumericProductId = (id: string) => /^\d+$/.test(id);
+
+function OrderCard({ order, onCancel, onReview }: { order: Order; onCancel: (id: string) => void; onReview: (order: Order) => void }) {
   const [expanded, setExpanded] = useState(false);
   const cfg = statusConfig[order.status];
 
@@ -53,13 +55,28 @@ function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) =
       {/* Items preview */}
       <div className="border-t border-secondary px-5 py-4 flex gap-3 overflow-x-auto">
         {order.items.map((item) => (
-          <div key={item.id} className="flex items-center gap-3 min-w-0 shrink-0">
-            <img src={item.image} alt={item.title} className="w-14 h-14 rounded-xl object-cover border border-secondary shrink-0" />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate max-w-[140px]">{item.title}</p>
-              <p className="text-xs text-foreground/50">x{item.quantity} · {item.price.toLocaleString("vi-VN")}đ</p>
+          isNumericProductId(item.id) ? (
+            <Link
+              key={`${order.id}-${item.id}`}
+              to={`/product/${item.id}`}
+              className="flex items-center gap-3 min-w-0 shrink-0 rounded-xl p-1 -m-1 hover:bg-gray-50 transition-colors"
+              title="Xem sản phẩm"
+            >
+              <img src={item.image} alt={item.title} className="w-14 h-14 rounded-xl object-cover border border-secondary shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate max-w-[140px] hover:text-primary transition-colors">{item.title}</p>
+                <p className="text-xs text-foreground/50">x{item.quantity} · {item.price.toLocaleString("vi-VN")}đ</p>
+              </div>
+            </Link>
+          ) : (
+            <div key={`${order.id}-${item.title}-${item.quantity}`} className="flex items-center gap-3 min-w-0 shrink-0">
+              <img src={item.image} alt={item.title} className="w-14 h-14 rounded-xl object-cover border border-secondary shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate max-w-[140px]">{item.title}</p>
+                <p className="text-xs text-foreground/50">x{item.quantity} · {item.price.toLocaleString("vi-VN")}đ</p>
+              </div>
             </div>
-          </div>
+          )
         ))}
       </div>
 
@@ -71,7 +88,7 @@ function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) =
         <div className="flex gap-2 flex-wrap">
           {order.status === "delivered" && (
             <>
-              <button className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-primary text-primary text-sm font-semibold hover:bg-primary/5 transition-colors">
+              <button onClick={() => onReview(order)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-primary text-primary text-sm font-semibold hover:bg-primary/5 transition-colors">
                 <Star size={15} weight="fill" /> Đánh giá
               </button>
               <button className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors">
@@ -125,9 +142,10 @@ function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) =
 }
 
 export default function ProfilePage() {
+  const location = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated, updateUser } = useAuthStore();
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState(location.pathname === "/profile/orders" ? "orders" : "profile");
   const [profileForm, setProfileForm] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -172,6 +190,15 @@ export default function ProfilePage() {
   };
 
   const filteredOrders = orderFilter === "all" ? orders : orders.filter((o) => o.status === orderFilter);
+
+  const handleReviewOrder = (order: Order) => {
+    const reviewableItem = order.items.find((item) => isNumericProductId(item.id));
+    if (!reviewableItem) {
+      toast.error("Không tìm thấy sản phẩm để đánh giá trong đơn hàng này");
+      return;
+    }
+    navigate(`/product/${reviewableItem.id}?tab=reviews`);
+  };
 
   const handleProfileSave = () => {
     updateUser({ name: profileForm.name, email: profileForm.email });
@@ -289,7 +316,7 @@ export default function ProfilePage() {
                     <Link to="/shop" className="mt-4 inline-block text-primary font-bold hover:underline">Mua sắm ngay →</Link>
                   </div>
                 ) : (
-                  filteredOrders.map((order) => <OrderCard key={order.id} order={order} onCancel={handleCancelOrder} />)
+                  filteredOrders.map((order) => <OrderCard key={order.id} order={order} onCancel={handleCancelOrder} onReview={handleReviewOrder} />)
                 )}
               </div>
             )}

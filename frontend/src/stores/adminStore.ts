@@ -7,6 +7,7 @@ interface AdminUser {
   email: string;
   name: string;
   role: string;
+  avatar?: string;
 }
 
 interface AdminState {

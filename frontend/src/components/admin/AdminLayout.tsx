@@ -20,7 +20,7 @@ const navItems = [
 
 // ── Extracted outside render to avoid "create components during render" lint ──
 interface SidebarProps {
-  user: { name: string; role: string; avatar: string } | null;
+  user: { name: string; role: string; email?: string; avatar?: string } | null;
   onClose: () => void;
   onLogout: () => void;
 }
@@ -68,7 +68,7 @@ function SidebarContent({ user, onClose, onLogout }: SidebarProps) {
       {/* User + Logout */}
       <div className="px-3 py-4 border-t border-white/10">
         <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/5 mb-3">
-          <img src={user?.avatar} alt={user?.name} className="w-8 h-8 rounded-full object-cover border border-white/20 shrink-0" />
+          <img src={user?.avatar || `https://i.pravatar.cc/64?u=${user?.email || user?.name || "admin"}`} alt={user?.name} className="w-8 h-8 rounded-full object-cover border border-white/20 shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="text-white text-xs font-bold truncate">{user?.name}</p>
             <p className="text-white/40 text-[10px] truncate">{user?.role}</p>
@@ -157,7 +157,7 @@ export default function AdminLayout() {
               <Leaf size={14} weight="fill" />
               Xem Store
             </a>
-            <img src={user?.avatar} alt={user?.name}
+            <img src={user?.avatar || `https://i.pravatar.cc/64?u=${user?.email || user?.name || "admin"}`} alt={user?.name}
               className="w-8 h-8 rounded-full object-cover border-2 border-[#102C26]/20 cursor-pointer" />
           </div>
         </header>

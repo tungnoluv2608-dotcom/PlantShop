@@ -11,6 +11,7 @@ export interface Product {
   careGuide?: CareGuide[];
   bio?: string;
   inStock?: boolean;
+  planterOptions?: Array<string | number>;
 }
 
 export interface CareGuide {

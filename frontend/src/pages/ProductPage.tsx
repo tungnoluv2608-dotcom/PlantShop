@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router";
-import { CaretDown, CheckCircle, MapPin, Plus, Minus, CaretLeft, CaretRight, Star, ThumbsUp, Image as ImageIcon, X } from "@phosphor-icons/react";
+import { useLocation, useParams, useNavigate } from "react-router";
+import { CaretDown, CheckCircle, MapPin, Plus, Minus, CaretLeft, CaretRight, Star, ThumbsUp, X, ShoppingCart, Camera, ArrowRight } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
 import { ProductCard } from "../components/ui/ProductCard";
 import { productService } from "../services/productService";
-import { planterApi, reviewApi } from "../services/apiService";
+import { planterApi, reviewApi, orderApi } from "../services/apiService";
 import { useCartStore } from "../stores/cartStore";
 import { useAuthStore } from "../stores/authStore";
 import { useImageUpload } from "../hooks/useImageUpload";
@@ -14,6 +14,7 @@ import type { Product, Review } from "../types";
 
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,7 +36,6 @@ export default function ProductPage() {
   const [hasPurchased, setHasPurchased] = useState(false); // New state for purchase check
   const addItem = useCartStore((s) => s.addItem);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const authUser = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const {
     triggerUpload: triggerReviewImageUpload,
@@ -84,17 +84,27 @@ export default function ProductPage() {
       setRelatedProducts(related);
       setMainImageIndex(0);
       setQuantity(1);
-      setActiveTab("care");
+      const requestedTab = new URLSearchParams(location.search).get("tab");
+      const openReviewTab = requestedTab === "reviews";
+      setActiveTab(openReviewTab ? "reviews" : "care");
       setReviewRating(5);
       setReviewTitle("");
       setReviewContent("");
       setReviewTagsInput("");
       setReviewImages([]);
 
-      if (productData.planterOptions && productData.planterOptions.length > 0) {
+      if (openReviewTab) {
+        setTimeout(() => {
+          const reviewSection = document.getElementById("review-form");
+          reviewSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 0);
+      }
+
+      const planterOptions = productData?.planterOptions ?? [];
+      if (planterOptions.length > 0) {
         try {
           const allPlanters = await planterApi.list();
-          const filtered = allPlanters.filter((p: any) => productData.planterOptions.includes(p.id));
+          const filtered = allPlanters.filter((p: any) => planterOptions.includes(p.id));
           setAvailablePlanters(filtered);
           if (filtered.length > 0) {
             setPlanter(`Có (Kèm ${filtered[0].name})`);
@@ -107,7 +117,7 @@ export default function ProductPage() {
       setIsLoading(false);
     }
     fetchData();
-  }, [id]);
+  }, [id, location.search]);
 
   const increaseQuantity = () => setQuantity((q) => q + 1);
   const decreaseQuantity = () => setQuantity((q) => (q > 1 ? q - 1 : 1));
@@ -453,57 +463,53 @@ export default function ProductPage() {
                 const avgRating = productReviews.length > 0 ? productReviews.reduce((s, r) => s + r.rating, 0) / productReviews.length : 0;
                 const ratingCounts = [5, 4, 3, 2, 1].map(star => ({ star, count: productReviews.filter(r => r.rating === star).length }));
                 return (
-                  <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    {/* Rating Summary Card */}
-                    <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-gray-50 flex flex-col lg:flex-row gap-12 items-center">
-                      <div className="text-center shrink-0 min-w-[200px]">
-                        <div className="relative inline-block mb-4">
-                          <span className="text-8xl font-black bg-gradient-to-br from-primary to-primary/60 bg-clip-text text-transparent leading-none">
-                            {avgRating > 0 ? avgRating.toFixed(1) : "—"}
-                          </span>
-                        </div>
-                        <div className="flex justify-center gap-1.5 my-4">
-                          {[1,2,3,4,5].map(s => (
-                            <Star 
-                              key={s} 
-                              size={28} 
-                              weight={avgRating >= s ? "fill" : "regular"} 
-                              className={avgRating >= s ? "text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]" : "text-gray-100"} 
-                            />
-                          ))}
-                        </div>
-                        <p className="text-base font-medium text-foreground/40 uppercase tracking-widest">{productReviews.length} Đánh giá</p>
-                      </div>
-                      
-                      <div className="flex-1 w-full max-w-xl space-y-4">
-                        {ratingCounts.map(({ star, count }) => (
-                          <div key={star} className="group flex items-center gap-4 text-sm">
-                            <span className="w-4 font-bold text-foreground/40 group-hover:text-primary transition-colors">{star}</span>
-                            <div className="flex-1 bg-gray-50 rounded-full h-3 overflow-hidden border border-gray-100/50">
-                              <div 
-                                className="bg-gradient-to-r from-yellow-400 to-yellow-300 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(250,204,21,0.2)]" 
-                                style={{ width: `${productReviews.length > 0 ? (count / productReviews.length) * 100 : 0}%` }} 
+                  <div className="space-y-8">
+                    <div className="bg-white rounded-2xl border border-secondary p-6 md:p-8 shadow-sm">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                        <div className="text-center lg:text-left">
+                          <p className="text-sm font-semibold text-foreground/60 mb-2">Đánh giá trung bình</p>
+                          <p className="text-5xl font-black text-primary leading-none">{avgRating > 0 ? avgRating.toFixed(1) : "—"}</p>
+                          <div className="flex items-center justify-center lg:justify-start gap-1 mt-3">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star
+                                key={s}
+                                size={18}
+                                weight={avgRating >= s ? "fill" : "regular"}
+                                className={avgRating >= s ? "text-yellow-400" : "text-gray-200"}
                               />
-                            </div>
-                            <span className="w-12 text-foreground/60 font-medium text-right">{count} b/v</span>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                          <p className="text-sm text-foreground/50 mt-2">{productReviews.length} đánh giá</p>
+                        </div>
 
-                      <div className="shrink-0 lg:border-l lg:pl-12 border-gray-100 text-center lg:text-left">
-                        <h4 className="font-bold text-xl text-foreground mb-3">Thêm đánh giá của bạn</h4>
-                        <p className="text-foreground/50 text-sm leading-relaxed max-w-[240px] mb-6">Chia sẻ trải nghiệm của bạn để giúp cộng đồng yêu cây chọn được sản phẩm ưng ý nhất.</p>
-                        {isAuthenticated && hasPurchased && (
-                          <button 
-                            onClick={() => {
-                              const el = document.getElementById('review-form');
-                              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }}
-                            className="bg-primary text-white px-8 py-3.5 rounded-2xl font-black text-sm hover:scale-105 active:scale-95 transition-all shadow-[0_10px_30px_rgba(var(--primary-rgb),0.3)]"
-                          >
-                            Viết đánh giá ngay
-                          </button>
-                        )}
+                        <div className="lg:col-span-2 space-y-3">
+                          {ratingCounts.map(({ star, count }) => (
+                            <div key={star} className="flex items-center gap-3 text-sm">
+                              <span className="w-6 font-semibold text-foreground/70">{star}★</span>
+                              <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                <div
+                                  className="bg-yellow-400 h-full rounded-full transition-all"
+                                  style={{ width: `${productReviews.length > 0 ? (count / productReviews.length) * 100 : 0}%` }}
+                                />
+                              </div>
+                              <span className="w-10 text-right text-foreground/60">{count}</span>
+                            </div>
+                          ))}
+
+                          {isAuthenticated && hasPurchased && (
+                            <div className="pt-2">
+                              <button
+                                onClick={() => {
+                                  const el = document.getElementById("review-form");
+                                  el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                }}
+                                className="bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-semibold hover:bg-primary/90 transition-colors"
+                              >
+                                Viết đánh giá ngay
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -513,62 +519,63 @@ export default function ProductPage() {
                       </div>
                     )}
 
-                    {/* Review Cards Grid */}
                     {!isReviewLoading && productReviews.length === 0 ? (
-                      <div className="text-center py-24 bg-gray-50/50 rounded-[3rem] border border-dashed border-gray-200">
-                        <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl border border-gray-50">
-                          <Star size={40} weight="duotone" className="text-primary/30" />
+                      <div className="text-center py-14 bg-gray-50 rounded-2xl border border-dashed border-gray-300">
+                        <div className="bg-white w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                          <Star size={26} weight="duotone" className="text-primary/40" />
                         </div>
-                        <h3 className="text-xl font-bold text-foreground mb-2">Chưa có đánh giá nào</h3>
-                        <p className="text-foreground/40 max-w-xs mx-auto text-sm">Hãy là người đầu tiên sở hữu và chia sẻ cảm nhận về {product.title}</p>
+                        <h3 className="text-lg font-bold text-foreground mb-1">Chưa có đánh giá nào</h3>
+                        <p className="text-foreground/50 max-w-sm mx-auto text-sm">Hãy là người đầu tiên chia sẻ cảm nhận về {product.title}.</p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="space-y-4">
                         {productReviews.map(review => (
-                          <div key={review.id} className="group bg-white border border-gray-50 p-8 rounded-[2.5rem] shadow-[0_10px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-500">
-                            <div className="flex items-center justify-between mb-6">
+                          <div key={review.id} className="bg-white border border-secondary p-5 md:p-6 rounded-2xl shadow-sm">
+                            <div className="flex items-center justify-between gap-3 mb-4">
                               <div className="flex items-center gap-4">
-                                <div className="relative">
-                                  <img src={review.avatar} alt={review.userName} className="w-14 h-14 rounded-full object-cover border-4 border-white shadow-lg shrink-0" />
+                                <div className="relative shrink-0">
+                                  <img src={review.avatar} alt={review.userName} className="w-12 h-12 rounded-full object-cover border border-secondary" />
                                   {review.verified && (
-                                    <div className="absolute -bottom-1 -right-1 bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow-sm" title="Đã mua hàng">
-                                      <CheckCircle size={14} weight="fill" />
+                                    <div className="absolute -bottom-1 -right-1 bg-green-500 text-white w-5 h-5 rounded-full flex items-center justify-center border-2 border-white" title="Đã mua hàng">
+                                      <CheckCircle size={11} weight="fill" />
                                     </div>
                                   )}
                                 </div>
                                 <div>
-                                  <p className="font-extrabold text-lg text-foreground leading-tight">{review.userName}</p>
-                                  <div className="flex items-center gap-1.5 mt-1">
-                                    {[1,2,3,4,5].map(s => <Star key={s} size={14} weight={review.rating >= s ? "fill" : "regular"} className={review.rating >= s ? "text-yellow-400" : "text-gray-200"} />)}
+                                  <p className="font-bold text-foreground leading-tight">{review.userName}</p>
+                                  <div className="flex items-center gap-1 mt-1">
+                                    {[1, 2, 3, 4, 5].map((s) => (
+                                      <Star key={s} size={13} weight={review.rating >= s ? "fill" : "regular"} className={review.rating >= s ? "text-yellow-400" : "text-gray-200"} />
+                                    ))}
                                   </div>
                                 </div>
                               </div>
-                              <span className="text-xs font-bold text-foreground/20 uppercase tracking-widest">{review.date}</span>
+                              <span className="text-xs text-foreground/50">{review.date}</span>
                             </div>
-                            
-                            <h5 className="font-bold text-foreground mb-3 text-lg leading-snug group-hover:text-primary transition-colors">{review.title}</h5>
-                            <p className="text-foreground/60 leading-relaxed text-sm mb-6">{review.content}</p>
-                            
+
+                            <h5 className="font-semibold text-foreground mb-2 text-base leading-snug">{review.title}</h5>
+                            <p className="text-foreground/70 leading-relaxed text-sm mb-4">{review.content}</p>
+
                             {review.images && review.images.length > 0 && (
-                              <div className="flex gap-3 mb-6">
+                              <div className="flex gap-2 flex-wrap mb-4">
                                 {review.images.map((img, i) => (
-                                  <div key={i} className="relative group/img overflow-hidden rounded-2xl w-24 h-24 border border-gray-100 shadow-sm">
-                                    <img src={img} alt="review" className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-500" />
+                                  <div key={i} className="overflow-hidden rounded-xl w-20 h-20 border border-secondary">
+                                    <img src={img} alt="review" className="w-full h-full object-cover" />
                                   </div>
                                 ))}
                               </div>
                             )}
 
-                            <div className="flex items-center justify-between pt-6 border-t border-gray-50">
+                            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                               <div className="flex flex-wrap gap-2">
                                 {(review.tags || []).map(tag => (
-                                  <span key={tag} className="text-[10px] uppercase tracking-wider bg-secondary/50 text-primary-dark px-3 py-1 rounded-full font-black">
+                                  <span key={tag} className="text-xs bg-gray-100 text-foreground/70 px-2.5 py-1 rounded-full font-semibold">
                                     {tag}
                                   </span>
                                 ))}
                               </div>
-                              <button className="flex items-center gap-2 text-xs font-bold text-foreground/30 hover:text-primary transition-colors group/btn">
-                                <ThumbsUp size={16} className="group-hover/btn:scale-125 transition-transform" />
+                              <button className="flex items-center gap-1.5 text-xs font-semibold text-foreground/50 hover:text-primary transition-colors">
+                                <ThumbsUp size={14} />
                                 <span>{review.helpful || 0}</span>
                               </button>
                             </div>
@@ -577,126 +584,122 @@ export default function ProductPage() {
                       </div>
                     )}
 
-                    {/* Write Review Form Section */}
-                    <div id="review-form" className="pt-20 border-t border-gray-100">
+                    <div id="review-form" className="pt-8 border-t border-gray-100">
                       <div className="max-w-3xl mx-auto">
                         {!isAuthenticated ? (
-                          <div className="bg-gray-50 rounded-[2.5rem] p-12 text-center border-2 border-dashed border-gray-200">
-                             <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-                              <X size={40} className="text-red-400" />
+                          <div className="bg-white rounded-2xl p-8 md:p-10 text-center border border-secondary shadow-sm">
+                             <div className="bg-gray-50 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                              <X size={24} className="text-red-400" />
                             </div>
-                            <h3 className="text-2xl font-black text-foreground mb-4">Bạn chưa đăng nhập</h3>
-                            <p className="text-foreground/50 mb-8 max-w-sm mx-auto">Vui lòng đăng nhập để có thể chia sẻ đánh giá về sản phẩm này.</p>
+                            <h3 className="text-xl font-bold text-foreground mb-2">Bạn chưa đăng nhập</h3>
+                            <p className="text-foreground/60 mb-6 max-w-sm mx-auto">Vui lòng đăng nhập để chia sẻ đánh giá về sản phẩm này.</p>
                             <button
                               onClick={() => navigate("/signin")}
-                              className="bg-primary text-white px-10 py-4 rounded-2xl font-black text-md hover:shadow-2xl hover:-translate-y-1 transition-all"
+                              className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors"
                             >
                               Đăng nhập ngay
                             </button>
                           </div>
                         ) : !hasPurchased ? (
-                          <div className="bg-orange-50/50 rounded-[2.5rem] p-12 text-center border-2 border-dashed border-orange-200">
-                             <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl border border-orange-100">
-                              <ShoppingCart size={40} className="text-orange-400" />
+                          <div className="bg-white rounded-2xl p-8 md:p-10 text-center border border-secondary shadow-sm">
+                             <div className="bg-orange-50 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 border border-orange-100">
+                              <ShoppingCart size={24} className="text-orange-500" />
                             </div>
-                            <h3 className="text-2xl font-black text-foreground mb-4">Chỉ dành cho khách mua hàng</h3>
-                            <p className="text-foreground/50 mb-8 max-w-sm mx-auto italic">Tính năng đánh giá chỉ khả dụng sau khi bạn đã mua và nhận sản phẩm này thành công.</p>
+                            <h3 className="text-xl font-bold text-foreground mb-2">Chỉ dành cho khách mua hàng</h3>
+                            <p className="text-foreground/60 mb-6 max-w-sm mx-auto">Tính năng đánh giá chỉ khả dụng sau khi bạn đã mua và nhận sản phẩm này.</p>
                             <button
                               disabled
-                              className="bg-gray-300 text-white px-10 py-4 rounded-2xl font-black text-md cursor-not-allowed"
+                              className="bg-gray-200 text-gray-500 px-6 py-3 rounded-xl font-semibold cursor-not-allowed"
                             >
                               Không đủ điều kiện đánh giá
                             </button>
                           </div>
                         ) : (
-                          <div className="bg-white rounded-[3rem] p-10 md:p-14 shadow-[0_30px_100px_rgba(0,0,0,0.08)] border border-gray-50 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -mr-20 -mt-20 blur-3xl"></div>
-                            <div className="relative z-10">
-                              <h3 className="text-3xl font-black text-foreground mb-2">Đánh giá sản phẩm</h3>
-                              <p className="text-foreground/40 text-base mb-10">Bạn đang đánh giá cho: <span className="text-primary font-bold">{product.title}</span></p>
+                          <div className="bg-white rounded-2xl p-6 md:p-8 border border-secondary shadow-sm">
+                              <h3 className="text-2xl font-bold text-foreground mb-1">Đánh giá sản phẩm</h3>
+                              <p className="text-foreground/60 text-sm mb-6">Bạn đang đánh giá: <span className="text-primary font-semibold">{product.title}</span></p>
 
-                              <div className="space-y-8">
-                                <div className="bg-gray-50/50 p-6 rounded-3xl border border-gray-100/50 flex flex-col items-center gap-4">
-                                  <p className="text-sm font-black text-foreground/30 uppercase tracking-[0.2em]">Trải nghiệm của bạn thế nào?</p>
-                                  <div className="flex items-center gap-3">
+                              <div className="space-y-6">
+                                <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
+                                  <p className="text-sm font-semibold text-foreground/70 mb-3">Mức độ hài lòng</p>
+                                  <div className="flex items-center gap-2">
                                     {[1, 2, 3, 4, 5].map((star) => (
                                       <button
                                         key={star}
                                         type="button"
-                                        onMouseEnter={() => setReviewRating(star)}
                                         onClick={() => setReviewRating(star)}
-                                        className="transform hover:scale-125 transition-transform cursor-pointer focus:outline-none"
+                                        className="cursor-pointer focus:outline-none"
                                       >
                                         <Star
-                                          size={48}
+                                          size={28}
                                           weight={reviewRating >= star ? "fill" : "regular"}
-                                          className={reviewRating >= star ? "text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]" : "text-gray-200"}
+                                          className={reviewRating >= star ? "text-yellow-400" : "text-gray-300"}
                                         />
                                       </button>
                                     ))}
                                   </div>
-                                  <p className="text-xs font-bold text-yellow-600 uppercase tracking-widest">
+                                  <p className="text-xs font-semibold text-foreground/60 mt-2">
                                     {reviewRating === 5 ? "Tuyệt vời" : reviewRating === 4 ? "Rất hài lòng" : reviewRating === 3 ? "Bình thường" : reviewRating === 2 ? "Không hài lòng" : "Rất kém"}
                                   </p>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                   <div className="space-y-2">
-                                    <label className="text-xs font-black text-foreground/40 uppercase ml-2">Tiêu đề</label>
+                                    <label className="text-sm font-semibold text-foreground/70">Tiêu đề</label>
                                     <input
                                       value={reviewTitle}
                                       onChange={(e) => setReviewTitle(e.target.value)}
                                       placeholder="VD: Cây rất đẹp và tươi"
-                                      className="w-full bg-gray-50 border-0 rounded-2xl px-6 py-4 text-base font-medium focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-foreground/20"
+                                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
                                     />
                                   </div>
                                   <div className="space-y-2">
-                                    <label className="text-xs font-black text-foreground/40 uppercase ml-2">Từ khóa (Tags)</label>
+                                    <label className="text-sm font-semibold text-foreground/70">Từ khóa (Tags)</label>
                                     <input
                                       value={reviewTagsInput}
                                       onChange={(e) => setReviewTagsInput(e.target.value)}
                                       placeholder="Tươi, đẹp, đóng gói kỹ..."
-                                      className="w-full bg-gray-50 border-0 rounded-2xl px-6 py-4 text-base font-medium focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-foreground/20"
+                                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
                                     />
                                   </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                  <label className="text-xs font-black text-foreground/40 uppercase ml-2">Đánh giá chi tiết</label>
+                                  <label className="text-sm font-semibold text-foreground/70">Đánh giá chi tiết</label>
                                   <textarea
                                     value={reviewContent}
                                     onChange={(e) => setReviewContent(e.target.value)}
                                     placeholder="Nội dung đánh giá của bạn giúp ích rất nhiều cho người mua sau..."
                                     rows={5}
-                                    className="w-full bg-gray-50 border-0 rounded-2xl px-6 py-5 text-base font-medium focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-foreground/20"
+                                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
                                   />
                                 </div>
 
-                                <div className="bg-gray-50/50 p-8 rounded-3xl border border-dashed border-gray-200">
+                                <div className="bg-gray-50 p-5 rounded-xl border border-dashed border-gray-300">
                                    <ReviewImageInput onSuccess={(urls) => setReviewImages((prev) => [...prev, ...urls].slice(0, 5))} />
                                    
-                                   <div className="flex flex-col items-center gap-4">
+                                   <div className="flex flex-col items-center gap-3">
                                       <button
                                         type="button"
                                         onClick={triggerReviewImageUpload}
                                         disabled={isUploadingReviewImages || reviewImages.length >= 5}
-                                        className="bg-white border border-gray-100 px-8 py-4 rounded-2xl shadow-sm font-bold text-sm hover:shadow-lg hover:-translate-y-0.5 transition-all text-foreground/60 flex items-center gap-3 disabled:opacity-50"
+                                        className="bg-white border border-gray-200 px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-100 transition-colors text-foreground/70 flex items-center gap-2 disabled:opacity-50"
                                       >
-                                        <Camera size={20} weight="fill" className="text-primary" />
+                                        <Camera size={18} weight="fill" className="text-primary" />
                                         {isUploadingReviewImages ? "Đang xử lý ảnh..." : "Tải lên hình ảnh thực tế"}
                                       </button>
-                                      <p className="text-[10px] uppercase font-black text-foreground/20 tracking-widest text-center">Tối đa 5 ảnh định dạng JPG/PNG</p>
+                                      <p className="text-xs text-foreground/50 text-center">Tối đa 5 ảnh định dạng JPG/PNG</p>
                                    </div>
 
                                   {reviewImages.length > 0 && (
-                                    <div className="flex flex-wrap justify-center gap-4 mt-8">
+                                    <div className="flex flex-wrap justify-center gap-3 mt-5">
                                       {reviewImages.map((img, idx) => (
-                                        <div key={`${img}-${idx}`} className="relative group/revimg">
-                                          <img src={img} alt="review upload" className="w-20 h-20 rounded-2xl object-cover shadow-md border-2 border-white ring-1 ring-gray-100" />
+                                        <div key={`${img}-${idx}`} className="relative">
+                                          <img src={img} alt="review upload" className="w-20 h-20 rounded-xl object-cover border border-gray-200" />
                                           <button
                                             type="button"
                                             onClick={() => setReviewImages((prev) => prev.filter((_, i) => i !== idx))}
-                                            className="absolute -top-3 -right-3 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg transform group-hover/revimg:scale-110 transition-all"
+                                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center"
                                           >
                                             <X size={14} weight="bold" />
                                           </button>
@@ -710,22 +713,18 @@ export default function ProductPage() {
                                 <button
                                   onClick={handleSubmitReview}
                                   disabled={isSubmittingReview || isUploadingReviewImages}
-                                  className="w-full group relative overflow-hidden bg-primary text-white h-16 rounded-2xl font-black text-lg shadow-[0_15px_40px_rgba(var(--primary-rgb),0.3)] hover:shadow-[0_20px_50px_rgba(var(--primary-rgb),0.4)] hover:-translate-y-1 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                                  className="w-full bg-primary text-primary-foreground h-12 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
-                                  <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-                                  <div className="flex items-center justify-center gap-3 relative z-10">
-                                    {isSubmittingReview ? (
-                                      <>
-                                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                                        Đang lưu đánh giá...
-                                      </>
-                                    ) : (
-                                      <>Gửi Đánh Giá Ngay <ArrowRight size={20} weight="bold" /></>
-                                    )}
-                                  </div>
+                                  {isSubmittingReview ? (
+                                    <>
+                                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                      Đang lưu đánh giá...
+                                    </>
+                                  ) : (
+                                    <>Gửi đánh giá <ArrowRight size={16} weight="bold" /></>
+                                  )}
                                 </button>
                               </div>
-                            </div>
                           </div>
                         )}
                       </div>
