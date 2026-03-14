@@ -16,6 +16,7 @@ interface SearchResult {
 const navLinks = [
   { label: "Trang chủ", path: "/" },
   { label: "Cửa hàng", path: "/shop" },
+  { label: "Góc Xanh PAP", path: "/blog" },
 ];
 
 const navDropdowns = [

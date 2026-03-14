@@ -144,6 +144,7 @@ CREATE TABLE Reviews (
     content    NVARCHAR(MAX),
     helpful    INT           NOT NULL DEFAULT 0,
     verified   BIT           NOT NULL DEFAULT 0,
+    visible    BIT           NOT NULL DEFAULT 1,
     created_at DATETIME      NOT NULL DEFAULT GETDATE()
 );
 GO

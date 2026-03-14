@@ -6,16 +6,21 @@ async function getReviewsByProduct(req, res, next) {
     const { productId } = req.query;
     if (!productId)
       return res.status(400).json({ message: "Thiếu productId." });
+    const parsedProductId = Number(productId);
+    if (!Number.isInteger(parsedProductId) || parsedProductId <= 0)
+      return res.status(400).json({ message: "productId không hợp lệ." });
 
     const pool = await getPool();
     const reviews = await pool
       .request()
-      .input("productId", sql.Int, productId)
+      .input("productId", sql.Int, parsedProductId)
       .query(
         `SELECT r.id, r.product_id AS productId, r.user_name AS userName,
                 r.avatar, r.rating, r.title, r.content, r.helpful, r.verified,
                 CONVERT(varchar, r.created_at, 23) AS date
-         FROM Reviews r WHERE r.product_id = @productId ORDER BY r.created_at DESC`
+         FROM Reviews r
+         WHERE r.product_id = @productId AND r.visible = 1
+         ORDER BY r.created_at DESC`
       );
 
     const ids = reviews.recordset.map((r) => r.id);
@@ -59,7 +64,44 @@ async function createReview(req, res, next) {
     const { productId, rating, title, content, tags = [], images = [] } = req.body;
     const userId = req.user.id;
 
+    const parsedProductId = Number(productId);
+    const parsedRating = Number(rating);
+    if (!Number.isInteger(parsedProductId) || parsedProductId <= 0)
+      return res.status(400).json({ message: "productId không hợp lệ." });
+    if (!Number.isInteger(parsedRating) || parsedRating < 1 || parsedRating > 5)
+      return res.status(400).json({ message: "rating phải từ 1 đến 5." });
+    if (!title || String(title).trim().length < 3)
+      return res.status(400).json({ message: "Tiêu đề đánh giá tối thiểu 3 ký tự." });
+    if (!content || String(content).trim().length < 10)
+      return res.status(400).json({ message: "Nội dung đánh giá tối thiểu 10 ký tự." });
+    if (!Array.isArray(tags) || !Array.isArray(images))
+      return res.status(400).json({ message: "tags và images phải là mảng." });
+
     const pool = await getPool();
+
+    const productExists = await pool
+      .request()
+      .input("id", sql.Int, parsedProductId)
+      .query("SELECT id FROM Products WHERE id = @id");
+    if (productExists.recordset.length === 0)
+      return res.status(404).json({ message: "Sản phẩm không tồn tại." });
+
+    // Check if user has a delivered order for this product
+    const purchaseCheck = await pool.request()
+        .input("userId", sql.Int, userId)
+        .input("productId", sql.Int, parsedProductId)
+        .query(`
+            SELECT TOP 1 o.id 
+            FROM Orders o
+            JOIN OrderItems oi ON o.id = oi.order_id
+            WHERE o.user_id = @userId 
+              AND oi.product_id = @productId 
+              AND o.status = 'delivered'
+        `);
+
+    if (purchaseCheck.recordset.length === 0) {
+        return res.status(403).json({ message: "Bạn chỉ có thể đánh giá sản phẩm sau khi đơn hàng đã được giao thành công." });
+    }
 
     // Get user name
     const userResult = await pool
@@ -70,23 +112,23 @@ async function createReview(req, res, next) {
 
     const result = await pool
       .request()
-      .input("productId", sql.Int, productId)
+      .input("productId", sql.Int, parsedProductId)
       .input("userId", sql.Int, userId)
       .input("userName", sql.NVarChar, userName)
       .input("avatar", sql.NVarChar, `https://i.pravatar.cc/48?u=${userId}`)
-      .input("rating", sql.Int, rating)
-      .input("title", sql.NVarChar, title)
-      .input("content", sql.NVarChar, content)
+      .input("rating", sql.Int, parsedRating)
+      .input("title", sql.NVarChar, String(title).trim())
+      .input("content", sql.NVarChar, String(content).trim())
       .query(
-        `INSERT INTO Reviews (product_id, user_id, user_name, avatar, rating, title, content, helpful, verified)
+        `INSERT INTO Reviews (product_id, user_id, user_name, avatar, rating, title, content, helpful, verified, visible)
          OUTPUT INSERTED.id
-         VALUES (@productId, @userId, @userName, @avatar, @rating, @title, @content, 0, 0)`
+         VALUES (@productId, @userId, @userName, @avatar, @rating, @title, @content, 0, 1, 1)`
       );
 
     const reviewId = result.recordset[0].id;
 
     // Insert tags
-    for (const tag of tags) {
+    for (const tag of tags.map((t) => String(t).trim()).filter(Boolean).slice(0, 8)) {
       await pool
         .request()
         .input("reviewId", sql.Int, reviewId)
@@ -95,7 +137,7 @@ async function createReview(req, res, next) {
     }
 
     // Insert images
-    for (const url of images) {
+    for (const url of images.map((u) => String(u).trim()).filter(Boolean).slice(0, 5)) {
       await pool
         .request()
         .input("reviewId", sql.Int, reviewId)
