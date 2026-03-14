@@ -7,10 +7,12 @@ import {
 } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
-import type { Order } from "../types";
+import type { Order, ShippingAddress } from "../types";
 import { toast } from "sonner";
 import { useAuthStore } from "../stores/authStore";
 import { orderApi } from "../services/apiService";
+import { addressService } from "../services/addressService";
+import { VIETNAM_PROVINCES, getDistricts } from "../data/vietnamLocations";
 
 const tabs = [
   { id: "profile", label: "Hồ sơ", icon: User },
@@ -31,6 +33,17 @@ const statusConfig: Record<Order["status"], { label: string; color: string; icon
 };
 
 const isNumericProductId = (id: string) => /^\d+$/.test(id);
+
+const emptyAddressForm: Omit<ShippingAddress, "id"> = {
+  label: "",
+  fullName: "",
+  phone: "",
+  province: "",
+  district: "",
+  ward: "",
+  address: "",
+  isDefault: false,
+};
 
 function OrderCard({ order, onCancel, onReview }: { order: Order; onCancel: (id: string) => void; onReview: (order: Order) => void }) {
   const [expanded, setExpanded] = useState(false);
@@ -155,6 +168,13 @@ export default function ProfilePage() {
   const [orderFilter, setOrderFilter] = useState<string>("all");
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [addresses, setAddresses] = useState<ShippingAddress[]>([]);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [addressForm, setAddressForm] = useState<Omit<ShippingAddress, "id">>(() => ({
+    ...emptyAddressForm,
+    fullName: user?.name || "",
+  }));
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -177,6 +197,14 @@ export default function ProfilePage() {
         .catch(() => toast.error("Không thể tải đơn hàng"))
         .finally(() => setOrdersLoading(false));
     }
+  }, [activeTab, isAuthenticated]);
+
+  useEffect(() => {
+    if (activeTab !== "address" || !isAuthenticated) return;
+    addressService
+      .list()
+      .then(setAddresses)
+      .catch(() => toast.error("Không thể tải sổ địa chỉ"));
   }, [activeTab, isAuthenticated]);
 
   const handleCancelOrder = async (orderId: string) => {
@@ -203,6 +231,87 @@ export default function ProfilePage() {
   const handleProfileSave = () => {
     updateUser({ name: profileForm.name, email: profileForm.email });
     toast.success("Đã cập nhật hồ sơ thành công!");
+  };
+
+  const resetAddressForm = () => {
+    setAddressForm({ ...emptyAddressForm, fullName: profileForm.name || user?.name || "" });
+    setEditingAddressId(null);
+    setShowAddressForm(false);
+  };
+
+  const handleAddressFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setAddressForm((prev) => {
+      if (name === "province") {
+        return { ...prev, province: value, district: "", ward: "" };
+      }
+      return { ...prev, [name]: value };
+    });
+  };
+
+  const handleAddressSave = () => {
+    if (!addressForm.label.trim() || !addressForm.fullName.trim() || !addressForm.phone.trim() || !addressForm.province || !addressForm.district || !addressForm.address.trim()) {
+      toast.error("Vui lòng điền đầy đủ thông tin địa chỉ bắt buộc");
+      return;
+    }
+
+    const payload = {
+      ...addressForm,
+      label: addressForm.label.trim(),
+      fullName: addressForm.fullName.trim(),
+      phone: addressForm.phone.trim(),
+      address: addressForm.address.trim(),
+    };
+
+    const action = editingAddressId
+      ? addressService.update(editingAddressId, payload)
+      : addressService.create(payload);
+
+    action
+      .then(() => addressService.list())
+      .then((list) => {
+        setAddresses(list);
+        toast.success(editingAddressId ? "Đã cập nhật địa chỉ" : "Đã thêm địa chỉ mới");
+        resetAddressForm();
+      })
+      .catch(() => toast.error("Không thể lưu địa chỉ"));
+  };
+
+  const handleEditAddress = (addr: ShippingAddress) => {
+    setEditingAddressId(addr.id);
+    setAddressForm({
+      label: addr.label,
+      fullName: addr.fullName,
+      phone: addr.phone,
+      province: addr.province,
+      district: addr.district,
+      ward: addr.ward || "",
+      address: addr.address,
+      isDefault: addr.isDefault,
+    });
+    setShowAddressForm(true);
+  };
+
+  const handleDeleteAddress = (id: string) => {
+    addressService
+      .remove(id)
+      .then(() => addressService.list())
+      .then((list) => {
+        setAddresses(list);
+        toast.success("Đã xóa địa chỉ");
+      })
+      .catch(() => toast.error("Không thể xóa địa chỉ"));
+  };
+
+  const handleSetDefaultAddress = (id: string) => {
+    addressService
+      .setDefault(id)
+      .then(() => addressService.list())
+      .then((list) => {
+        setAddresses(list);
+        toast.success("Đã đặt làm địa chỉ mặc định");
+      })
+      .catch(() => toast.error("Không thể cập nhật địa chỉ mặc định"));
   };
 
   if (!isAuthenticated) return null;
@@ -326,25 +435,117 @@ export default function ProfilePage() {
               <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6 md:p-8">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold">Địa chỉ giao hàng</h2>
-                  <button className="text-sm font-bold text-primary border border-primary px-4 py-2 rounded-xl hover:bg-primary/5 transition-colors">+ Thêm địa chỉ</button>
+                  <button
+                    onClick={() => {
+                      setEditingAddressId(null);
+                      setAddressForm({ ...emptyAddressForm, fullName: profileForm.name || user?.name || "" });
+                      setShowAddressForm((prev) => !prev);
+                    }}
+                    className="text-sm font-bold text-primary border border-primary px-4 py-2 rounded-xl hover:bg-primary/5 transition-colors"
+                  >
+                    {showAddressForm ? "Đóng" : "+ Thêm địa chỉ"}
+                  </button>
                 </div>
-                {[
-                  { label: "Nhà riêng", address: "123 Nguyễn Huệ, Quận 1, TP.HCM", isDefault: true },
-                  { label: "Văn phòng", address: "456 Lê Lợi, Quận 3, TP.HCM", isDefault: false },
-                ].map((addr, i) => (
-                  <div key={i} className={`border rounded-2xl p-5 mb-4 ${addr.isDefault ? "border-primary bg-primary/5" : "border-gray-200"}`}>
-                    <div className="flex justify-between items-start">
+
+                {showAddressForm && (
+                  <div className="mb-6 border border-gray-200 rounded-2xl p-5 bg-gray-50/40">
+                    <h3 className="font-bold mb-4">{editingAddressId ? "Cập nhật địa chỉ" : "Thêm địa chỉ mới"}</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <p className="font-bold flex items-center gap-2">{addr.label} {addr.isDefault && <span className="text-xs px-2 py-0.5 bg-primary text-white rounded-full">Mặc định</span>}</p>
-                        <p className="text-sm text-foreground/60 mt-1">{addr.address}</p>
+                        <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Nhãn địa chỉ *</label>
+                        <input name="label" value={addressForm.label} onChange={handleAddressFieldChange} placeholder="Nhà riêng, Văn phòng..."
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all" />
                       </div>
-                      <div className="flex gap-2">
-                        <button className="text-xs text-primary hover:underline font-semibold">Sửa</button>
-                        {!addr.isDefault && <button className="text-xs text-red-500 hover:underline font-semibold">Xóa</button>}
+                      <div>
+                        <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Người nhận *</label>
+                        <input name="fullName" value={addressForm.fullName} onChange={handleAddressFieldChange} placeholder="Nguyễn Văn A"
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Số điện thoại *</label>
+                        <input name="phone" value={addressForm.phone} onChange={handleAddressFieldChange} placeholder="0901 234 567"
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Tỉnh / Thành phố *</label>
+                        <select name="province" value={addressForm.province} onChange={handleAddressFieldChange}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all bg-white">
+                          <option value="">Chọn tỉnh/thành</option>
+                          {VIETNAM_PROVINCES.map((p) => <option key={p.name} value={p.name}>{p.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Quận / Huyện *</label>
+                        <select name="district" value={addressForm.district} onChange={handleAddressFieldChange} disabled={!addressForm.province}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all bg-white disabled:opacity-50">
+                          <option value="">Chọn quận/huyện</option>
+                          {getDistricts(addressForm.province).map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Phường / Xã</label>
+                        <input name="ward" value={addressForm.ward || ""} onChange={handleAddressFieldChange} placeholder="Phường..."
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Số nhà, tên đường *</label>
+                        <input name="address" value={addressForm.address} onChange={handleAddressFieldChange} placeholder="123 Nguyễn Huệ"
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all" />
                       </div>
                     </div>
+
+                    <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-foreground/70">
+                      <input
+                        type="checkbox"
+                        checked={addressForm.isDefault}
+                        onChange={(e) => setAddressForm((prev) => ({ ...prev, isDefault: e.target.checked }))}
+                        className="accent-primary"
+                      />
+                      Đặt làm địa chỉ mặc định
+                    </label>
+
+                    <div className="mt-5 flex gap-3">
+                      <button onClick={handleAddressSave} className="bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-semibold hover:bg-primary/90 transition-all">
+                        {editingAddressId ? "Lưu cập nhật" : "Lưu địa chỉ"}
+                      </button>
+                      <button onClick={resetAddressForm} className="border border-gray-300 px-5 py-2.5 rounded-xl font-semibold text-foreground/70 hover:bg-gray-100 transition-all">
+                        Hủy
+                      </button>
+                    </div>
                   </div>
-                ))}
+                )}
+
+                {addresses.length === 0 ? (
+                  <div className="text-center py-10 border border-dashed border-gray-300 rounded-2xl bg-gray-50/40">
+                    <p className="text-foreground/50">Bạn chưa có địa chỉ nào. Hãy thêm địa chỉ để dùng cho checkout.</p>
+                  </div>
+                ) : (
+                  addresses.map((addr) => (
+                    <div key={addr.id} className={`border rounded-2xl p-5 mb-4 ${addr.isDefault ? "border-primary bg-primary/5" : "border-gray-200"}`}>
+                      <div className="flex justify-between items-start gap-4">
+                        <div>
+                          <p className="font-bold flex items-center gap-2">
+                            {addr.label}
+                            {addr.isDefault && <span className="text-xs px-2 py-0.5 bg-primary text-white rounded-full">Mặc định</span>}
+                          </p>
+                          <p className="text-sm text-foreground/80 mt-1">{addr.fullName} · {addr.phone}</p>
+                          <p className="text-sm text-foreground/60 mt-1">
+                            {addr.address}, {addr.ward ? `${addr.ward}, ` : ""}{addr.district}, {addr.province}
+                          </p>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          {!addr.isDefault && (
+                            <button onClick={() => handleSetDefaultAddress(addr.id)} className="text-xs text-emerald-600 hover:underline font-semibold">
+                              Đặt mặc định
+                            </button>
+                          )}
+                          <button onClick={() => handleEditAddress(addr)} className="text-xs text-primary hover:underline font-semibold">Sửa</button>
+                          <button onClick={() => handleDeleteAddress(addr.id)} className="text-xs text-red-500 hover:underline font-semibold">Xóa</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             )}
 

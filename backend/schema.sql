@@ -15,6 +15,23 @@ CREATE TABLE Users (
 );
 GO
 
+-- ── User Addresses ────────────────────────────────────────────
+CREATE TABLE UserAddresses (
+    id           INT IDENTITY(1,1) PRIMARY KEY,
+    user_id      INT            NOT NULL REFERENCES Users(id),
+    label        NVARCHAR(100)  NOT NULL,
+    full_name    NVARCHAR(255)  NOT NULL,
+    phone        NVARCHAR(50)   NOT NULL,
+    province     NVARCHAR(255)  NOT NULL,
+    district     NVARCHAR(255)  NOT NULL,
+    ward         NVARCHAR(255),
+    address_line NVARCHAR(MAX)  NOT NULL,
+    is_default   BIT            NOT NULL DEFAULT 0,
+    created_at   DATETIME       NOT NULL DEFAULT GETDATE(),
+    updated_at   DATETIME       NOT NULL DEFAULT GETDATE()
+);
+GO
+
 -- ── Categories ─────────────────────────────────────────────────
 CREATE TABLE Categories (
     id    INT IDENTITY(1,1) PRIMARY KEY,

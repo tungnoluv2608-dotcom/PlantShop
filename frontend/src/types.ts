@@ -131,3 +131,15 @@ export interface CheckoutFormData {
   shippingMethod: "standard" | "express" | "sameday";
   paymentMethod: "cod" | "momo" | "vnpay" | "zalopay" | "bank";
 }
+
+export interface ShippingAddress {
+  id: string;
+  label: string;
+  fullName: string;
+  phone: string;
+  province: string;
+  district: string;
+  ward?: string;
+  address: string;
+  isDefault: boolean;
+}

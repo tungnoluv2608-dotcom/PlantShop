@@ -12,6 +12,7 @@ const orderRoute = require("./routes/orderRoute");
 const planterRoute = require("./routes/planterRoute");
 const adminRoute = require("./routes/adminRoute");
 const uploadRoute = require("./routes/uploadRoute");
+const addressRoute = require("./routes/addressRoute");
 const errorHandler = require("./middlewares/errorHandler");
 const { getPool } = require("./libs/db");
 
@@ -38,6 +39,7 @@ app.use("/api/orders", orderRoute);
 app.use("/api/planters", planterRoute);
 app.use("/api/admin", adminRoute);
 app.use("/api/upload", uploadRoute);
+app.use("/api/addresses", addressRoute);
 
 // ── Health check ──────────────────────────────────────────────
 app.get("/", (req, res) => {

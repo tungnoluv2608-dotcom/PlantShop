@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   CaretLeft, CaretRight, CheckCircle, MapPin, Truck,
@@ -10,6 +10,8 @@ import { useCartStore } from "../stores/cartStore";
 import { useAuthStore } from "../stores/authStore";
 import { orderApi } from "../services/apiService";
 import { toast } from "sonner";
+import { addressService } from "../services/addressService";
+import type { ShippingAddress } from "../types";
 
 import { VIETNAM_PROVINCES, getDistricts } from "../data/vietnamLocations";
 
@@ -31,7 +33,7 @@ const paymentMethods = [
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const items = useCartStore((s) => s.items);
   const subtotal = useCartStore((s) => s.subtotal());
   const clearCart = useCartStore((s) => s.clearCart);
@@ -44,10 +46,53 @@ export default function CheckoutPage() {
   const [shippingMethod, setShippingMethod] = useState("standard");
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [isPlacing, setIsPlacing] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<ShippingAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [useNewAddress, setUseNewAddress] = useState(false);
 
   const selectedShipping = shippingMethods.find((m) => m.id === shippingMethod)!;
   const shippingFee = subtotal >= 500000 && shippingMethod === "standard" ? 0 : selectedShipping.price;
   const total = subtotal + shippingFee;
+
+  const applyAddressToForm = (addr: ShippingAddress) => {
+    setForm((prev) => ({
+      ...prev,
+      fullName: addr.fullName,
+      phone: addr.phone,
+      email: prev.email || user?.email || "",
+      province: addr.province,
+      district: addr.district,
+      ward: addr.ward || "",
+      address: addr.address,
+    }));
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    addressService
+      .list()
+      .then((addresses) => {
+        setSavedAddresses(addresses);
+
+        if (addresses.length > 0) {
+          const preferred = addresses.find((a) => a.isDefault) || addresses[0];
+          setSelectedAddressId(preferred.id);
+          applyAddressToForm(preferred);
+          setUseNewAddress(false);
+        } else if (user?.name || user?.email) {
+          setUseNewAddress(true);
+          setForm((prev) => ({
+            ...prev,
+            fullName: prev.fullName || user?.name || "",
+            email: prev.email || user?.email || "",
+          }));
+        }
+      })
+      .catch(() => {
+        setSavedAddresses([]);
+      });
+  }, [isAuthenticated, user?.name, user?.email]);
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -64,7 +109,29 @@ export default function CheckoutPage() {
     }
     setIsPlacing(true);
     try {
-      const shippingAddress = `${form.address}, ${form.district}, ${form.province}`;
+      const shippingAddress = `${form.address}${form.ward ? `, ${form.ward}` : ""}, ${form.district}, ${form.province}`;
+
+      if (isAuthenticated) {
+        const payload = {
+          label: selectedAddressId ? (savedAddresses.find((a) => a.id === selectedAddressId)?.label || "Địa chỉ giao hàng") : "Địa chỉ giao hàng",
+          fullName: form.fullName.trim(),
+          phone: form.phone.trim(),
+          province: form.province,
+          district: form.district,
+          ward: form.ward.trim(),
+          address: form.address.trim(),
+          isDefault: selectedAddressId ? (savedAddresses.find((a) => a.id === selectedAddressId)?.isDefault || false) : savedAddresses.length === 0,
+        };
+
+        const saved = selectedAddressId
+          ? await addressService.update(selectedAddressId, payload)
+          : await addressService.create(payload);
+
+        const updated = await addressService.list();
+        setSavedAddresses(updated);
+        setSelectedAddressId(saved.id);
+      }
+
       const { orderId } = await orderApi.create({
         items: items.map((i) => ({
           id: i.id,
@@ -142,7 +209,66 @@ export default function CheckoutPage() {
               <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6 md:p-8 space-y-6">
                 <h2 className="text-xl font-bold flex items-center gap-2"><MapPin size={22} className="text-primary" />Thông tin giao hàng</h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {savedAddresses.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-foreground/80">Chọn địa chỉ đã lưu</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {savedAddresses.map((addr) => (
+                        <button
+                          key={addr.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedAddressId(addr.id);
+                            applyAddressToForm(addr);
+                            setUseNewAddress(false);
+                          }}
+                          className={`text-left p-3 rounded-xl border transition-all ${selectedAddressId === addr.id ? "border-primary bg-primary/5" : "border-gray-200 hover:border-primary/40"}`}
+                        >
+                          <p className="text-sm font-bold text-foreground flex items-center gap-2">
+                            {addr.label}
+                            {addr.isDefault && <span className="text-[10px] px-2 py-0.5 bg-primary text-white rounded-full">Mặc định</span>}
+                          </p>
+                          <p className="text-xs text-foreground/70 mt-1">{addr.fullName} · {addr.phone}</p>
+                          <p className="text-xs text-foreground/60 mt-1 line-clamp-2">{addr.address}, {addr.district}, {addr.province}</p>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUseNewAddress(true);
+                          setSelectedAddressId("");
+                          setForm((prev) => ({
+                            ...prev,
+                            fullName: user?.name || prev.fullName,
+                            email: user?.email || prev.email,
+                            phone: "",
+                            province: "",
+                            district: "",
+                            ward: "",
+                            address: "",
+                          }));
+                        }}
+                        className="text-sm font-semibold text-primary border border-primary px-3 py-2 rounded-lg hover:bg-primary/5 transition-colors"
+                      >
+                        Dùng địa chỉ mới
+                      </button>
+                      {!useNewAddress && selectedAddressId && (
+                        <button
+                          type="button"
+                          onClick={() => setUseNewAddress(true)}
+                          className="text-sm font-semibold text-foreground/70 border border-gray-300 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          Sửa thông tin giao
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {(savedAddresses.length === 0 || useNewAddress) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-semibold text-foreground/80 mb-1.5">Họ và tên người nhận *</label>
                     <input name="fullName" value={form.fullName} onChange={handleFormChange}
@@ -177,6 +303,12 @@ export default function CheckoutPage() {
                       {getDistricts(form.province).map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground/80 mb-1.5">Phường / Xã</label>
+                    <input name="ward" value={form.ward} onChange={handleFormChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
+                      placeholder="Phường / Xã" />
+                  </div>
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-semibold text-foreground/80 mb-1.5">Số nhà, tên đường *</label>
                     <input name="address" value={form.address} onChange={handleFormChange}
@@ -189,7 +321,20 @@ export default function CheckoutPage() {
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all resize-none"
                       placeholder="VD: Giao buổi sáng, gọi trước 30 phút..." />
                   </div>
-                </div>
+                  </div>
+                )}
+
+                {savedAddresses.length > 0 && !useNewAddress && selectedAddressId && (() => {
+                  const selected = savedAddresses.find((a) => a.id === selectedAddressId);
+                  if (!selected) return null;
+                  return (
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
+                      <p className="font-semibold text-foreground">Giao đến: {selected.label}</p>
+                      <p className="text-foreground/70 mt-1">{selected.fullName} · {selected.phone}</p>
+                      <p className="text-foreground/60 mt-1">{selected.address}{selected.ward ? `, ${selected.ward}` : ""}, {selected.district}, {selected.province}</p>
+                    </div>
+                  );
+                })()}
 
                 {/* Lưu ý đặc biệt */}
                 <div className="bg-secondary/30 rounded-xl p-4 flex gap-3 text-sm text-foreground/70">
