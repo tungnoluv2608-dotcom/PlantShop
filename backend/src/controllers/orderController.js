@@ -1,5 +1,15 @@
 const { getPool, sql } = require("../libs/db");
 
+function normalizeOrderItemProductId(rawId) {
+  // Products keep numeric ids; synthetic cart items like planter-1/accessory-12 should map to NULL.
+  if (typeof rawId === "number" && Number.isInteger(rawId)) return rawId;
+  if (typeof rawId === "string") {
+    const trimmed = rawId.trim();
+    if (/^\d+$/.test(trimmed)) return Number(trimmed);
+  }
+  return null;
+}
+
 // GET /api/orders  (my orders)
 async function getMyOrders(req, res, next) {
   try {
@@ -87,14 +97,8 @@ async function createOrder(req, res, next) {
       );
 
     for (const item of items) {
-      // Nếu item là chậu mua lẻ thì id có dạng "planter-12", ta gán productId = null.
-      let productId = item.id;
-      let isPlanterItem = false;
-      
-      if (typeof item.id === "string" && item.id.startsWith("planter-")) {
-        productId = null;
-        isPlanterItem = true;
-      }
+      const productId = normalizeOrderItemProductId(item.id);
+      const isSyntheticItem = productId === null;
 
       await pool
         .request()
@@ -104,7 +108,7 @@ async function createOrder(req, res, next) {
         .input("price", sql.Decimal(18, 2), item.price)
         .input("quantity", sql.Int, item.quantity)
         .input("imageUrl", sql.NVarChar, item.image)
-        .input("planterName", sql.NVarChar, isPlanterItem ? item.title : (item.planter || ""))
+        .input("planterName", sql.NVarChar, isSyntheticItem ? item.title : (item.planter || ""))
         .query(
           `INSERT INTO OrderItems (order_id, product_id, title, price, quantity, image_url, planter_name)
            VALUES (@orderId, @productId, @title, @price, @quantity, @imageUrl, @planterName)`
@@ -186,7 +190,7 @@ async function enrichOrders(pool, orders) {
   for (const item of itemsResult.recordset) {
     if (!itemsMap[item.order_id]) itemsMap[item.order_id] = [];
     itemsMap[item.order_id].push({
-      id: String(item.id),
+      id: item.id === null || item.id === undefined ? "" : String(item.id),
       title: item.title,
       price: item.price,
       quantity: item.quantity,
