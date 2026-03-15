@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+﻿import { Link } from "react-router";
 import { FacebookLogo, TwitterLogo, InstagramLogo } from "@phosphor-icons/react";
 
 export function Footer() {
@@ -11,7 +11,7 @@ export function Footer() {
           {/* Brand/Logo Info */}
           <div className="col-span-1 md:col-span-1">
             <Link to="/" className="font-bold text-3xl tracking-tighter text-primary mb-6 inline-block">
-              PAP
+              PlanS Thanh Tùng
             </Link>
             <p className="text-gray-500 text-sm leading-relaxed mb-6">
               Chúng tôi cung cấp những chậu cây chất lượng cao nhất, góp phần tạo nên một thế giới xanh và cuộc sống bền vững!
@@ -55,7 +55,7 @@ export function Footer() {
         {/* Social & Copyright */}
         <div className="border-t border-gray-100 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-gray-500">
-            © {currentYear} Plan A Plant. Đã đăng ký bản quyền.
+            © {currentYear} PlanS Thanh Tùng. Đã đăng ký bản quyền.
           </p>
           <div className="flex gap-4 items-center text-gray-400">
             <a href="#" className="hover:text-primary/80 transition-colors">
@@ -86,3 +86,6 @@ export function Footer() {
     </footer>
   );
 }
+
+
+

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import { MagnifyingGlass, CaretDown, ShoppingCart, UserCircle, Plant, List, X, SignOut } from "@phosphor-icons/react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { useCartStore } from "../../stores/cartStore";
@@ -19,7 +19,7 @@ interface SearchResult {
 const navLinks = [
   { label: "Trang chủ", path: "/" },
   { label: "Cửa hàng", path: "/shop" },
-  { label: "Góc Xanh PAP", path: "/blog" },
+  { label: "Góc Xanh PlanS Thanh Tùng", path: "/blog" },
 ];
 
 const baseNavDropdowns = [
@@ -179,7 +179,7 @@ export function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <div className="font-bold text-2xl tracking-tighter text-primary">
-            PAP
+            PlanS Thanh Tùng
           </div>
         </Link>
 
@@ -510,3 +510,6 @@ export function Navbar() {
     </>
   );
 }
+
+
+

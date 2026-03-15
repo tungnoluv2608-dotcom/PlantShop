@@ -65,7 +65,7 @@ export default function BlogPage() {
       >
         <div className="absolute inset-0 bg-black/50" />
         <div className="relative z-10 text-center">
-          <h1 className="text-4xl md:text-6xl font-black text-white tracking-widest uppercase mb-2">GÓC XANH PAP</h1>
+          <h1 className="text-4xl md:text-6xl font-black text-white tracking-widest uppercase mb-2">GÓC XANH PLANS THANH TÙNG</h1>
           <p className="text-white/80 text-sm md:text-base">Kiến thức cây cảnh từ A đến Z</p>
         </div>
       </div>

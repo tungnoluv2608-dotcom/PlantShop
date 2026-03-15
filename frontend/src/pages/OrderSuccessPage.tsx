@@ -34,7 +34,7 @@ export default function OrderSuccessPage() {
             Đặt hàng thành công! 🌿
           </h1>
           <p className="text-foreground/60 text-lg mb-6 max-w-md mx-auto">
-            Cảm ơn bạn đã tin tưởng <span className="font-bold text-primary">Plan A Plant</span>. Đơn hàng của bạn đang được chuẩn bị.
+            Cảm ơn bạn đã tin tưởng <span className="font-bold text-primary">PlanS Thanh Tùng</span>. Đơn hàng của bạn đang được chuẩn bị.
           </p>
 
           {/* Order ID */}

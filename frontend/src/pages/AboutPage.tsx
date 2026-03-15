@@ -6,8 +6,8 @@ import { teamMembers } from "../data/mockData";
 
 const values = [
   { icon: Leaf, title: "Bền vững", desc: "Chúng tôi cam kết chỉ cung cấp cây cảnh được nhân giống và chăm sóc theo quy trình thân thiện với môi trường, không hóa chất độc hại." },
-  { icon: Plant, title: "Tươi sáng", desc: "Mỗi chậu cây PAP mang theo một nguồn năng lượng tích cực, biến không gian sống của bạn thành một góc thiên nhiên xanh mát và tươi mới." },
-  { icon: Heart, title: "Tận tâm", desc: "Đội ngũ PAP luôn sẵn sàng tư vấn, hỗ trợ khách hàng từ khi chọn cây cho đến khi cây đơm hoa, với sự tận tâm và chuyên môn cao nhất." },
+  { icon: Plant, title: "Tươi sáng", desc: "Mỗi chậu cây PlanS Thanh Tùng mang theo một nguồn năng lượng tích cực, biến không gian sống của bạn thành một góc thiên nhiên xanh mát và tươi mới." },
+  { icon: Heart, title: "Tận tâm", desc: "Đội ngũ PlanS Thanh Tùng luôn sẵn sàng tư vấn, hỗ trợ khách hàng từ khi chọn cây cho đến khi cây đơm hoa, với sự tận tâm và chuyên môn cao nhất." },
 ];
 
 const stats = [
@@ -38,7 +38,7 @@ export default function AboutPage() {
             <span className="text-secondary">đổi thay một không gian</span>
           </h1>
           <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
-            Plan A Plant (PAP) ra đời từ tình yêu cây cảnh và niềm tin rằng mỗi góc nhỏ của cuộc sống đều có thể trở nên tươi đẹp hơn với một mầm xanh.
+            PlanS Thanh Tùng ra đời từ tình yêu cây cảnh và niềm tin rằng mỗi góc nhỏ của cuộc sống đều có thể trở nên tươi đẹp hơn với một mầm xanh.
           </p>
         </div>
       </section>
@@ -49,10 +49,10 @@ export default function AboutPage() {
           <div>
             <h2 className="text-4xl font-black text-foreground mb-6 leading-tight">Hành trình <span className="text-primary">5 năm</span> gieo xanh</h2>
             <p className="text-foreground/70 leading-relaxed mb-4">
-              PAP khởi đầu từ năm 2020 với một vườn ươm nhỏ tại Bình Dương. Khi đại dịch khiến mọi người phải ở nhà nhiều hơn, chúng tôi nhận ra nhu cầu về cây xanh trong nhà tăng vọt — và theo đó là một khao khát kết nối với thiên nhiên.
+              PlanS Thanh Tùng khởi đầu từ năm 2020 với một vườn ươm nhỏ tại Bình Dương. Khi đại dịch khiến mọi người phải ở nhà nhiều hơn, chúng tôi nhận ra nhu cầu về cây xanh trong nhà tăng vọt — và theo đó là một khao khát kết nối với thiên nhiên.
             </p>
             <p className="text-foreground/70 leading-relaxed mb-4">
-              Từ vài chục loài cây, PAP đã phát triển lên hơn 500 loài, phục vụ hơn 10.000 khách hàng trên toàn quốc. Nhưng điều chúng tôi tự hào nhất không phải là con số — mà là nụ cười của khách hàng khi nhận được chậu cây đầu tiên.
+              Từ vài chục loài cây, PlanS Thanh Tùng đã phát triển lên hơn 500 loài, phục vụ hơn 10.000 khách hàng trên toàn quốc. Nhưng điều chúng tôi tự hào nhất không phải là con số — mà là nụ cười của khách hàng khi nhận được chậu cây đầu tiên.
             </p>
             <p className="text-foreground/70 leading-relaxed">
               Chúng tôi không đơn thuần là shop bán cây. Chúng tôi là người đồng hành trong hành trình tạo dựng không gian xanh của bạn.
@@ -60,16 +60,16 @@ export default function AboutPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="aspect-square rounded-2xl overflow-hidden shadow-lg">
-              <img src="https://images.unsplash.com/photo-1416879598555-081e6ae76d05?w=500&auto=format&fit=crop" alt="Vườn ươm PAP" className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1416879598555-081e6ae76d05?w=500&auto=format&fit=crop" alt="Vườn ươm PlanS Thanh Tùng" className="w-full h-full object-cover" />
             </div>
             <div className="aspect-square rounded-2xl overflow-hidden shadow-lg mt-6">
-              <img src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=500&auto=format&fit=crop" alt="Đội ngũ PAP" className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=500&auto=format&fit=crop" alt="Đội ngũ PlanS Thanh Tùng" className="w-full h-full object-cover" />
             </div>
             <div className="aspect-square rounded-2xl overflow-hidden shadow-lg -mt-6">
-              <img src="https://images.unsplash.com/photo-1595126744865-c9cb6b09335e?w=500&auto=format&fit=crop" alt="Sản phẩm PAP" className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1595126744865-c9cb6b09335e?w=500&auto=format&fit=crop" alt="Sản phẩm PlanS Thanh Tùng" className="w-full h-full object-cover" />
             </div>
             <div className="aspect-square rounded-2xl overflow-hidden shadow-lg">
-              <img src="https://images.unsplash.com/photo-1600411330366-9ab505c21df3?w=500&auto=format&fit=crop" alt="Cây PAP" className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1600411330366-9ab505c21df3?w=500&auto=format&fit=crop" alt="Cây PlanS Thanh Tùng" className="w-full h-full object-cover" />
             </div>
           </div>
         </div>
@@ -116,7 +116,7 @@ export default function AboutPage() {
       {/* Team */}
       <section className="py-20 max-w-5xl mx-auto px-6">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-black text-foreground mb-3">Đội ngũ PAP</h2>
+          <h2 className="text-4xl font-black text-foreground mb-3">Đội ngũ PlanS Thanh Tùng</h2>
           <p className="text-foreground/60 max-w-xl mx-auto">Những con người tâm huyết đằng sau từng chậu cây bạn nhận được.</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -137,7 +137,7 @@ export default function AboutPage() {
       <section className="bg-secondary py-16 text-center">
         <div className="max-w-2xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-black text-primary mb-4">Sẵn sàng trồng mầm xanh?</h2>
-          <p className="text-foreground/70 mb-8">Khám phá hơn 500 loài cây cảnh từ PAP và tìm ra người bạn xanh lý tưởng cho không gian của bạn.</p>
+          <p className="text-foreground/70 mb-8">Khám phá hơn 500 loài cây cảnh từ PlanS Thanh Tùng và tìm ra người bạn xanh lý tưởng cho không gian của bạn.</p>
           <Link to="/shop" className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-primary/90 transition-all shadow-xl hover:-translate-y-1">
             Khám phá cửa hàng <ArrowRight size={20} weight="bold" />
           </Link>

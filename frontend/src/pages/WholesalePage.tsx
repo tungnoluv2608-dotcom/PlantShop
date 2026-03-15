@@ -62,7 +62,7 @@ export default function WholesalePage() {
         {/* Use Cases */}
         <div className="text-center mb-10">
           <h2 className="text-3xl font-black text-foreground mb-2">Phù hợp với mọi không gian</h2>
-          <p className="text-foreground/60">PAP đã phục vụ hàng trăm doanh nghiệp trên toàn quốc</p>
+          <p className="text-foreground/60">PlanS Thanh Tùng đã phục vụ hàng trăm doanh nghiệp trên toàn quốc</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-14">
           {useCases.map(({ icon: Icon, label, desc }) => (

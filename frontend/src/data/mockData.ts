@@ -315,7 +315,7 @@ export const blogPostsFull: BlogPost[] = [
 // Mock orders for /profile/orders
 export const mockOrders: Order[] = [
   {
-    id: "PAP-2026-00123",
+    id: "PSTT-2026-00123",
     date: "2026-03-10",
     status: "delivered",
     items: [
@@ -330,14 +330,14 @@ export const mockOrders: Order[] = [
     trackingNumber: "GHN123456789",
     timeline: [
       { status: "Đặt hàng thành công", date: "2026-03-10 09:15", done: true },
-      { status: "PAP đã xác nhận", date: "2026-03-10 10:30", done: true },
+      { status: "PlanS Thanh Tùng đã xác nhận", date: "2026-03-10 10:30", done: true },
       { status: "Đang đóng gói", date: "2026-03-10 14:00", done: true },
       { status: "Đang vận chuyển", date: "2026-03-11 08:00", done: true },
       { status: "Đã giao hàng", date: "2026-03-11 15:30", done: true },
     ],
   },
   {
-    id: "PAP-2026-00118",
+    id: "PSTT-2026-00118",
     date: "2026-03-05",
     status: "shipping",
     items: [
@@ -351,14 +351,14 @@ export const mockOrders: Order[] = [
     trackingNumber: "GHN987654321",
     timeline: [
       { status: "Đặt hàng thành công", date: "2026-03-05 11:00", done: true },
-      { status: "PAP đã xác nhận", date: "2026-03-05 12:45", done: true },
+      { status: "PlanS Thanh Tùng đã xác nhận", date: "2026-03-05 12:45", done: true },
       { status: "Đang đóng gói", date: "2026-03-06 09:00", done: true },
       { status: "Đang vận chuyển", date: "2026-03-07 07:30", done: true },
       { status: "Đã giao hàng", date: "", done: false },
     ],
   },
   {
-    id: "PAP-2026-00099",
+    id: "PSTT-2026-00099",
     date: "2026-02-20",
     status: "cancelled",
     items: [
@@ -449,7 +449,7 @@ export const teamMembers: TeamMember[] = [
     name: "Trần Hồng Nhung",
     role: "Customer Experience",
     image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&auto=format&fit=crop&face",
-    bio: "Đảm bảo mỗi khách hàng của PAP đều có trải nghiệm mua sắm tốt nhất.",
+    bio: "Đảm bảo mỗi khách hàng của PlanS Thanh Tùng đều có trải nghiệm mua sắm tốt nhất.",
   },
 ];
 

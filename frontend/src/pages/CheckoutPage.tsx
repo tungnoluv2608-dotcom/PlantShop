@@ -348,7 +348,7 @@ export default function CheckoutPage() {
                 {/* Lưu ý đặc biệt */}
                 <div className="bg-secondary/30 rounded-xl p-4 flex gap-3 text-sm text-foreground/70">
                   <Package size={20} className="text-primary shrink-0 mt-0.5" />
-                  <p>Tất cả cây cảnh PAP được đóng gói chuyên dụng với lớp xốp, giấy báo sinh thái để bảo vệ rễ và thân cây trong quá trình vận chuyển.</p>
+                  <p>Tất cả cây cảnh PlanS Thanh Tùng được đóng gói chuyên dụng với lớp xốp, giấy báo sinh thái để bảo vệ rễ và thân cây trong quá trình vận chuyển.</p>
                 </div>
 
                 {/* Shipping Method */}
@@ -432,14 +432,14 @@ export default function CheckoutPage() {
                     <p className="font-bold text-foreground">Thông tin chuyển khoản:</p>
                     <p><span className="text-foreground/60">Ngân hàng:</span> <span className="font-semibold">Vietcombank</span></p>
                     <p><span className="text-foreground/60">Số tài khoản:</span> <span className="font-semibold font-mono">1234 5678 9012</span></p>
-                    <p><span className="text-foreground/60">Chủ tài khoản:</span> <span className="font-semibold">PLAN A PLANT</span></p>
-                    <p><span className="text-foreground/60">Nội dung:</span> <span className="font-semibold text-primary">PAP {form.phone}</span></p>
+                    <p><span className="text-foreground/60">Chủ tài khoản:</span> <span className="font-semibold">PLANS THANH TÙNG</span></p>
+                    <p><span className="text-foreground/60">Nội dung:</span> <span className="font-semibold text-primary">PSTT {form.phone}</span></p>
                   </div>
                 )}
 
                 <div className="flex items-center gap-2 text-sm text-foreground/60 bg-green-50 px-4 py-3 rounded-xl border border-green-100">
                   <ShieldCheck size={20} className="text-green-600 shrink-0" />
-                  Thông tin thanh toán được mã hóa SSL 256-bit. PAP cam kết bảo mật tuyệt đối.
+                  Thông tin thanh toán được mã hóa SSL 256-bit. PlanS Thanh Tùng cam kết bảo mật tuyệt đối.
                 </div>
 
                 <button

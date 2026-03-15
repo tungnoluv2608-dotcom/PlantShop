@@ -89,13 +89,13 @@ async function createOrder(req, res, next) {
 
     const pool = await getPool();
 
-    // Generate order ID like PAP-2026-XXXXX
+    // Generate order ID like PSTT-2026-XXXXX
     const year = new Date().getFullYear();
     const countResult = await pool.request().query(
       `SELECT COUNT(*) AS cnt FROM Orders WHERE YEAR(created_at) = ${year}`
     );
     const seq = String(countResult.recordset[0].cnt + 1).padStart(5, "0");
-    const orderId = `PAP-${year}-${seq}`;
+    const orderId = `PSTT-${year}-${seq}`;
 
     await pool
       .request()

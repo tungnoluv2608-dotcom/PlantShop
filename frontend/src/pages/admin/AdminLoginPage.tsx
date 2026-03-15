@@ -7,7 +7,7 @@ import { toast } from "sonner";
 export default function AdminLoginPage() {
   const { isAuthenticated, login } = useAdminStore();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("admin@pap.vn");
+  const [email, setEmail] = useState("admin@plans.vn");
   const [password, setPassword] = useState("admin123");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -40,12 +40,12 @@ export default function AdminLoginPage() {
               <Leaf size={26} weight="fill" className="text-[#F7E7CE]" />
             </div>
             <div className="text-left">
-              <p className="text-[#F7E7CE] font-black text-xl tracking-wider">PLAN A PLANT</p>
+              <p className="text-[#F7E7CE] font-black text-xl tracking-wider">PLANS THANH TÙNG</p>
               <p className="text-white/40 text-xs font-medium tracking-widest uppercase">Admin Portal</p>
             </div>
           </div>
           <h1 className="text-2xl font-black text-white">Đăng nhập quản trị</h1>
-          <p className="text-white/50 text-sm mt-1">Chỉ dành cho nhân viên PAP</p>
+          <p className="text-white/50 text-sm mt-1">Chỉ dành cho nhân viên PlanS Thanh Tùng</p>
         </div>
 
         {/* Form Card */}
@@ -61,7 +61,7 @@ export default function AdminLoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className="w-full bg-white/10 border border-white/10 text-white placeholder-white/30 rounded-xl pl-10 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#F7E7CE]/30 focus:border-[#F7E7CE]/50 transition-all"
-                  placeholder="admin@pap.vn"
+                  placeholder="admin@plans.vn"
                 />
               </div>
             </div>
@@ -103,7 +103,7 @@ export default function AdminLoginPage() {
         </div>
 
         <p className="text-center text-white/20 text-xs mt-6">
-          © 2026 Plan A Plant. Internal use only.
+          © 2026 PlanS Thanh Tùng. Internal use only.
         </p>
       </div>
     </div>

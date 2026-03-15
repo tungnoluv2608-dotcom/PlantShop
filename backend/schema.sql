@@ -117,7 +117,7 @@ GO
 
 -- ── Orders ─────────────────────────────────────────────────────
 CREATE TABLE Orders (
-    id               NVARCHAR(50)  NOT NULL PRIMARY KEY,  -- e.g. PAP-2026-00001
+    id               NVARCHAR(50)  NOT NULL PRIMARY KEY,  -- e.g. PSTT-2026-00001
     user_id          INT           NOT NULL REFERENCES Users(id),
     status           NVARCHAR(50)  NOT NULL DEFAULT 'pending',
     shipping_address NVARCHAR(MAX),

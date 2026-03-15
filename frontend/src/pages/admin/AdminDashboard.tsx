@@ -80,7 +80,7 @@ export default function AdminDashboard() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-black text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Tổng quan hoạt động của PAP hôm nay, {new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" })}</p>
+        <p className="text-gray-500 text-sm mt-0.5">Tổng quan hoạt động của PlanS Thanh Tùng hôm nay, {new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" })}</p>
       </div>
 
       {loading ? (

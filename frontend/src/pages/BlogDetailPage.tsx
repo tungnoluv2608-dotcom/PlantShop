@@ -56,7 +56,7 @@ export default function BlogDetailPage() {
         <div className="flex items-center gap-2 text-sm text-foreground/50 mb-6">
           <Link to="/" className="hover:text-primary transition-colors">Trang chủ</Link>
           <span>/</span>
-          <Link to="/blog" className="hover:text-primary transition-colors">Góc xanh PAP</Link>
+          <Link to="/blog" className="hover:text-primary transition-colors">Góc xanh PlanS Thanh Tùng</Link>
           <span>/</span>
           <span className="text-foreground/80 truncate max-w-[200px]">{post.title}</span>
         </div>
@@ -112,9 +112,9 @@ export default function BlogDetailPage() {
         {/* Verified plants promo */}
         <div className="bg-primary text-primary-foreground rounded-3xl p-6 md:p-8 mb-12 flex flex-col md:flex-row items-center gap-6">
           <div className="flex-1">
-            <p className="text-xs font-bold opacity-70 mb-2 uppercase tracking-wider">TỪ PAP STORE</p>
-            <h2 className="text-xl font-black mb-2">Mua cây chất lượng từ PAP</h2>
-            <p className="text-sm opacity-80">Cây cảnh PAP được trồng và chăm sóc bởi các chuyên gia, giao hàng toàn quốc với đóng gói chuyên biệt.</p>
+            <p className="text-xs font-bold opacity-70 mb-2 uppercase tracking-wider">TỪ PLANS THANH TÙNG STORE</p>
+            <h2 className="text-xl font-black mb-2">Mua cây chất lượng từ PlanS Thanh Tùng</h2>
+            <p className="text-sm opacity-80">Cây cảnh PlanS Thanh Tùng được trồng và chăm sóc bởi các chuyên gia, giao hàng toàn quốc với đóng gói chuyên biệt.</p>
           </div>
           <Link to="/shop" className="flex items-center gap-2 bg-secondary text-primary px-6 py-3 rounded-xl font-bold text-sm hover:opacity-90 transition-all whitespace-nowrap shrink-0">
             Khám phá cửa hàng <ArrowRight size={16} weight="bold" />

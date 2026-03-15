@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { NavLink, Outlet, Navigate, useNavigate } from "react-router";
 import {
   Leaf, Gauge, Package, ShoppingBag, Users, Newspaper,
@@ -35,7 +35,7 @@ function SidebarContent({ user, onClose, onLogout }: SidebarProps) {
           <Leaf size={20} weight="fill" className="text-[#F7E7CE]" />
         </div>
         <div>
-          <p className="text-[#F7E7CE] font-black text-sm tracking-wider leading-none">PLAN A PLANT</p>
+          <p className="text-[#F7E7CE] font-black text-sm tracking-wider leading-none">PLANS THANH TÙNG</p>
           <p className="text-white/30 text-[10px] font-medium tracking-widest uppercase mt-0.5">Admin Panel</p>
         </div>
       </div>
@@ -171,3 +171,6 @@ export default function AdminLayout() {
     </div>
   );
 }
+
+
+
