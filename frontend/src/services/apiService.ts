@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Order, Review } from "../types";
+import type { Order, Review, Product } from "../types";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -45,6 +45,17 @@ export const reviewApi = {
 // ── Planters ───────────────────────────────────────────────────
 export const planterApi = {
   list: () => api.get("/planters").then((r) => r.data),
+};
+
+// ── Wishlist ──────────────────────────────────────────────────
+export const wishlistApi = {
+  list: () => api.get<Product[]>("/wishlist").then((r) => r.data),
+
+  add: (productId: string) =>
+    api.post(`/wishlist/${productId}`).then((r) => r.data),
+
+  remove: (productId: string) =>
+    api.delete(`/wishlist/${productId}`).then((r) => r.data),
 };
 
 // ── Admin ──────────────────────────────────────────────────────

@@ -180,17 +180,12 @@ CREATE TABLE ReviewTags (
 );
 GO
 
--- ── Blog ───────────────────────────────────────────────────────
-CREATE TABLE BlogPosts (
+-- ── Wishlist / Favorites ─────────────────────────────────────
+CREATE TABLE UserWishlistItems (
     id         INT IDENTITY(1,1) PRIMARY KEY,
-    title      NVARCHAR(500)  NOT NULL,
-    image      NVARCHAR(1000) NOT NULL,
-    excerpt    NVARCHAR(MAX)  NOT NULL,
-    content    NVARCHAR(MAX)  NOT NULL,
-    category   NVARCHAR(255)  NOT NULL,
-    read_time  NVARCHAR(50),
-    tags       NVARCHAR(500),
-    featured   BIT            NOT NULL DEFAULT 0,
-    date       DATE           NOT NULL DEFAULT GETDATE()
+    user_id    INT NOT NULL REFERENCES Users(id),
+    product_id INT NOT NULL REFERENCES Products(id),
+    created_at DATETIME NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT UQ_UserWishlistItems_User_Product UNIQUE (user_id, product_id)
 );
 GO

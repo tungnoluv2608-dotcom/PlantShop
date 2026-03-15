@@ -3,6 +3,7 @@ import { MagnifyingGlass, CaretDown, ShoppingCart, UserCircle, Plant, List, X, S
 import { Link, useNavigate, useLocation } from "react-router";
 import { useCartStore } from "../../stores/cartStore";
 import { useAuthStore } from "../../stores/authStore";
+import { useWishlistStore } from "../../stores/wishlistStore";
 import { productService } from "../../services/productService";
 import { authService } from "../../services/authService";
 import { toast } from "sonner";
@@ -56,6 +57,8 @@ export function Navbar() {
   const location = useLocation();
   const totalItems = useCartStore((s) => s.totalItems());
   const { user, isAuthenticated, clearAuth } = useAuthStore();
+  const syncWishlist = useWishlistStore((s) => s.syncWishlist);
+  const clearWishlist = useWishlistStore((s) => s.clearWishlist);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -76,6 +79,7 @@ export function Navbar() {
   const handleSignOut = async () => {
     try {
       await authService.signOut();
+      clearWishlist();
       clearAuth();
       toast.success("Đã đăng xuất");
       navigate("/");
@@ -120,6 +124,14 @@ export function Navbar() {
     }, 150);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      clearWishlist();
+      return;
+    }
+    syncWishlist().catch(() => undefined);
+  }, [isAuthenticated, syncWishlist, clearWishlist]);
 
   const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchQuery.trim()) {

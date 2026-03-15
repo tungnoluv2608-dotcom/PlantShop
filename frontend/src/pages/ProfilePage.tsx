@@ -7,9 +7,11 @@ import {
 } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
+import { ProductCard } from "../components/ui/ProductCard";
 import type { Order, ShippingAddress } from "../types";
 import { toast } from "sonner";
 import { useAuthStore } from "../stores/authStore";
+import { useWishlistStore } from "../stores/wishlistStore";
 import { orderApi } from "../services/apiService";
 import { addressService } from "../services/addressService";
 import { VIETNAM_PROVINCES, getDistricts } from "../data/vietnamLocations";
@@ -175,6 +177,9 @@ export default function ProfilePage() {
     ...emptyAddressForm,
     fullName: user?.name || "",
   }));
+  const wishlistItems = useWishlistStore((s) => s.items);
+  const wishlistLoading = useWishlistStore((s) => s.isLoading);
+  const syncWishlist = useWishlistStore((s) => s.syncWishlist);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -206,6 +211,11 @@ export default function ProfilePage() {
       .then(setAddresses)
       .catch(() => toast.error("Không thể tải sổ địa chỉ"));
   }, [activeTab, isAuthenticated]);
+
+  useEffect(() => {
+    if (activeTab !== "wishlist" || !isAuthenticated) return;
+    syncWishlist().catch(() => toast.error("Không thể tải danh sách yêu thích"));
+  }, [activeTab, isAuthenticated, syncWishlist]);
 
   const handleCancelOrder = async (orderId: string) => {
     try {
@@ -553,13 +563,33 @@ export default function ProfilePage() {
             {activeTab === "wishlist" && (
               <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6 md:p-8">
                 <h2 className="text-xl font-bold mb-6">Sản phẩm yêu thích</h2>
-                <div className="text-center py-12">
-                  <Heart size={48} className="text-foreground/20 mx-auto mb-4" />
-                  <p className="text-foreground/50 mb-4">Bạn chưa thêm cây nào vào danh sách yêu thích</p>
-                  <Link to="/shop" className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all inline-block">
-                    Khám phá cửa hàng
-                  </Link>
-                </div>
+                {wishlistLoading ? (
+                  <div className="bg-white rounded-2xl border border-secondary p-12 text-center">
+                    <span className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin inline-block" />
+                  </div>
+                ) : wishlistItems.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Heart size={48} className="text-foreground/20 mx-auto mb-4" />
+                    <p className="text-foreground/50 mb-4">Bạn chưa thêm cây nào vào danh sách yêu thích</p>
+                    <Link to="/shop" className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all inline-block">
+                      Khám phá cửa hàng
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {wishlistItems.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        id={product.id}
+                        title={product.title}
+                        price={product.price}
+                        originalPrice={product.originalPrice}
+                        discount={product.discount}
+                        imageUrl={product.imageUrl}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

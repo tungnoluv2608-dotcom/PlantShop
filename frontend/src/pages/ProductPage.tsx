@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router";
-import { CaretDown, CheckCircle, MapPin, Plus, Minus, CaretLeft, CaretRight, Star, ThumbsUp, X, ShoppingCart, Camera, ArrowRight } from "@phosphor-icons/react";
+import { CaretDown, CheckCircle, MapPin, Plus, Minus, CaretLeft, CaretRight, Star, ThumbsUp, X, ShoppingCart, Camera, ArrowRight, Heart } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
 import { ProductCard } from "../components/ui/ProductCard";
@@ -8,6 +8,7 @@ import { productService } from "../services/productService";
 import { planterApi, reviewApi, orderApi } from "../services/apiService";
 import { useCartStore } from "../stores/cartStore";
 import { useAuthStore } from "../stores/authStore";
+import { useWishlistStore } from "../stores/wishlistStore";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { toast } from "sonner";
 import type { Product, Review } from "../types";
@@ -34,8 +35,12 @@ export default function ProductPage() {
   const [reviewTagsInput, setReviewTagsInput] = useState("");
   const [reviewImages, setReviewImages] = useState<string[]>([]);
   const [hasPurchased, setHasPurchased] = useState(false); // New state for purchase check
+  const [isWishlistBusy, setIsWishlistBusy] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isFavorite = useWishlistStore((s) => s.isFavorite(product?.id));
+  const toggleWishlist = useWishlistStore((s) => s.toggleWishlist);
+  const syncWishlist = useWishlistStore((s) => s.syncWishlist);
   const navigate = useNavigate();
   const {
     triggerUpload: triggerReviewImageUpload,
@@ -119,6 +124,11 @@ export default function ProductPage() {
     fetchData();
   }, [id, location.search]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    syncWishlist().catch(() => undefined);
+  }, [isAuthenticated, syncWishlist]);
+
   const increaseQuantity = () => setQuantity((q) => q + 1);
   const decreaseQuantity = () => setQuantity((q) => (q > 1 ? q - 1 : 1));
 
@@ -152,6 +162,26 @@ export default function ProductPage() {
     toast.success("Đã thêm vào giỏ hàng!", {
       description: `${product.title} x${quantity}`,
     });
+  };
+
+  const handleToggleWishlist = async () => {
+    if (!product) return;
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để dùng danh sách yêu thích");
+      navigate("/signin");
+      return;
+    }
+
+    if (isWishlistBusy) return;
+    setIsWishlistBusy(true);
+    try {
+      await toggleWishlist(product.id);
+      toast.success(isFavorite ? "Đã xóa khỏi yêu thích" : "Đã thêm vào yêu thích");
+    } catch {
+      toast.error("Không thể cập nhật danh sách yêu thích");
+    } finally {
+      setIsWishlistBusy(false);
+    }
   };
 
   const reloadReviews = async () => {
@@ -363,12 +393,23 @@ export default function ProductPage() {
             </div>
 
             {/* Add to Cart */}
-            <button
-              onClick={handleAddToCart}
-              className="w-full sm:w-80 bg-primary text-primary-foreground font-bold text-lg py-4 rounded-xl hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 mb-10 cursor-pointer"
-            >
-              Thêm vào giỏ hàng
-            </button>
+            <div className="w-full sm:w-80 flex items-stretch gap-3 mb-10">
+              <button
+                onClick={handleAddToCart}
+                className="flex-1 bg-primary text-primary-foreground font-bold text-lg py-4 rounded-xl hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+              >
+                Thêm vào giỏ hàng
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleWishlist}
+                disabled={isWishlistBusy}
+                className={`w-14 rounded-xl border transition-all cursor-pointer flex items-center justify-center ${isFavorite ? "bg-red-50 border-red-200 text-red-500" : "bg-white border-gray-200 text-foreground/70 hover:text-red-500"}`}
+                aria-label={isFavorite ? "Bỏ yêu thích" : "Thêm yêu thích"}
+              >
+                <Heart size={24} weight={isFavorite ? "fill" : "regular"} />
+              </button>
+            </div>
 
             {/* Delivery Section */}
             <div className="border-t border-border pt-8">

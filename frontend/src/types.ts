@@ -12,6 +12,8 @@ export interface Product {
   bio?: string;
   inStock?: boolean;
   planterOptions?: Array<string | number>;
+  isFavorite?: boolean;
+  favoriteCreatedAt?: string;
 }
 
 export interface CareGuide {
