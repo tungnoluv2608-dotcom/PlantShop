@@ -4,6 +4,10 @@ import { Link } from "react-router";
 import { toast } from "sonner";
 import { adminApi } from "../../services/apiService";
 import { useImageUpload } from "../../hooks/useImageUpload";
+import { productService } from "../../services/productService";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import type { BlogCategory } from "../../types";
 
 interface BlogPost {
   id: string;
@@ -13,7 +17,7 @@ interface BlogPost {
   content: string;
   category: string;
   readTime: string;
-  tags: string;
+  tags: string[];
   featured: boolean;
   date: string;
 }
@@ -22,6 +26,8 @@ export default function AdminBlog() {
   const [search, setSearch] = useState("");
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [categoryOptions, setCategoryOptions] = useState<BlogCategory[]>([]);
+  const [editorMode, setEditorMode] = useState<"write" | "preview">("write");
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,10 +54,14 @@ export default function AdminBlog() {
 
   useEffect(() => {
     fetchPosts();
+    productService.getBlogCategories().then(setCategoryOptions).catch(() => undefined);
   }, []);
 
   const filtered = posts.filter((p) =>
-    !search.trim() || p.title.toLowerCase().includes(search.toLowerCase())
+    !search.trim() ||
+    p.title.toLowerCase().includes(search.toLowerCase()) ||
+    p.excerpt?.toLowerCase().includes(search.toLowerCase()) ||
+    p.category?.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDelete = async (id: string, title: string) => {
@@ -69,14 +79,24 @@ export default function AdminBlog() {
   const openFormModal = (post?: BlogPost) => {
     if (post) {
       setEditingId(post.id);
-      setForm({ ...post });
+      setForm({
+        title: post.title || "",
+        excerpt: post.excerpt || "",
+        content: post.content || "",
+        category: post.category || "",
+        readTime: post.readTime || "5 phút",
+        tags: Array.isArray(post.tags) ? post.tags.join(", ") : "",
+        image: post.image || "",
+        featured: !!post.featured,
+      });
     } else {
       setEditingId(null);
       setForm({
-        title: "", excerpt: "", content: "", category: "Khác", 
+        title: "", excerpt: "", content: "", category: categoryOptions[0]?.name || "Tin tức", 
         readTime: "5 phút", tags: "", image: "", featured: false
       });
     }
+    setEditorMode("write");
     setIsModalOpen(true);
   };
 
@@ -86,12 +106,20 @@ export default function AdminBlog() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title || !form.image || !form.content) {
+    if (!form.title.trim() || !form.image.trim() || !form.content.trim() || !form.category.trim()) {
       toast.error("Vui lòng điền các thông tin bắt buộc (*)");
       return;
     }
     try {
-      const payload = { ...form, tags: form.tags.split(",").map(t => t.trim()).filter(Boolean) };
+      const payload = {
+        ...form,
+        title: form.title.trim(),
+        excerpt: form.excerpt.trim(),
+        content: form.content.trim(),
+        category: form.category.trim(),
+        image: form.image.trim(),
+        tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
+      };
       if (editingId) {
         await adminApi.updateBlogPost(editingId, payload);
         toast.success("Đã cập nhật bài viết");
@@ -100,7 +128,8 @@ export default function AdminBlog() {
         toast.success("Đã tạo bài viết");
       }
       setIsModalOpen(false);
-      fetchPosts();
+      await fetchPosts();
+      productService.getBlogCategories().then(setCategoryOptions).catch(() => undefined);
     } catch {
       toast.error("Lỗi lưu bài viết");
     }
@@ -186,15 +215,15 @@ export default function AdminBlog() {
 
       {/* Form Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl p-6 relative max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 md:p-6 bg-black/50 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl p-6 md:p-8 relative min-h-[92vh] max-h-[95vh] overflow-y-auto">
             <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors">
               <X size={20} weight="bold" />
             </button>
-            <h2 className="text-2xl font-black text-gray-900 mb-6">{editingId ? "Sửa bài viết" : "Thêm bài viết mới"}</h2>
+            <h2 className="text-3xl font-black text-gray-900 mb-6">{editingId ? "Sửa bài viết" : "Thêm bài viết mới"}</h2>
             
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2 space-y-4">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+              <div className="xl:col-span-8 space-y-5">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tiêu đề *</label>
                   <input value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all" required />
@@ -204,27 +233,81 @@ export default function AdminBlog() {
                   <textarea value={form.excerpt} onChange={e => setForm({...form, excerpt: e.target.value})} rows={2} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all resize-none" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nội dung (HTML) *</label>
-                  <textarea value={form.content} onChange={e => setForm({...form, content: e.target.value})} rows={10} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all font-mono" required />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-sm font-semibold text-gray-700">Nội dung (Markdown) *</label>
+                    <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold">
+                      <button type="button" onClick={() => setEditorMode("write")} className={`px-3 py-1.5 ${editorMode === "write" ? "bg-[#102C26] text-[#F7E7CE]" : "bg-white text-gray-600"}`}>Viết</button>
+                      <button type="button" onClick={() => setEditorMode("preview")} className={`px-3 py-1.5 ${editorMode === "preview" ? "bg-[#102C26] text-[#F7E7CE]" : "bg-white text-gray-600"}`}>Xem trước</button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 items-start">
+                    <div className="xl:col-span-3">
+                      {editorMode === "write" ? (
+                        <textarea value={form.content} onChange={e => setForm({...form, content: e.target.value})} rows={18} className="w-full min-h-[520px] border border-gray-200 rounded-xl px-4 py-3 text-[15px] leading-7 outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all font-mono" required />
+                      ) : (
+                        <div className="w-full min-h-[520px] border border-gray-200 rounded-xl px-4 py-4 text-sm bg-gray-50 prose prose-sm max-w-none">
+                          {form.content.trim() ? (
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{form.content}</ReactMarkdown>
+                          ) : (
+                            <p className="text-gray-400">Chưa có nội dung để xem trước.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="xl:col-span-2 rounded-2xl border border-[#D2E7D7] bg-gradient-to-b from-[#F4FAF6] to-[#ECF7F1] p-4 md:p-5 shadow-sm">
+                      <div className="inline-flex items-center gap-2 rounded-full bg-[#102C26] px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#F7E7CE] mb-3">
+                        Mẹo Markdown
+                      </div>
+                      <h4 className="text-base font-black text-[#102C26]">Hướng dẫn viết nội dung</h4>
+                      <p className="text-xs text-gray-600 mt-1 mb-4 leading-relaxed">
+                        Dùng Markdown để định dạng nhanh. Viết ở tab <span className="font-semibold">Viết</span>, kiểm tra lại ở tab <span className="font-semibold">Xem trước</span> trước khi đăng.
+                      </p>
+
+                      <div className="space-y-3 text-xs">
+                        <div className="rounded-xl border border-[#D9E6DE] bg-white p-3">
+                          <p className="font-semibold text-[#102C26] mb-1">Tiêu đề</p>
+                          <p className="font-mono text-gray-700"># Tiêu đề lớn</p>
+                          <p className="font-mono text-gray-700">## Tiêu đề vừa</p>
+                        </div>
+                        <div className="rounded-xl border border-[#D9E6DE] bg-white p-3">
+                          <p className="font-semibold text-[#102C26] mb-1">Nhấn mạnh nội dung</p>
+                          <p className="font-mono text-gray-700">**in đậm** hoặc *in nghiêng*</p>
+                        </div>
+                        <div className="rounded-xl border border-[#D9E6DE] bg-white p-3">
+                          <p className="font-semibold text-[#102C26] mb-1">Danh sách và trích dẫn</p>
+                          <p className="font-mono text-gray-700">- Mục 1</p>
+                          <p className="font-mono text-gray-700">1. Bước 1</p>
+                          <p className="font-mono text-gray-700">&gt; Câu trích dẫn</p>
+                        </div>
+                        <div className="rounded-xl border border-[#D9E6DE] bg-white p-3">
+                          <p className="font-semibold text-[#102C26] mb-1">Link, ảnh, mã</p>
+                          <p className="font-mono text-gray-700">[Tên link](https://...)</p>
+                          <p className="font-mono text-gray-700">![Mô tả ảnh](https://...)</p>
+                          <p className="font-mono text-gray-700">`code` hoặc ```code```</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-xl border border-[#CFE2D5] bg-[#F8FCF9] px-3 py-2 text-[11px] text-gray-600 leading-relaxed">
+                        Gợi ý: Viết câu ngắn, chia đoạn rõ ràng, dùng tiêu đề phụ để bài dễ đọc hơn trên cả điện thoại và desktop.
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              <div className="space-y-4">
+              <div className="xl:col-span-4 space-y-4">
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ảnh Thumb *</label>
-                    <div 
-                      onClick={triggerUpload}
-                      className={`w-full aspect-video rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden relative group
-                        ${form.image ? "border-transparent" : "border-gray-300 hover:border-[#102C26]/50 bg-white"}`}
+                    <div
+                      onClick={() => !uploading && triggerUpload()}
+                      className="w-full h-36 border-2 border-dashed border-gray-300 rounded-xl bg-white cursor-pointer hover:border-[#102C26]/40 transition flex items-center justify-center overflow-hidden"
                     >
                       {form.image ? (
-                        <>
-                          <img src={form.image} className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center text-white"><CloudArrowUp size={24}/> Thay đổi</div>
-                        </>
+                        <img src={form.image} alt="thumb" className="w-full h-full object-cover" />
                       ) : uploading ? (
-                        <span className="animate-spin border-2 border-[#102C26] border-t-transparent w-6 h-6 rounded-full"/>
+                        <div className="text-[#102C26] text-sm font-semibold">Đang tải...</div>
                       ) : (
                         <div className="text-gray-400 text-center px-4"><CloudArrowUp size={24} className="mx-auto mb-1"/><span className="text-xs">Tải lên hoặc chọn ảnh</span></div>
                       )}
@@ -234,7 +317,20 @@ export default function AdminBlog() {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Chuyên mục</label>
-                    <input value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20" />
+                    <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20 bg-white">
+                      {categoryOptions.map((c) => (
+                        <option key={c.name} value={c.name}>{c.name}</option>
+                      ))}
+                      {!categoryOptions.find((c) => c.name === form.category) && form.category && (
+                        <option value={form.category}>{form.category}</option>
+                      )}
+                    </select>
+                    <input
+                      value={form.category}
+                      onChange={e => setForm({...form, category: e.target.value})}
+                      placeholder="Hoặc nhập chuyên mục mới"
+                      className="w-full mt-2 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tags (cách nhau dấu phẩy)</label>
@@ -248,7 +344,7 @@ export default function AdminBlog() {
                   </div>
                 </div>
               </div>
-              <div className="md:col-span-3 border-t border-gray-100 pt-5 flex justify-end gap-3">
+              <div className="xl:col-span-12 border-t border-gray-100 pt-5 flex justify-end gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition-colors">Hủy</button>
                 <button type="submit" disabled={uploading} className="px-6 py-2.5 rounded-xl text-sm font-bold text-[#F7E7CE] bg-[#102C26] hover:bg-[#102C26]/90 transition-colors disabled:opacity-50">
                   {editingId ? "Lưu thay đổi" : "Đăng bài"}

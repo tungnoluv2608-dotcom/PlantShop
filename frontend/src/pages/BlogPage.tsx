@@ -4,18 +4,30 @@ import { Clock, ArrowRight, MagnifyingGlass } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
 import { productService } from "../services/productService";
-import type { BlogPost } from "../types";
+import type { BlogPost, BlogCategory } from "../types";
 import forestPattern from "../assets/forest_pattern.jpg";
-
-const categories = ["Tất cả", "Chăm sóc cây", "Trang trí", "Sức khỏe", "Phong thủy", "DIY"];
 
 export default function BlogPage() {
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const [searchQuery, setSearchQuery] = useState("");
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [categories, setCategories] = useState<BlogCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const PAGE_SIZE = 6;
 
   useEffect(() => {
-    productService.getBlogPosts().then(setBlogPosts);
+    setLoading(true);
+    Promise.all([
+      productService.getBlogPosts(),
+      productService.getBlogCategories(),
+    ])
+      .then(([posts, categoryOptions]) => {
+        setBlogPosts(posts);
+        setCategories(categoryOptions);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const featured = blogPosts.find((p) => p.featured);
@@ -24,6 +36,23 @@ export default function BlogPage() {
     const matchSearch = !searchQuery.trim() || p.title.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCat && matchSearch;
   });
+
+  const shouldShowFeatured = !!featured && selectedCategory === "Tất cả" && !searchQuery && !loading;
+  const listForGrid = filtered.filter((p) => !(shouldShowFeatured && p.featured));
+  const totalPages = Math.max(1, Math.ceil(listForGrid.length / PAGE_SIZE));
+  const paginatedPosts = listForGrid.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const categoryOptions = ["Tất cả", ...categories.map((c) => c.name)];
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchQuery, loading]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   return (
     <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
@@ -55,7 +84,7 @@ export default function BlogPage() {
             />
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
-            {categories.map((cat) => (
+            {categoryOptions.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
@@ -67,8 +96,14 @@ export default function BlogPage() {
           </div>
         </div>
 
+        {loading && (
+          <div className="mb-8 text-center">
+            <span className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin inline-block" />
+          </div>
+        )}
+
         {/* Featured Post */}
-        {featured && selectedCategory === "Tất cả" && !searchQuery && (
+        {shouldShowFeatured && (
           <Link to={`/blog/${featured.id}`} className="group block mb-10">
             <div className="relative h-64 md:h-80 rounded-3xl overflow-hidden shadow-lg">
               <img src={featured.image} alt={featured.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
@@ -88,7 +123,7 @@ export default function BlogPage() {
 
         {/* Blog Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.filter((p) => !p.featured || selectedCategory !== "Tất cả" || searchQuery).map((post) => (
+          {paginatedPosts.map((post) => (
             <Link key={post.id} to={`/blog/${post.id}`} className="group bg-white rounded-2xl overflow-hidden border border-secondary hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <div className="h-48 overflow-hidden">
                 <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -111,7 +146,37 @@ export default function BlogPage() {
           ))}
         </div>
 
-        {filtered.length === 0 && (
+        {!loading && totalPages > 1 && (
+          <div className="mt-10 flex items-center justify-center gap-2 flex-wrap">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-foreground/70 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Trước
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`min-w-9 px-3 py-2 rounded-lg text-sm font-semibold border transition-all ${currentPage === page ? "bg-primary text-white border-primary" : "bg-white text-foreground/70 border-gray-200 hover:border-primary/40"}`}
+              >
+                {page}
+              </button>
+            ))}
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-foreground/70 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Sau
+            </button>
+          </div>
+        )}
+
+        {!loading && listForGrid.length === 0 && (
           <div className="text-center py-16 bg-white rounded-2xl border border-secondary">
             <p className="text-foreground/50 text-lg font-medium mb-2">Không tìm thấy bài viết nào</p>
             <button onClick={() => { setSearchQuery(""); setSelectedCategory("Tất cả"); }} className="text-primary font-semibold hover:underline text-sm">

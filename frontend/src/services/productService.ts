@@ -15,6 +15,17 @@ export interface ProductFilters {
   pageSize?: number;
 }
 
+export interface BlogFilters {
+  category?: string;
+  search?: string;
+  featured?: boolean;
+}
+
+export interface BlogCategoryOption {
+  name: string;
+  total: number;
+}
+
 export const productService = {
   async getProducts(filters?: ProductFilters): Promise<{ products: Product[]; total: number }> {
     const params: Record<string, string | number | undefined> = {};
@@ -48,8 +59,27 @@ export const productService = {
     return res.data;
   },
 
-  async getBlogPosts(): Promise<BlogPost[]> {
-    const res = await api.get("/blog");
+  async getBlogPosts(filters?: BlogFilters): Promise<BlogPost[]> {
+    const params: Record<string, string | boolean | undefined> = {};
+    if (filters?.category) params.category = filters.category;
+    if (filters?.search) params.search = filters.search;
+    if (filters?.featured !== undefined) params.featured = filters.featured;
+
+    const res = await api.get("/blog", { params });
+    return res.data;
+  },
+
+  async getBlogPostById(id: string): Promise<BlogPost | null> {
+    try {
+      const res = await api.get(`/blog/${id}`);
+      return res.data;
+    } catch {
+      return null;
+    }
+  },
+
+  async getBlogCategories(): Promise<BlogCategoryOption[]> {
+    const res = await api.get("/blog/categories");
     return res.data;
   },
 

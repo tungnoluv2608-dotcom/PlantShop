@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router";
 import { ArrowLeft, Clock, ArrowRight } from "@phosphor-icons/react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
 import { productService } from "../services/productService";
@@ -16,10 +18,9 @@ export default function BlogDetailPage() {
     if (!id) return;
     setLoading(true);
     Promise.all([
-      productService.getBlogPosts(),
+      productService.getBlogPostById(id),
       productService.getProducts({ page: 1, pageSize: 4 }),
-    ]).then(([posts, prods]) => {
-      const found = posts.find((p) => String(p.id) === id) ?? null;
+    ]).then(([found, prods]) => {
       setPost(found);
       setRelated(prods.products.slice(0, 4));
     }).finally(() => setLoading(false));
@@ -82,10 +83,12 @@ export default function BlogDetailPage() {
             {post.excerpt && <p className="text-base text-foreground/70 leading-relaxed mb-6 border-l-4 border-primary pl-4 italic">{post.excerpt}</p>}
 
             {/* Content */}
-            <div className="prose prose-sm max-w-none text-foreground/80 leading-relaxed">
-              {post.content
-                ? post.content.split("\n").map((line, i) => <p key={i} className="mb-3">{line}</p>)
-                : <p className="text-foreground/50">Nội dung đang được cập nhật...</p>}
+            <div className="prose prose-sm max-w-none text-foreground/80 leading-relaxed prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground">
+              {post.content ? (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content}</ReactMarkdown>
+              ) : (
+                <p className="text-foreground/50">Nội dung đang được cập nhật...</p>
+              )}
             </div>
 
             {/* Tags */}

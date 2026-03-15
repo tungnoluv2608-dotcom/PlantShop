@@ -412,21 +412,64 @@ async function adminListBlog(req, res, next) {
   try {
     const pool = await getPool();
     const result = await pool.request().query(
-      "SELECT id, title, image, excerpt, category, featured, CONVERT(varchar, date, 23) AS date FROM BlogPosts ORDER BY date DESC"
+      `SELECT id, title, image, excerpt, content, category,
+              read_time AS readTime, tags, featured,
+              CONVERT(varchar, date, 23) AS date
+       FROM BlogPosts
+       ORDER BY date DESC, id DESC`
     );
-    return res.json(result.recordset.map((p) => ({ ...p, id: String(p.id), featured: !!p.featured })));
+    return res.json(
+      result.recordset.map((p) => ({
+        ...p,
+        id: String(p.id),
+        tags: p.tags
+          ? p.tags.split(",").map((t) => t.trim()).filter(Boolean)
+          : [],
+        featured: !!p.featured,
+      }))
+    );
   } catch (err) { next(err); }
 }
 
 async function createBlogPost(req, res, next) {
   try {
-    const { title, image, excerpt, content, category, readTime, tags = [], featured = false, date } = req.body;
+    const {
+      title,
+      image,
+      excerpt,
+      content,
+      category,
+      readTime,
+      tags = [],
+      featured = false,
+      date,
+    } = req.body;
+
+    const normalizedTitle = String(title || "").trim();
+    const normalizedContent = String(content || "").trim();
+    const normalizedCategory = String(category || "").trim();
+    const normalizedImage = String(image || "").trim();
+    const normalizedExcerpt = String(excerpt || "").trim();
+
+    if (!normalizedTitle || !normalizedContent || !normalizedCategory || !normalizedImage) {
+      return res.status(400).json({ message: "Thiếu thông tin bắt buộc của bài viết." });
+    }
+
+    const normalizedTags = Array.isArray(tags)
+      ? tags.map((t) => String(t).trim()).filter(Boolean)
+      : String(tags || "")
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean);
+
+    const autoReadTime = `${Math.max(1, Math.ceil(normalizedContent.split(/\s+/).filter(Boolean).length / 220))} phút`;
+
     const pool = await getPool();
     const result = await pool.request()
-      .input("title", sql.NVarChar, title).input("image", sql.NVarChar, image)
-      .input("excerpt", sql.NVarChar, excerpt).input("content", sql.NVarChar, content)
-      .input("category", sql.NVarChar, category).input("readTime", sql.NVarChar, readTime || null)
-      .input("tags", sql.NVarChar, tags.join(",")).input("featured", sql.Bit, featured)
+      .input("title", sql.NVarChar, normalizedTitle).input("image", sql.NVarChar, normalizedImage)
+      .input("excerpt", sql.NVarChar, normalizedExcerpt).input("content", sql.NVarChar, normalizedContent)
+      .input("category", sql.NVarChar, normalizedCategory).input("readTime", sql.NVarChar, String(readTime || autoReadTime))
+      .input("tags", sql.NVarChar, normalizedTags.join(",")).input("featured", sql.Bit, !!featured)
       .input("date", sql.Date, date || new Date())
       .query(`INSERT INTO BlogPosts (title, image, excerpt, content, category, read_time, tags, featured, date)
               OUTPUT INSERTED.id VALUES (@title, @image, @excerpt, @content, @category, @readTime, @tags, @featured, @date)`);
@@ -437,13 +480,33 @@ async function createBlogPost(req, res, next) {
 async function updateBlogPost(req, res, next) {
   try {
     const { title, image, excerpt, content, category, readTime, tags, featured, date } = req.body;
+
+    const normalizedTitle = String(title || "").trim();
+    const normalizedContent = String(content || "").trim();
+    const normalizedCategory = String(category || "").trim();
+    const normalizedImage = String(image || "").trim();
+    const normalizedExcerpt = String(excerpt || "").trim();
+
+    if (!normalizedTitle || !normalizedContent || !normalizedCategory || !normalizedImage) {
+      return res.status(400).json({ message: "Thiếu thông tin bắt buộc của bài viết." });
+    }
+
+    const normalizedTags = Array.isArray(tags)
+      ? tags.map((t) => String(t).trim()).filter(Boolean)
+      : String(tags || "")
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean);
+
+    const autoReadTime = `${Math.max(1, Math.ceil(normalizedContent.split(/\s+/).filter(Boolean).length / 220))} phút`;
+
     const pool = await getPool();
     await pool.request().input("id", sql.Int, req.params.id)
-      .input("title", sql.NVarChar, title).input("image", sql.NVarChar, image)
-      .input("excerpt", sql.NVarChar, excerpt).input("content", sql.NVarChar, content)
-      .input("category", sql.NVarChar, category).input("readTime", sql.NVarChar, readTime || null)
-      .input("tags", sql.NVarChar, tags ? tags.join(",") : "")
-      .input("featured", sql.Bit, featured).input("date", sql.Date, date)
+      .input("title", sql.NVarChar, normalizedTitle).input("image", sql.NVarChar, normalizedImage)
+      .input("excerpt", sql.NVarChar, normalizedExcerpt).input("content", sql.NVarChar, normalizedContent)
+      .input("category", sql.NVarChar, normalizedCategory).input("readTime", sql.NVarChar, String(readTime || autoReadTime))
+      .input("tags", sql.NVarChar, normalizedTags.join(","))
+      .input("featured", sql.Bit, !!featured).input("date", sql.Date, date || new Date())
       .query(`UPDATE BlogPosts SET title=@title, image=@image, excerpt=@excerpt, content=@content,
               category=@category, read_time=@readTime, tags=@tags, featured=@featured, date=@date WHERE id=@id`);
     return res.json({ message: "Đã cập nhật bài viết." });

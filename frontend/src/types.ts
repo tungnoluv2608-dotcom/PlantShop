@@ -50,6 +50,11 @@ export interface BlogPost {
   featured?: boolean;
 }
 
+export interface BlogCategory {
+  name: string;
+  total: number;
+}
+
 export interface User {
   id: string;
   name: string;
