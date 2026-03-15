@@ -5,6 +5,15 @@ import { Footer } from "../components/layout/Footer";
 import { useCartStore } from "../stores/cartStore";
 import { toast } from "sonner";
 
+function getItemDetailPath(id: string) {
+  if (/^\d+$/.test(id)) return `/product/${id}`;
+  const planterMatch = id.match(/^planter-(\d+)$/i);
+  if (planterMatch) return `/planters/${planterMatch[1]}`;
+  const accessoryMatch = id.match(/^accessory-(\d+)$/i);
+  if (accessoryMatch) return `/accessories/${accessoryMatch[1]}`;
+  return null;
+}
+
 export default function CartPage() {
   const navigate = useNavigate();
   const items = useCartStore((s) => s.items);
@@ -57,19 +66,34 @@ export default function CartPage() {
                 {/* Items */}
                 <div className="divide-y divide-secondary">
                   {items.map((item) => (
+                    (() => {
+                      const detailPath = getItemDetailPath(item.id);
+                      return (
                     <div key={item.id} className="p-6 flex flex-col sm:grid sm:grid-cols-12 gap-4 items-center sm:items-start text-center sm:text-left transition-colors hover:bg-gray-50/30">
                       
                       {/* Product Info */}
                       <div className="col-span-6 w-full flex flex-col sm:flex-row items-center sm:items-start gap-4">
-                        <Link to={`/product/${item.id}`} className="shrink-0 group cursor-pointer">
-                          <div className="w-24 h-24 rounded-xl overflow-hidden bg-secondary">
-                            <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                          </div>
-                        </Link>
-                        <div className="flex flex-col justify-center h-full gap-1">
-                          <Link to={`/product/${item.id}`} className="font-bold text-lg hover:text-primary transition-colors text-foreground">
-                            {item.title}
+                        {detailPath ? (
+                          <Link to={detailPath} className="shrink-0 group cursor-pointer">
+                            <div className="w-24 h-24 rounded-xl overflow-hidden bg-secondary">
+                              <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            </div>
                           </Link>
+                        ) : (
+                          <div className="shrink-0">
+                            <div className="w-24 h-24 rounded-xl overflow-hidden bg-secondary">
+                              <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex flex-col justify-center h-full gap-1">
+                          {detailPath ? (
+                            <Link to={detailPath} className="font-bold text-lg hover:text-primary transition-colors text-foreground">
+                              {item.title}
+                            </Link>
+                          ) : (
+                            <p className="font-bold text-lg text-foreground">{item.title}</p>
+                          )}
                           <p className="text-sm text-foreground/70">Chậu: {item.planter}</p>
                           <button 
                             onClick={() => handleRemove(item.id, item.title)}
@@ -112,6 +136,8 @@ export default function CartPage() {
                         </span>
                       </div>
                     </div>
+                      );
+                    })()
                   ))}
                 </div>
               </div>

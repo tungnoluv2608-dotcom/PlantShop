@@ -7,6 +7,7 @@ import CartPage from './pages/CartPage'
 import ShopPage from './pages/ShopPage'
 import PlantersPage from './pages/PlantersPage'
 import AccessoriesPage from './pages/AccessoriesPage'
+import PlanterAccessoryDetailPage from './pages/PlanterAccessoryDetailPage'
 import NotFoundPage from './pages/NotFoundPage'
 import CheckoutPage from './pages/CheckoutPage'
 import OrderSuccessPage from './pages/OrderSuccessPage'
@@ -48,7 +49,9 @@ function App() {
         <Route path='/cart' element={<CartPage />} />
         <Route path='/shop' element={<ShopPage />} />
         <Route path='/planters' element={<PlantersPage />} />
+        <Route path='/planters/:id' element={<PlanterAccessoryDetailPage />} />
         <Route path='/accessories' element={<AccessoriesPage />} />
+        <Route path='/accessories/:id' element={<PlanterAccessoryDetailPage />} />
 
         {/* Checkout flow */}
         <Route path='/checkout' element={<CheckoutPage />} />

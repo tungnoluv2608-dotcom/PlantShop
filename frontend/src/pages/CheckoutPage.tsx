@@ -31,6 +31,15 @@ const paymentMethods = [
   { id: "bank", label: "Chuyển khoản ngân hàng", icon: "🔁", desc: "STK: 1234 5678 9012 — Vietcombank" },
 ];
 
+const getItemDetailPath = (id: string) => {
+  if (/^\d+$/.test(id)) return `/product/${id}`;
+  const planterMatch = id.match(/^planter-(\d+)$/i);
+  if (planterMatch) return `/planters/${planterMatch[1]}`;
+  const accessoryMatch = id.match(/^accessory-(\d+)$/i);
+  if (accessoryMatch) return `/accessories/${accessoryMatch[1]}`;
+  return null;
+};
+
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuthStore();
@@ -453,19 +462,34 @@ export default function CheckoutPage() {
             <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6 sticky top-28">
               <h2 className="text-lg font-bold mb-5 pb-4 border-b border-secondary">Tóm tắt đơn hàng ({items.length} sản phẩm)</h2>
               <div className="space-y-3 mb-5 max-h-60 overflow-y-auto pr-1">
-                {items.map((item) => (
+                {items.map((item) => {
+                  const detailPath = getItemDetailPath(item.id);
+                  return (
                   <div key={item.id} className="flex gap-3 items-center">
                     <div className="relative shrink-0">
-                      <img src={item.image} alt={item.title} className="w-14 h-14 rounded-lg object-cover" />
+                      {detailPath ? (
+                        <Link to={detailPath}>
+                          <img src={item.image} alt={item.title} className="w-14 h-14 rounded-lg object-cover" />
+                        </Link>
+                      ) : (
+                        <img src={item.image} alt={item.title} className="w-14 h-14 rounded-lg object-cover" />
+                      )}
                       <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{item.quantity}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{item.title}</p>
+                      {detailPath ? (
+                        <Link to={detailPath} className="text-sm font-semibold truncate hover:text-primary transition-colors block">
+                          {item.title}
+                        </Link>
+                      ) : (
+                        <p className="text-sm font-semibold truncate">{item.title}</p>
+                      )}
                       <p className="text-xs text-foreground/50">{item.planter}</p>
                     </div>
                     <span className="text-sm font-bold text-primary shrink-0">{(item.price * item.quantity).toLocaleString("vi-VN")}đ</span>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="space-y-2 text-sm border-t border-secondary pt-4 mb-4">

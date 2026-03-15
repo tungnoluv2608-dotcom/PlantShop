@@ -36,6 +36,16 @@ const statusConfig: Record<Order["status"], { label: string; color: string; icon
 
 const isNumericProductId = (id: string) => /^\d+$/.test(id);
 
+const getOrderItemDetailPath = (id: string) => {
+  if (!id) return null;
+  if (/^\d+$/.test(id)) return `/product/${id}`;
+  const planterMatch = id.match(/^planter-(\d+)$/i);
+  if (planterMatch) return `/planters/${planterMatch[1]}`;
+  const accessoryMatch = id.match(/^accessory-(\d+)$/i);
+  if (accessoryMatch) return `/accessories/${accessoryMatch[1]}`;
+  return null;
+};
+
 const emptyAddressForm: Omit<ShippingAddress, "id"> = {
   label: "",
   fullName: "",
@@ -69,11 +79,12 @@ function OrderCard({ order, onCancel, onReview }: { order: Order; onCancel: (id:
 
       {/* Items preview */}
       <div className="border-t border-secondary px-5 py-4 flex gap-3 overflow-x-auto">
-        {order.items.map((item) => (
-          isNumericProductId(item.id) ? (
+        {order.items.map((item) => {
+          const detailPath = getOrderItemDetailPath(item.id);
+          return detailPath ? (
             <Link
               key={`${order.id}-${item.id}`}
-              to={`/product/${item.id}`}
+              to={detailPath}
               className="flex items-center gap-3 min-w-0 shrink-0 rounded-xl p-1 -m-1 hover:bg-gray-50 transition-colors"
               title="Xem sản phẩm"
             >
@@ -91,8 +102,8 @@ function OrderCard({ order, onCancel, onReview }: { order: Order; onCancel: (id:
                 <p className="text-xs text-foreground/50">x{item.quantity} · {item.price.toLocaleString("vi-VN")}đ</p>
               </div>
             </div>
-          )
-        ))}
+          );
+        })}
       </div>
 
       {/* Actions */}

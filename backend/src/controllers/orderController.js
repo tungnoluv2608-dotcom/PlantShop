@@ -1,13 +1,29 @@
 const { getPool, sql } = require("../libs/db");
 
 function normalizeOrderItemProductId(rawId) {
-  // Products keep numeric ids; synthetic cart items like planter-1/accessory-12 should map to NULL.
-  if (typeof rawId === "number" && Number.isInteger(rawId)) return rawId;
+  // Keep numeric product IDs, and also extract numeric part for planter/accessory IDs.
+  if (typeof rawId === "number" && Number.isInteger(rawId)) {
+    return { productId: rawId, itemType: "product" };
+  }
+
   if (typeof rawId === "string") {
     const trimmed = rawId.trim();
-    if (/^\d+$/.test(trimmed)) return Number(trimmed);
+    if (/^\d+$/.test(trimmed)) {
+      return { productId: Number(trimmed), itemType: "product" };
+    }
+
+    const planterMatch = trimmed.match(/^planter-(\d+)$/i);
+    if (planterMatch) {
+      return { productId: Number(planterMatch[1]), itemType: "planter" };
+    }
+
+    const accessoryMatch = trimmed.match(/^accessory-(\d+)$/i);
+    if (accessoryMatch) {
+      return { productId: Number(accessoryMatch[1]), itemType: "accessory" };
+    }
   }
-  return null;
+
+  return { productId: null, itemType: "unknown" };
 }
 
 // GET /api/orders  (my orders)
@@ -97,8 +113,8 @@ async function createOrder(req, res, next) {
       );
 
     for (const item of items) {
-      const productId = normalizeOrderItemProductId(item.id);
-      const isSyntheticItem = productId === null;
+      const { productId, itemType } = normalizeOrderItemProductId(item.id);
+      const isSyntheticItem = itemType === "planter" || itemType === "accessory" || itemType === "unknown";
 
       await pool
         .request()
@@ -179,6 +195,26 @@ async function enrichOrders(pool, orders) {
        FROM OrderItems WHERE order_id IN (${ids})`
     );
 
+  const planterCandidates = Array.from(
+    new Set(
+      itemsResult.recordset
+        .filter((item) => item.id !== null && item.id !== undefined && item.planter === item.title)
+        .map((item) => Number(item.id))
+        .filter((id) => Number.isInteger(id) && id > 0)
+    )
+  );
+
+  const planterTypeMap = {};
+  if (planterCandidates.length > 0) {
+    const typeRows = await pool
+      .request()
+      .query(`SELECT id, type FROM Planters WHERE id IN (${planterCandidates.join(",")})`);
+
+    for (const row of typeRows.recordset) {
+      planterTypeMap[row.id] = row.type === "accessory" ? "accessory" : "planter";
+    }
+  }
+
   const timelineResult = await pool
     .request()
     .query(
@@ -189,8 +225,14 @@ async function enrichOrders(pool, orders) {
   const itemsMap = {};
   for (const item of itemsResult.recordset) {
     if (!itemsMap[item.order_id]) itemsMap[item.order_id] = [];
+
+    let normalizedId = item.id === null || item.id === undefined ? "" : String(item.id);
+    if (item.id !== null && item.id !== undefined && item.planter === item.title && planterTypeMap[item.id]) {
+      normalizedId = `${planterTypeMap[item.id]}-${item.id}`;
+    }
+
     itemsMap[item.order_id].push({
-      id: item.id === null || item.id === undefined ? "" : String(item.id),
+      id: normalizedId,
       title: item.title,
       price: item.price,
       quantity: item.quantity,

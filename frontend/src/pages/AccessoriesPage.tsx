@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router";
+import { Link } from "react-router";
 import { CaretDown, CaretRight, ShoppingCart } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
@@ -337,7 +338,8 @@ export default function AccessoriesPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredAccessories.map((item) => (
-                  <div
+                  <Link
+                    to={`/accessories/${item.id}`}
                     key={item.id}
                     className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-secondary/50 flex flex-col h-full hover:-translate-y-1"
                   >
@@ -394,7 +396,7 @@ export default function AccessoriesPage() {
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

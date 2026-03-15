@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router";
+import { Link } from "react-router";
 import { CaretRight, CaretDown, ShoppingCart } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
@@ -248,7 +249,7 @@ export default function PlantersPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredPlanters.map((product) => (
-                  <div key={product.id} className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-secondary/50 flex flex-col h-full hover:-translate-y-1">
+                  <Link to={`/planters/${product.id}`} key={product.id} className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-secondary/50 flex flex-col h-full hover:-translate-y-1">
                     <div className="aspect-square bg-secondary/30 relative overflow-hidden">
                       <img 
                         src={product.imageUrl} 
@@ -291,7 +292,7 @@ export default function PlantersPage() {
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

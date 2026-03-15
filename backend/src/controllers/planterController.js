@@ -73,4 +73,70 @@ async function getPlanters(req, res, next) {
   }
 }
 
-module.exports = { getPlanters };
+// GET /api/planters/:id
+async function getPlanterById(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ message: "ID không hợp lệ." });
+    }
+
+    const typeFilter = String(req.query.type || "").trim().toLowerCase();
+    const pool = await getPool();
+    const hasMeta = await hasAccessoryMetaColumns(pool);
+
+    const request = pool.request().input("id", sql.Int, id);
+    let typeWhere = "";
+    if (typeFilter === "planter" || typeFilter === "accessory") {
+      request.input("type", sql.NVarChar, typeFilter);
+      typeWhere = "AND type = @type";
+    }
+
+    const result = await request.query(
+      `SELECT id, name, material,
+              ${hasMeta ? "accessory_brand" : "NULL"} AS accessoryBrand,
+              ${hasMeta ? "accessory_uses" : "NULL"} AS accessoryUses,
+              price, image_url AS imageUrl, in_stock AS inStock, type
+       FROM Planters
+       WHERE id = @id ${typeWhere}`
+    );
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại." });
+    }
+
+    const sizesResult = await pool
+      .request()
+      .input("id", sql.Int, id)
+      .query("SELECT size_label FROM PlanterSizes WHERE planter_id = @id ORDER BY id");
+
+    const p = result.recordset[0];
+    return res.json({
+      id: String(p.id),
+      name: p.name,
+      material: p.material,
+      accessoryBrand: p.accessoryBrand || "",
+      usageTags: (() => {
+        if (!p.accessoryUses) return [];
+        try {
+          const parsed = JSON.parse(p.accessoryUses);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return String(p.accessoryUses)
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter(Boolean);
+        }
+      })(),
+      price: p.price,
+      imageUrl: p.imageUrl,
+      inStock: !!p.inStock,
+      type: p.type === "accessory" ? "accessory" : "planter",
+      sizes: sizesResult.recordset.map((s) => s.size_label),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getPlanters, getPlanterById };

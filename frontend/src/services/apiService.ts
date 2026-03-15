@@ -46,6 +46,8 @@ export const reviewApi = {
 export const planterApi = {
   list: (type?: "planter" | "accessory") =>
     api.get("/planters", { params: type ? { type } : undefined }).then((r) => r.data),
+  getById: (id: string, type?: "planter" | "accessory") =>
+    api.get(`/planters/${id}`, { params: type ? { type } : undefined }).then((r) => r.data),
 };
 
 // ── Wishlist ──────────────────────────────────────────────────
