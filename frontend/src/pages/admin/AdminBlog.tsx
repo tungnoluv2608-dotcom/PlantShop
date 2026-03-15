@@ -28,6 +28,9 @@ export default function AdminBlog() {
   const [isLoading, setIsLoading] = useState(true);
   const [categoryOptions, setCategoryOptions] = useState<BlogCategory[]>([]);
   const [editorMode, setEditorMode] = useState<"write" | "preview">("write");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const PAGE_SIZE = 9;
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,6 +66,19 @@ export default function AdminBlog() {
     p.excerpt?.toLowerCase().includes(search.toLowerCase()) ||
     p.category?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginatedPosts = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, posts.length]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const handleDelete = async (id: string, title: string) => {
     if (window.confirm(`Xóa bài viết "${title}"?`)) {
@@ -169,7 +185,7 @@ export default function AdminBlog() {
         <>
           {/* Posts Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filtered.map((post) => (
+            {paginatedPosts.map((post) => (
               <div key={post.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-md transition-shadow">
                 <div className="h-40 overflow-hidden relative">
                   <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -204,6 +220,36 @@ export default function AdminBlog() {
               </div>
             ))}
           </div>
+
+          {filtered.length > 0 && totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Trước
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`min-w-9 px-3 py-2 rounded-lg text-sm font-semibold border transition-all ${currentPage === page ? "bg-[#102C26] text-[#F7E7CE] border-[#102C26]" : "bg-white text-gray-700 border-gray-200 hover:border-[#102C26]/40"}`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Sau
+              </button>
+            </div>
+          )}
 
           {filtered.length === 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
