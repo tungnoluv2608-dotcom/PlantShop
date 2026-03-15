@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, PencilSimple, Trash, Check, X, CloudArrowUp, Wrench } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { useImageUpload } from "../../hooks/useImageUpload";
@@ -24,6 +24,16 @@ export default function AdminAccessories() {
   const [editing, setEditing] = useState<Planter | null>(null);
   const [draft, setDraft] = useState<Omit<Planter, "id">>(EMPTY);
   const [usageInput, setUsageInput] = useState("");
+
+  const groupOptions = useMemo(
+    () => Array.from(new Set(accessories.map((item) => item.material).filter(Boolean))).sort((a, b) => a.localeCompare(b, "vi")),
+    [accessories]
+  );
+
+  const brandOptions = useMemo(
+    () => Array.from(new Set(accessories.map((item) => item.accessoryBrand || "").filter(Boolean))).sort((a, b) => a.localeCompare(b, "vi")),
+    [accessories]
+  );
 
   const { triggerUpload, uploading, InputElement } = useImageUpload({ multiple: false });
 
@@ -230,20 +240,46 @@ export default function AdminAccessories() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nhóm phụ kiện *</label>
+                  <select
+                    value={draft.material}
+                    onChange={(e) => setDraft((p) => ({ ...p, material: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-200 bg-white"
+                  >
+                    <option value="">Chọn nhóm phụ kiện đã có</option>
+                    {groupOptions.map((group) => (
+                      <option key={group} value={group}>{group}</option>
+                    ))}
+                    {!!draft.material && !groupOptions.includes(draft.material) && (
+                      <option value={draft.material}>{draft.material}</option>
+                    )}
+                  </select>
                   <input
                     value={draft.material}
                     onChange={(e) => setDraft((p) => ({ ...p, material: e.target.value }))}
-                    placeholder="Đất trồng, Dụng cụ, Phân bón..."
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all"
+                    placeholder="Hoặc nhập nhóm phụ kiện mới"
+                    className="w-full mt-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 transition-all"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Thương hiệu *</label>
+                  <select
+                    value={draft.accessoryBrand || ""}
+                    onChange={(e) => setDraft((p) => ({ ...p, accessoryBrand: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-200 bg-white"
+                  >
+                    <option value="">Chọn thương hiệu đã có</option>
+                    {brandOptions.map((brand) => (
+                      <option key={brand} value={brand}>{brand}</option>
+                    ))}
+                    {!!draft.accessoryBrand && !brandOptions.includes(draft.accessoryBrand) && (
+                      <option value={draft.accessoryBrand}>{draft.accessoryBrand}</option>
+                    )}
+                  </select>
                   <input
                     value={draft.accessoryBrand || ""}
                     onChange={(e) => setDraft((p) => ({ ...p, accessoryBrand: e.target.value }))}
-                    placeholder="VD: BioGrow, GardenPro..."
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 transition-all"
+                    placeholder="Hoặc nhập thương hiệu mới"
+                    className="w-full mt-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 transition-all"
                   />
                 </div>
                 <div>

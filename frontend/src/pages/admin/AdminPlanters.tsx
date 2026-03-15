@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, PencilSimple, Trash, Check, X, CloudArrowUp, Flower } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { useImageUpload } from "../../hooks/useImageUpload";
@@ -14,6 +14,11 @@ export default function AdminPlanters() {
   const [editing, setEditing] = useState<Planter | null>(null);
   const [draft, setDraft] = useState<Omit<Planter, "id">>(EMPTY);
   const [newSize, setNewSize] = useState("");
+
+  const materialOptions = useMemo(
+    () => Array.from(new Set(planters.map((item) => item.material).filter(Boolean))).sort((a, b) => a.localeCompare(b, "vi")),
+    [planters]
+  );
 
   const fetchPlanters = async () => {
     try {
@@ -192,9 +197,22 @@ export default function AdminPlanters() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Chất liệu</label>
+                  <select
+                    value={draft.material}
+                    onChange={(e) => setDraft((p) => ({ ...p, material: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20 bg-white"
+                  >
+                    <option value="">Chọn chất liệu đã có</option>
+                    {materialOptions.map((material) => (
+                      <option key={material} value={material}>{material}</option>
+                    ))}
+                    {!!draft.material && !materialOptions.includes(draft.material) && (
+                      <option value={draft.material}>{draft.material}</option>
+                    )}
+                  </select>
                   <input value={draft.material} onChange={(e) => setDraft((p) => ({ ...p, material: e.target.value }))}
-                    placeholder="Gốm, Xi măng..."
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all" />
+                    placeholder="Hoặc nhập chất liệu mới"
+                    className="w-full mt-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Giá (đ) *</label>
