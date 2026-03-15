@@ -70,6 +70,8 @@ export interface Planter {
   id: string;
   name: string;
   material: string;
+  accessoryBrand?: string;
+  usageTags?: string[];
   price: number;
   imageUrl: string;
   sizes: string[];

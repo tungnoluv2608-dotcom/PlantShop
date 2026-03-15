@@ -84,6 +84,8 @@ CREATE TABLE Planters (
     id        INT IDENTITY(1,1) PRIMARY KEY,
     name      NVARCHAR(500)  NOT NULL,
     material  NVARCHAR(255)  NOT NULL,
+    accessory_brand NVARCHAR(255),
+    accessory_uses  NVARCHAR(MAX),
     price     DECIMAL(18, 2) NOT NULL,
     image_url NVARCHAR(1000),
     in_stock  BIT            NOT NULL DEFAULT 1,

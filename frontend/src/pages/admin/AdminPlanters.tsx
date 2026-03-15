@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, PencilSimple, Trash, Check, X, CloudArrowUp } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Trash, Check, X, CloudArrowUp, Flower } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { useImageUpload } from "../../hooks/useImageUpload";
 import { adminApi } from "../../services/apiService";
@@ -17,7 +17,7 @@ export default function AdminPlanters() {
 
   const fetchPlanters = async () => {
     try {
-      const data = await adminApi.listPlanters();
+      const data = await adminApi.listPlanters("planter");
       setPlanters(data as Planter[]);
     } catch {
       toast.error("Lỗi khi tải dữ liệu");
@@ -34,17 +34,28 @@ export default function AdminPlanters() {
 
   const handleImageSuccess = (urls: string[]) => setDraft((p) => ({ ...p, imageUrl: urls[0] }));
 
-  const openAdd = () => { setEditing(null); setDraft(EMPTY); setNewSize(""); setModalOpen(true); };
-  const openEdit = (p: Planter) => { setEditing(p); setDraft({ ...p }); setNewSize(""); setModalOpen(true); };
+  const openAdd = () => {
+    setEditing(null);
+    setDraft({ ...EMPTY, type: "planter" });
+    setNewSize("");
+    setModalOpen(true);
+  };
+  const openEdit = (p: Planter) => {
+    setEditing(p);
+    setDraft({ ...p, type: "planter" });
+    setNewSize("");
+    setModalOpen(true);
+  };
 
   const handleSave = async () => {
     if (!draft.name.trim() || !draft.price) { toast.error("Vui lòng điền tên và giá"); return; }
     try {
+      const payload = { ...draft, type: "planter" as const };
       if (editing) {
-        await adminApi.updatePlanter(editing.id, draft);
+        await adminApi.updatePlanter(editing.id, payload);
         toast.success(`Đã cập nhật: ${draft.name}`);
       } else {
-        await adminApi.createPlanter(draft);
+        await adminApi.createPlanter(payload);
         toast.success(`Đã thêm: ${draft.name}`);
       }
       setModalOpen(false);
@@ -76,11 +87,15 @@ export default function AdminPlanters() {
     <div className="p-6 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Chậu & Phụ kiện</h1>
-          <p className="text-gray-500 text-sm">{planters.length} loại chậu · {planters.filter(p => p.inStock).length} còn hàng</p>
+          <div className="inline-flex items-center gap-2 rounded-full bg-sky-100 px-3 py-1 mb-2">
+            <Flower size={14} weight="bold" className="text-sky-700" />
+            <span className="text-[11px] font-black tracking-wide text-sky-700 uppercase">Khu vực chậu cây</span>
+          </div>
+          <h1 className="text-2xl font-black text-gray-900">Chậu cây</h1>
+          <p className="text-gray-500 text-sm">{planters.length} mẫu chậu · {planters.filter(p => p.inStock).length} còn hàng</p>
         </div>
         <button onClick={openAdd}
-          className="inline-flex items-center gap-2 bg-[#102C26] text-[#F7E7CE] px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-[#102C26]/90 transition-all shadow-sm">
+          className="inline-flex items-center gap-2 bg-sky-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-sky-800 transition-all shadow-sm">
           <Plus size={17} weight="bold" /> Thêm mới
         </button>
       </div>
@@ -96,7 +111,6 @@ export default function AdminPlanters() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider w-16">Loại</th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Tên sản phẩm</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">Chất liệu</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Kích thước</th>
@@ -108,11 +122,6 @@ export default function AdminPlanters() {
             <tbody className="divide-y divide-gray-50">
               {planters.map((p) => (
                 <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors group">
-                  <td className="px-5 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${p.type === 'accessory' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                      {p.type === 'accessory' ? 'PK' : 'Chậu'}
-                    </span>
-                  </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-100 overflow-hidden shrink-0">
@@ -168,33 +177,17 @@ export default function AdminPlanters() {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-black text-gray-900 text-lg">
-                {editing ? `Sửa ${draft.type === 'accessory' ? 'phụ kiện' : 'chậu'}` : `Thêm ${draft.type === 'accessory' ? 'phụ kiện mới' : 'chậu mới'}`}
+                {editing ? "Sửa chậu cây" : "Thêm chậu cây mới"}
               </h2>
               <button onClick={() => setModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={22} /></button>
             </div>
 
             <div className="space-y-4">
-              {/* Type Switcher */}
-              <div className="flex gap-2 p-1.5 bg-gray-100 rounded-2xl">
-                <button
-                  onClick={() => setDraft(p => ({ ...p, type: 'planter' }))}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${draft.type === 'planter' ? 'bg-white text-[#102C26] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  Chậu cây
-                </button>
-                <button
-                  onClick={() => setDraft(p => ({ ...p, type: 'accessory' }))}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${draft.type === 'accessory' ? 'bg-white text-[#102C26] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  Phụ kiện
-                </button>
-              </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{draft.type === 'accessory' ? 'Tên phụ kiện' : 'Tên chậu'} *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tên chậu *</label>
                   <input value={draft.name} onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
-                    placeholder={draft.type === 'accessory' ? "VD: Đất trồng Sen đá" : "VD: Chậu Gốm Trắng"}
+                    placeholder="VD: Chậu Gốm Trắng"
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all" />
                 </div>
                 <div>
@@ -212,7 +205,7 @@ export default function AdminPlanters() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ảnh chậu</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ảnh chậu *</label>
                 <div onClick={triggerUpload} className={`w-full h-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative group ${draft.imageUrl ? "border-transparent" : "border-gray-300 hover:border-[#102C26]"}`}>
                   {draft.imageUrl ? (
                     <>

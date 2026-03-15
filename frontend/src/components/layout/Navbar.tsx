@@ -6,7 +6,9 @@ import { useAuthStore } from "../../stores/authStore";
 import { useWishlistStore } from "../../stores/wishlistStore";
 import { productService } from "../../services/productService";
 import { authService } from "../../services/authService";
+import { planterApi } from "../../services/apiService";
 import { toast } from "sonner";
+import type { Planter } from "../../types";
 
 interface SearchResult {
   id: string;
@@ -20,7 +22,7 @@ const navLinks = [
   { label: "Góc Xanh PAP", path: "/blog" },
 ];
 
-const navDropdowns = [
+const baseNavDropdowns = [
   {
     label: "Cây cảnh",
     items: [
@@ -34,13 +36,6 @@ const navDropdowns = [
     items: [
       { name: "Chậu gốm", category: "Chậu gốm" },
       { name: "Chậu xi măng", category: "Chậu xi măng" },
-    ],
-  },
-  {
-    label: "Phụ kiện",
-    items: [
-      { name: "Đất trồng", category: "Đất trồng" },
-      { name: "Phân bón", category: "Phân bón" },
     ],
   },
 ];
@@ -61,6 +56,27 @@ export function Navbar() {
   const clearWishlist = useWishlistStore((s) => s.clearWishlist);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
+  const [accessoryGroups, setAccessoryGroups] = useState<string[]>([]);
+
+  useEffect(() => {
+    planterApi
+      .list("accessory")
+      .then((items: Planter[]) => {
+        const groups = Array.from(new Set(items.map((item) => item.material).filter(Boolean))).sort((a, b) => a.localeCompare(b, "vi"));
+        setAccessoryGroups(groups);
+      })
+      .catch(() => setAccessoryGroups([]));
+  }, []);
+
+  const navDropdowns = [
+    ...baseNavDropdowns,
+    {
+      label: "Phụ kiện",
+      items: accessoryGroups.length
+        ? accessoryGroups.map((group) => ({ name: group, category: group }))
+        : [{ name: "Tất cả phụ kiện", category: "*" }],
+    },
+  ];
 
   // Close search and user dropdown on outside click
   useEffect(() => {
@@ -209,7 +225,11 @@ export function Navbar() {
                       to={
                         dropdown.label === "Cây cảnh"
                           ? `/shop?category=${encodeURIComponent(item.category)}`
-                          : `/planters?material=${encodeURIComponent(item.category)}`
+                          : dropdown.label === "Chậu cây"
+                            ? `/planters?material=${encodeURIComponent(item.category)}`
+                            : item.category === "*"
+                              ? "/accessories"
+                              : `/accessories?group=${encodeURIComponent(item.category)}`
                       }
                       className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors border-b border-gray-50 last:border-0"
                     >
@@ -424,7 +444,11 @@ export function Navbar() {
                           to={
                             dropdown.label === "Cây cảnh"
                               ? `/shop?category=${encodeURIComponent(item.category)}`
-                              : `/planters?material=${encodeURIComponent(item.category)}`
+                              : dropdown.label === "Chậu cây"
+                                ? `/planters?material=${encodeURIComponent(item.category)}`
+                                : item.category === "*"
+                                  ? "/accessories"
+                                  : `/accessories?group=${encodeURIComponent(item.category)}`
                           }
                           className="block pl-10 pr-6 py-2.5 text-sm text-gray-600 hover:text-primary transition-colors"
                         >

@@ -6,6 +6,7 @@ import ProductPage from './pages/ProductPage'
 import CartPage from './pages/CartPage'
 import ShopPage from './pages/ShopPage'
 import PlantersPage from './pages/PlantersPage'
+import AccessoriesPage from './pages/AccessoriesPage'
 import NotFoundPage from './pages/NotFoundPage'
 import CheckoutPage from './pages/CheckoutPage'
 import OrderSuccessPage from './pages/OrderSuccessPage'
@@ -30,6 +31,7 @@ import AdminBlog from './pages/admin/AdminBlog'
 import AdminCategories from './pages/admin/AdminCategories'
 import AdminReviews from './pages/admin/AdminReviews'
 import AdminPlanters from './pages/admin/AdminPlanters'
+import AdminAccessories from './pages/admin/AdminAccessories'
 import { Toaster } from 'sonner'
 
 function App() {
@@ -46,6 +48,7 @@ function App() {
         <Route path='/cart' element={<CartPage />} />
         <Route path='/shop' element={<ShopPage />} />
         <Route path='/planters' element={<PlantersPage />} />
+        <Route path='/accessories' element={<AccessoriesPage />} />
 
         {/* Checkout flow */}
         <Route path='/checkout' element={<CheckoutPage />} />
@@ -76,6 +79,7 @@ function App() {
           <Route path='reviews' element={<AdminReviews />} />
           <Route path='categories' element={<AdminCategories />} />
           <Route path='planters' element={<AdminPlanters />} />
+          <Route path='accessories' element={<AdminAccessories />} />
           <Route path='blog' element={<AdminBlog />} />
         </Route>
 

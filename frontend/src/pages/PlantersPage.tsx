@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router";
 import { CaretRight, CaretDown, ShoppingCart } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
@@ -8,14 +8,6 @@ import { useCartStore } from "../stores/cartStore";
 import { toast } from "sonner";
 import type { Planter } from "../types";
 import forestPattern from "../assets/forest_pattern.jpg";
-
-const materials = [
-  "Chậu gốm",
-  "Chậu xi măng",
-  "Đất trồng",
-  "Phân bón",
-  "Phụ kiện khác"
-];
 
 const priceRanges = [
   { label: "Tất cả", min: undefined, max: undefined },
@@ -41,10 +33,10 @@ export default function PlantersPage() {
     async function fetchPlanters() {
       setIsLoading(true);
       try {
-        const data = await planterApi.list();
+        const data = await planterApi.list("planter");
         setPlanters(data);
       } catch {
-        toast.error("Không thể tải danh sách chậu & phụ kiện");
+        toast.error("Không thể tải danh sách chậu");
       } finally {
         setIsLoading(false);
       }
@@ -56,6 +48,10 @@ export default function PlantersPage() {
     const mat = searchParams.get("material");
     setSelectedMaterial(mat || undefined);
   }, [searchParams]);
+
+  const materials = useMemo(() => {
+    return Array.from(new Set(planters.map((item) => item.material).filter(Boolean)));
+  }, [planters]);
 
   useEffect(() => {
     let result = planters;
@@ -140,7 +136,7 @@ export default function PlantersPage() {
                 className={`flex items-center gap-2 mb-4 font-bold cursor-pointer hover:text-primary transition-colors w-full text-left ${!selectedMaterial ? "text-primary" : "text-foreground"}`}
               >
                 <CaretRight size={16} weight="bold" />
-                <span className="text-lg">Tất cả sản phẩm</span>
+                <span className="text-lg">Tất cả chậu cây</span>
               </button>
               
               <div className="ml-6 flex flex-col gap-3">
@@ -149,7 +145,7 @@ export default function PlantersPage() {
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
                 >
                   <CaretDown size={14} weight="bold" className={`transition-transform ${isFilterOpen ? '' : '-rotate-90'}`} />
-                  Phân loại
+                  Chất liệu chậu
                 </button>
                 
                 {isFilterOpen && (
@@ -226,7 +222,7 @@ export default function PlantersPage() {
             {/* View controls */}
             <div className="flex justify-between items-center mb-6">
               <p className="text-foreground/70 font-medium">
-                Hiển thị <span className="text-foreground font-bold">{filteredPlanters.length}</span> sản phẩm
+                Hiển thị <span className="text-foreground font-bold">{filteredPlanters.length}</span> chậu cây
               </p>
             </div>
 

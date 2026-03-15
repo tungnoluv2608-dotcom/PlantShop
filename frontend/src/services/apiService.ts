@@ -44,7 +44,8 @@ export const reviewApi = {
 
 // ── Planters ───────────────────────────────────────────────────
 export const planterApi = {
-  list: () => api.get("/planters").then((r) => r.data),
+  list: (type?: "planter" | "accessory") =>
+    api.get("/planters", { params: type ? { type } : undefined }).then((r) => r.data),
 };
 
 // ── Wishlist ──────────────────────────────────────────────────
@@ -98,7 +99,8 @@ export const adminApi = {
   deleteReview: (id: string | number) => api.delete(`/admin/reviews/${id}`).then((r) => r.data),
 
   // Planters
-  listPlanters: () => api.get("/admin/planters").then((r) => r.data),
+  listPlanters: (type?: "planter" | "accessory") =>
+    api.get("/admin/planters", { params: type ? { type } : undefined }).then((r) => r.data),
   createPlanter: (body: object) => api.post("/admin/planters", body).then((r) => r.data),
   updatePlanter: (id: string | number, body: object) => api.put(`/admin/planters/${id}`, body).then((r) => r.data),
   deletePlanter: (id: string | number) => api.delete(`/admin/planters/${id}`).then((r) => r.data),

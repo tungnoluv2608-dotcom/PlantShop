@@ -2,6 +2,17 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { getPool, sql } = require("../libs/db");
 
+async function hasAccessoryMetaColumns(pool) {
+  const result = await pool.request().query(
+    `SELECT name
+     FROM sys.columns
+     WHERE object_id = OBJECT_ID('Planters')
+       AND name IN ('accessory_brand', 'accessory_uses')`
+  );
+  const names = new Set(result.recordset.map((row) => row.name));
+  return names.has("accessory_brand") && names.has("accessory_uses");
+}
+
 // POST /api/admin/login
 async function adminLogin(req, res, next) {
   try {
@@ -348,27 +359,77 @@ async function deleteReview(req, res, next) {
 // ── Planters CRUD ──────────────────────────────────────────────
 async function adminListPlanters(req, res, next) {
   try {
+    const typeFilter = String(req.query.type || "").trim().toLowerCase();
     const pool = await getPool();
-    const plantersResult = await pool.request().query("SELECT id, name, material, price, image_url AS imageUrl, in_stock AS inStock, type FROM Planters ORDER BY id");
+    const hasMeta = await hasAccessoryMetaColumns(pool);
+    const request = pool.request();
+    let whereClause = "";
+    if (typeFilter === "planter" || typeFilter === "accessory") {
+      request.input("type", sql.NVarChar, typeFilter);
+      whereClause = "WHERE type = @type";
+    }
+
+    const plantersResult = await request.query(
+      `SELECT id, name, material,
+              ${hasMeta ? "accessory_brand" : "NULL"} AS accessoryBrand,
+              ${hasMeta ? "accessory_uses" : "NULL"} AS accessoryUses,
+              price, image_url AS imageUrl, in_stock AS inStock, type
+       FROM Planters
+       ${whereClause}
+       ORDER BY id`
+    );
     const sizesResult = await pool.request().query("SELECT planter_id, size_label FROM PlanterSizes ORDER BY id");
     const sizesMap = {};
     for (const s of sizesResult.recordset) {
       if (!sizesMap[s.planter_id]) sizesMap[s.planter_id] = [];
       sizesMap[s.planter_id].push(s.size_label);
     }
-    return res.json(plantersResult.recordset.map((p) => ({ ...p, id: String(p.id), inStock: !!p.inStock, sizes: sizesMap[p.id] || [] })));
+    return res.json(plantersResult.recordset.map((p) => ({
+      ...p,
+      id: String(p.id),
+      inStock: !!p.inStock,
+      accessoryBrand: p.accessoryBrand || "",
+      usageTags: (() => {
+        if (!p.accessoryUses) return [];
+        try {
+          const parsed = JSON.parse(p.accessoryUses);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return String(p.accessoryUses).split(",").map((tag) => tag.trim()).filter(Boolean);
+        }
+      })(),
+      sizes: sizesMap[p.id] || []
+    })));
   } catch (err) { next(err); }
 }
 
 async function createPlanter(req, res, next) {
   try {
-    const { name, material, price, imageUrl, inStock, type, sizes = [] } = req.body;
+    const { name, material, accessoryBrand, usageTags, price, imageUrl, inStock, type, sizes = [] } = req.body;
+    const normalizedUsageTags = Array.isArray(usageTags)
+      ? usageTags.map((tag) => String(tag).trim()).filter(Boolean)
+      : String(usageTags || "").split(",").map((tag) => tag.trim()).filter(Boolean);
     const pool = await getPool();
-    const result = await pool.request()
-      .input("name", sql.NVarChar, name).input("material", sql.NVarChar, material)
-      .input("price", sql.Decimal(18, 2), price).input("imageUrl", sql.NVarChar, imageUrl)
-      .input("inStock", sql.Bit, inStock !== false).input("type", sql.NVarChar, type || "planter")
-      .query("INSERT INTO Planters (name, material, price, image_url, in_stock, type) OUTPUT INSERTED.id VALUES (@name, @material, @price, @imageUrl, @inStock, @type)");
+    const hasMeta = await hasAccessoryMetaColumns(pool);
+    const request = pool.request()
+      .input("name", sql.NVarChar, name)
+      .input("material", sql.NVarChar, material)
+      .input("price", sql.Decimal(18, 2), price)
+      .input("imageUrl", sql.NVarChar, imageUrl)
+      .input("inStock", sql.Bit, inStock !== false)
+      .input("type", sql.NVarChar, type || "planter");
+
+    if (hasMeta) {
+      request
+        .input("accessoryBrand", sql.NVarChar, accessoryBrand || null)
+        .input("accessoryUses", sql.NVarChar, normalizedUsageTags.length ? JSON.stringify(normalizedUsageTags) : null);
+    }
+
+    const result = await request.query(
+      hasMeta
+        ? "INSERT INTO Planters (name, material, accessory_brand, accessory_uses, price, image_url, in_stock, type) OUTPUT INSERTED.id VALUES (@name, @material, @accessoryBrand, @accessoryUses, @price, @imageUrl, @inStock, @type)"
+        : "INSERT INTO Planters (name, material, price, image_url, in_stock, type) OUTPUT INSERTED.id VALUES (@name, @material, @price, @imageUrl, @inStock, @type)"
+    );
     const planterId = result.recordset[0].id;
     for (const s of sizes) {
       await pool.request().input("pid", sql.Int, planterId).input("size", sql.NVarChar, s)
@@ -380,13 +441,32 @@ async function createPlanter(req, res, next) {
 
 async function updatePlanter(req, res, next) {
   try {
-    const { name, material, price, imageUrl, inStock, type, sizes } = req.body;
+    const { name, material, accessoryBrand, usageTags, price, imageUrl, inStock, type, sizes } = req.body;
+    const normalizedUsageTags = Array.isArray(usageTags)
+      ? usageTags.map((tag) => String(tag).trim()).filter(Boolean)
+      : String(usageTags || "").split(",").map((tag) => tag.trim()).filter(Boolean);
     const pool = await getPool();
-    await pool.request().input("id", sql.Int, req.params.id)
-      .input("name", sql.NVarChar, name).input("material", sql.NVarChar, material)
-      .input("price", sql.Decimal(18, 2), price).input("imageUrl", sql.NVarChar, imageUrl)
-      .input("inStock", sql.Bit, inStock !== false).input("type", sql.NVarChar, type || "planter")
-      .query("UPDATE Planters SET name=@name, material=@material, price=@price, image_url=@imageUrl, in_stock=@inStock, type=@type WHERE id=@id");
+    const hasMeta = await hasAccessoryMetaColumns(pool);
+    const request = pool.request()
+      .input("id", sql.Int, req.params.id)
+      .input("name", sql.NVarChar, name)
+      .input("material", sql.NVarChar, material)
+      .input("price", sql.Decimal(18, 2), price)
+      .input("imageUrl", sql.NVarChar, imageUrl)
+      .input("inStock", sql.Bit, inStock !== false)
+      .input("type", sql.NVarChar, type || "planter");
+
+    if (hasMeta) {
+      request
+        .input("accessoryBrand", sql.NVarChar, accessoryBrand || null)
+        .input("accessoryUses", sql.NVarChar, normalizedUsageTags.length ? JSON.stringify(normalizedUsageTags) : null);
+    }
+
+    await request.query(
+      hasMeta
+        ? "UPDATE Planters SET name=@name, material=@material, accessory_brand=@accessoryBrand, accessory_uses=@accessoryUses, price=@price, image_url=@imageUrl, in_stock=@inStock, type=@type WHERE id=@id"
+        : "UPDATE Planters SET name=@name, material=@material, price=@price, image_url=@imageUrl, in_stock=@inStock, type=@type WHERE id=@id"
+    );
     if (sizes) {
       await pool.request().input("id", sql.Int, req.params.id).query("DELETE FROM PlanterSizes WHERE planter_id=@id");
       for (const s of sizes) {

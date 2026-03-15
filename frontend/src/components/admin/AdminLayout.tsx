@@ -3,19 +3,20 @@ import { NavLink, Outlet, Navigate, useNavigate } from "react-router";
 import {
   Leaf, Gauge, Package, ShoppingBag, Users, Newspaper,
   SignOut, List, X, Bell, MagnifyingGlass, CaretRight,
-  FolderOpen, Star, Flower
+  FolderOpen, Star, Flower, Wrench
 } from "@phosphor-icons/react";
 import { useAdminStore } from "../../stores/adminStore";
 
 const navItems = [
-  { to: "/admin", label: "Dashboard", icon: Gauge, exact: true },
-  { to: "/admin/products", label: "Sản phẩm", icon: Package, exact: false },
-  { to: "/admin/categories", label: "Danh mục", icon: FolderOpen, exact: false },
-  { to: "/admin/planters", label: "Chậu & Phụ kiện", icon: Flower, exact: false },
-  { to: "/admin/orders", label: "Đơn hàng", icon: ShoppingBag, exact: false },
-  { to: "/admin/customers", label: "Khách hàng", icon: Users, exact: false },
-  { to: "/admin/reviews", label: "Đánh giá", icon: Star, exact: false },
-  { to: "/admin/blog", label: "Blog", icon: Newspaper, exact: false },
+  { to: "/admin", label: "Dashboard", icon: Gauge, exact: true, accent: "text-cyan-300" },
+  { to: "/admin/products", label: "Sản phẩm", icon: Package, exact: false, accent: "text-emerald-300" },
+  { to: "/admin/categories", label: "Danh mục", icon: FolderOpen, exact: false, accent: "text-violet-300" },
+  { to: "/admin/planters", label: "Chậu cây", icon: Flower, exact: false, accent: "text-sky-300" },
+  { to: "/admin/accessories", label: "Phụ kiện", icon: Wrench, exact: false, accent: "text-amber-300" },
+  { to: "/admin/orders", label: "Đơn hàng", icon: ShoppingBag, exact: false, accent: "text-rose-300" },
+  { to: "/admin/customers", label: "Khách hàng", icon: Users, exact: false, accent: "text-indigo-300" },
+  { to: "/admin/reviews", label: "Đánh giá", icon: Star, exact: false, accent: "text-yellow-300" },
+  { to: "/admin/blog", label: "Blog", icon: Newspaper, exact: false, accent: "text-lime-300" },
 ];
 
 // ── Extracted outside render to avoid "create components during render" lint ──
@@ -41,7 +42,7 @@ function SidebarContent({ user, onClose, onLogout }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ to, label, icon: Icon, exact }) => (
+        {navItems.map(({ to, label, icon: Icon, exact, accent }) => (
           <NavLink
             key={to}
             to={to}
@@ -56,7 +57,7 @@ function SidebarContent({ user, onClose, onLogout }: SidebarProps) {
           >
             {({ isActive }) => (
               <>
-                <Icon size={18} weight={isActive ? "fill" : "regular"} />
+                <Icon size={18} weight={isActive ? "fill" : "regular"} className={isActive ? accent : ""} />
                 <span className="flex-1 text-sm">{label}</span>
                 {isActive && <CaretRight size={12} weight="bold" className="text-[#F7E7CE]/50" />}
               </>
