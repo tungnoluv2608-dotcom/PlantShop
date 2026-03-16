@@ -174,7 +174,9 @@ async function listAllOrders(req, res, next) {
     const result = await pool.request().query(
       `SELECT o.id, CONVERT(varchar, o.created_at, 23) AS date, o.status,
               u.name AS customerName, u.email AS customerEmail,
-              o.total, o.payment_method AS paymentMethod
+              o.shipping_address AS shippingAddress,
+              o.total, o.payment_method AS paymentMethod,
+              ISNULL((SELECT SUM(oi.quantity) FROM OrderItems oi WHERE oi.order_id = o.id), 0) AS itemCount
        FROM Orders o JOIN Users u ON o.user_id = u.id ORDER BY o.created_at DESC`
     );
     return res.json(result.recordset);

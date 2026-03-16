@@ -123,11 +123,16 @@ export default function AdminDashboard() {
                   <p className="text-center text-gray-400 py-8 text-sm">Chưa có đơn hàng nào</p>
                 ) : recentOrders.map((order) => {
                   const cfg = statusCfg[order.status] ?? statusCfg["pending"];
+                  const itemCount = Number((order as Order & { itemCount?: number }).itemCount);
+                  const fallbackCount = Array.isArray(order.items)
+                    ? order.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
+                    : 0;
+                  const displayCount = Number.isFinite(itemCount) ? itemCount : fallbackCount;
                   return (
                     <div key={order.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50/50 transition-colors">
                       <div>
                         <p className="font-bold text-sm text-[#102C26]">{order.id}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{order.date} · {order.items?.length ?? "?"} sản phẩm</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{order.date} · {displayCount} sản phẩm</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${cfg.color}`}>{cfg.label}</span>
