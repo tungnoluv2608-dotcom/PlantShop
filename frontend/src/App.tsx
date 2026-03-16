@@ -12,6 +12,7 @@ import NotFoundPage from './pages/NotFoundPage'
 import CheckoutPage from './pages/CheckoutPage'
 import OrderSuccessPage from './pages/OrderSuccessPage'
 import PaymentFailedPage from './pages/PaymentFailedPage'
+import VnpayReturnPage from './pages/VnpayReturnPage'
 import ProfilePage from './pages/ProfilePage'
 import BlogPage from './pages/BlogPage'
 import BlogDetailPage from './pages/BlogDetailPage'
@@ -57,6 +58,7 @@ function App() {
         <Route path='/checkout' element={<CheckoutPage />} />
         <Route path='/order-success/:orderId' element={<OrderSuccessPage />} />
         <Route path='/payment-failed' element={<PaymentFailedPage />} />
+        <Route path='/payment/vnpay-return' element={<VnpayReturnPage />} />
 
         {/* Brand content */}
         <Route path='/about' element={<AboutPage />} />

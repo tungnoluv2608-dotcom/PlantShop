@@ -1,4 +1,51 @@
 const { getPool, sql } = require("../libs/db");
+const crypto = require("crypto");
+
+function buildSortedQuery(obj) {
+  return Object.keys(obj)
+    .sort()
+    .map((key) => `${key}=${encodeURIComponent(String(obj[key] ?? "")).replace(/%20/g, "+")}`)
+    .join("&");
+}
+
+function getClientIp(req) {
+  const raw = (
+    req.headers["x-forwarded-for"]?.toString().split(",")[0].trim() ||
+    req.socket?.remoteAddress ||
+    req.ip ||
+    "127.0.0.1"
+  );
+
+  // VNPay expects IPv4 format; convert local IPv6 forms to IPv4 fallback.
+  const ip = String(raw);
+  if (ip === "::1") return "127.0.0.1";
+  if (ip.startsWith("::ffff:")) return ip.replace("::ffff:", "");
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return ip;
+  return "127.0.0.1";
+}
+
+function getDateYmdHis() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+function addMinutes(date, minutes) {
+  const d = new Date(date.getTime() + minutes * 60000);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+function toVnpTxnRef(orderId) {
+  return String(orderId || "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 34);
+}
+
+function fromVnpTxnRef(txnRef) {
+  const raw = String(txnRef || "").trim();
+  const m = raw.match(/^PSTT(\d{4})(\d{5})$/i);
+  if (!m) return raw;
+  return `PSTT-${m[1]}-${m[2]}`;
+}
 
 function normalizeOrderItemProductId(rawId) {
   // Keep numeric product IDs, and also extract numeric part for planter/accessory IDs.
@@ -184,6 +231,154 @@ async function cancelOrder(req, res, next) {
   }
 }
 
+// POST /api/orders/:id/vnpay-url
+async function createVnpayPaymentUrl(req, res, next) {
+  try {
+    const tmnCode = String(process.env.VNPAY_TMN_CODE || "").trim();
+    const hashSecret = String(process.env.VNPAY_HASH_SECRET || "").trim();
+    const returnUrl = String(process.env.VNPAY_RETURN_URL || "").trim();
+    const vnpUrlBase = String(process.env.VNPAY_URL || "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html").trim();
+
+    if (!tmnCode || !hashSecret || !returnUrl) {
+      return res.status(400).json({
+        message: "VNPay chưa được cấu hình đầy đủ trên server.",
+      });
+    }
+
+    try {
+      const parsedReturnUrl = new URL(returnUrl);
+      if (!/^https?:$/.test(parsedReturnUrl.protocol)) {
+        return res.status(400).json({ message: "VNPAY_RETURN_URL phải là URL http/https hợp lệ." });
+      }
+    } catch {
+      return res.status(400).json({ message: "VNPAY_RETURN_URL không hợp lệ." });
+    }
+
+    const pool = await getPool();
+    const orderResult = await pool
+      .request()
+      .input("id", sql.NVarChar, req.params.id)
+      .input("userId", sql.Int, req.user.id)
+      .query("SELECT id, total, status FROM Orders WHERE id = @id AND user_id = @userId");
+
+    if (orderResult.recordset.length === 0) {
+      return res.status(404).json({ message: "Đơn hàng không tồn tại." });
+    }
+
+    const order = orderResult.recordset[0];
+    const amount = Number(order.total);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ message: "Giá trị đơn hàng không hợp lệ." });
+    }
+
+    if (order.status === "cancelled") {
+      return res.status(400).json({ message: "Đơn hàng đã hủy, không thể thanh toán VNPay." });
+    }
+
+    const createDate = getDateYmdHis();
+    const expireDate = addMinutes(new Date(), 15);
+    const ipAddr = getClientIp(req);
+    const bankCode = String(process.env.VNPAY_BANK_CODE || "").trim().toUpperCase();
+
+    const txnRef = toVnpTxnRef(order.id);
+    if (!txnRef) {
+      return res.status(400).json({ message: "Mã đơn hàng không hợp lệ cho VNPay." });
+    }
+
+    const vnpParams = {
+      vnp_Version: "2.1.0",
+      vnp_Command: "pay",
+      vnp_TmnCode: tmnCode,
+      vnp_Locale: "vn",
+      vnp_CurrCode: "VND",
+      vnp_TxnRef: txnRef,
+      vnp_OrderInfo: `Thanh toan don hang ${order.id}`,
+      vnp_OrderType: "other",
+      vnp_Amount: String(Math.round(amount * 100)),
+      vnp_ReturnUrl: returnUrl,
+      vnp_IpAddr: ipAddr,
+      vnp_CreateDate: createDate,
+      vnp_ExpireDate: expireDate,
+    };
+
+    if (bankCode && /^[A-Z0-9]{2,20}$/.test(bankCode)) {
+      vnpParams.vnp_BankCode = bankCode;
+    }
+
+    const signData = buildSortedQuery(vnpParams);
+    const signed = crypto.createHmac("sha512", hashSecret).update(Buffer.from(signData, "utf-8")).digest("hex");
+
+    const paymentUrl = `${vnpUrlBase}?${signData}&vnp_SecureHash=${signed}`;
+    return res.json({ paymentUrl });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/orders/vnpay/verify
+async function verifyVnpayReturn(req, res, next) {
+  try {
+    const hashSecret = process.env.VNPAY_HASH_SECRET;
+    if (!hashSecret) {
+      return res.status(400).json({ success: false, message: "VNPay chưa được cấu hình trên server." });
+    }
+
+    const rawParams = { ...req.query };
+    const receivedHash = rawParams.vnp_SecureHash;
+    delete rawParams.vnp_SecureHash;
+    delete rawParams.vnp_SecureHashType;
+
+    const signData = buildSortedQuery(rawParams);
+    const expectedHash = crypto.createHmac("sha512", hashSecret).update(Buffer.from(signData, "utf-8")).digest("hex");
+
+    if (!receivedHash || String(receivedHash).toLowerCase() !== expectedHash.toLowerCase()) {
+      return res.status(400).json({ success: false, message: "Sai chữ ký VNPay." });
+    }
+
+    const txnRef = String(req.query.vnp_TxnRef || "").trim();
+    const candidateOrderId = fromVnpTxnRef(txnRef);
+    const rspCode = String(req.query.vnp_ResponseCode || "");
+    const txnStatus = String(req.query.vnp_TransactionStatus || "");
+    const isSuccess = rspCode === "00" && txnStatus === "00";
+
+    if (!txnRef) {
+      return res.status(400).json({ success: false, message: "Không tìm thấy mã đơn hàng VNPay." });
+    }
+
+    const pool = await getPool();
+    const orderCheck = await pool
+      .request()
+      .input("id", sql.NVarChar, candidateOrderId)
+      .input("txnRef", sql.NVarChar, txnRef)
+      .query("SELECT TOP 1 id, status FROM Orders WHERE id = @id OR REPLACE(id, '-', '') = @txnRef");
+    if (orderCheck.recordset.length === 0) {
+      return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại." });
+    }
+
+    const orderId = String(orderCheck.recordset[0].id);
+
+    if (isSuccess) {
+      await pool.request().input("id", sql.NVarChar, orderId).query("UPDATE Orders SET status = 'confirmed' WHERE id = @id AND status = 'pending'");
+      await pool
+        .request()
+        .input("orderId", sql.NVarChar, orderId)
+        .input("status", sql.NVarChar, "Thanh toán VNPay thành công")
+        .query("INSERT INTO OrderTimeline (order_id, status, event_date, done) VALUES (@orderId, @status, GETDATE(), 1)");
+      return res.json({ success: true, orderId, message: "Thanh toán VNPay thành công." });
+    }
+
+    await pool
+      .request()
+      .input("orderId", sql.NVarChar, orderId)
+      .input("status", sql.NVarChar, `Thanh toán VNPay thất bại (${rspCode || "N/A"})`)
+      .query("INSERT INTO OrderTimeline (order_id, status, event_date, done) VALUES (@orderId, @status, GETDATE(), 1)");
+
+    return res.json({ success: false, orderId, message: "Thanh toán VNPay thất bại." });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function enrichOrders(pool, orders) {
   if (orders.length === 0) return orders;
   const ids = orders.map((o) => `'${o.id}'`).join(",");
@@ -254,4 +449,11 @@ async function enrichOrders(pool, orders) {
   }));
 }
 
-module.exports = { getMyOrders, getOrderById, createOrder, cancelOrder };
+module.exports = {
+  getMyOrders,
+  getOrderById,
+  createOrder,
+  cancelOrder,
+  createVnpayPaymentUrl,
+  verifyVnpayReturn,
+};

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   CaretLeft, CaretRight, CheckCircle, MapPin, Truck,
-  CreditCard, ShieldCheck, Package, Clock
+  CreditCard, ShieldCheck, Package, Bank, Money, QrCode
 } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
@@ -17,6 +17,10 @@ import { VIETNAM_PROVINCES, getDistricts } from "../data/vietnamLocations";
 
 const steps = ["Giỏ hàng", "Thông tin giao hàng", "Thanh toán", "Xác nhận"];
 
+const BANK_NAME = import.meta.env.VITE_BANK_NAME || "Vietinbank";
+const BANK_ACCOUNT_NUMBER = import.meta.env.VITE_BANK_ACCOUNT_NUMBER || "100877669164";
+const BANK_ACCOUNT_NAME = import.meta.env.VITE_BANK_ACCOUNT_NAME || "PHAM THANH TUNG";
+
 const shippingMethods = [
   { id: "standard", label: "Giao hàng Tiêu chuẩn", time: "3-5 ngày làm việc", price: 0, note: "Miễn phí từ 500.000đ" },
   { id: "express", label: "Giao hàng Nhanh", time: "1-2 ngày làm việc", price: 30000, note: "GHN / GHTK" },
@@ -24,11 +28,27 @@ const shippingMethods = [
 ];
 
 const paymentMethods = [
-  { id: "cod", label: "Tiền mặt khi nhận (COD)", icon: "💵", desc: "Thanh toán khi nhận hàng" },
-  { id: "momo", label: "Ví MoMo", icon: "📱", desc: "Quét QR hoặc số điện thoại" },
-  { id: "vnpay", label: "VNPay", icon: "🏦", desc: "ATM nội địa / QR Code" },
-  { id: "zalopay", label: "ZaloPay", icon: "💙", desc: "Ví ZaloPay hoặc QR" },
-  { id: "bank", label: "Chuyển khoản ngân hàng", icon: "🔁", desc: "STK: 1234 5678 9012 — Vietcombank" },
+  {
+    id: "cod",
+    label: "Tiền mặt khi nhận (COD)",
+    desc: "Thanh toán khi nhận hàng",
+    icon: Money,
+    iconStyle: "bg-emerald-50 text-emerald-700 border-emerald-100",
+  },
+  {
+    id: "vnpay",
+    label: "VNPay",
+    desc: "Chuyển sang cổng thanh toán VNPay bảo mật",
+    icon: QrCode,
+    iconStyle: "bg-sky-50 text-sky-700 border-sky-100",
+  },
+  {
+    id: "bank",
+    label: "Chuyển khoản ngân hàng",
+    desc: "Tạo đơn trước, chuyển khoản theo mã đơn",
+    icon: Bank,
+    iconStyle: "bg-amber-50 text-amber-700 border-amber-100",
+  },
 ];
 
 const getItemDetailPath = (id: string) => {
@@ -156,8 +176,19 @@ export default function CheckoutPage() {
         shippingFee,
         total,
       });
+
+      if (paymentMethod === "vnpay") {
+        const { paymentUrl } = await orderApi.createVnpayPaymentUrl(orderId);
+        if (!paymentUrl) {
+          throw new Error("Không tạo được liên kết thanh toán VNPay.");
+        }
+        window.location.href = paymentUrl;
+        return;
+      }
+
       clearCart();
-      navigate(`/order-success/${orderId}`);
+      const methodQuery = paymentMethod === "bank" ? "?method=bank" : "?method=cod";
+      navigate(`/order-success/${orderId}${methodQuery}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Đặt hàng thất bại. Vui lòng thử lại.";
       toast.error(message);
@@ -395,34 +426,29 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {paymentMethods.map((method) => (
+                  {paymentMethods.map((method) => {
+                    const Icon = method.icon;
+                    return (
                     <label key={method.id} className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === method.id ? "border-primary bg-primary/5" : "border-gray-200 hover:border-primary/30"}`}>
                       <input type="radio" name="payment" value={method.id} checked={paymentMethod === method.id} onChange={() => setPaymentMethod(method.id)} className="accent-primary" />
-                      <span className="text-2xl">{method.icon}</span>
+                      <span className={`w-10 h-10 rounded-xl border inline-flex items-center justify-center ${method.iconStyle}`}>
+                        <Icon size={20} weight="fill" />
+                      </span>
                       <div className="flex-1">
                         <p className="font-semibold text-sm">{method.label}</p>
                         <p className="text-xs text-foreground/60 mt-0.5">{method.desc}</p>
                       </div>
                       {paymentMethod === method.id && <CheckCircle size={20} className="text-primary" weight="fill" />}
                     </label>
-                  ))}
+                    );
+                  })}
                 </div>
 
-                {/* QR Demo for MoMo / VNPay / ZaloPay */}
-                {(paymentMethod === "momo" || paymentMethod === "vnpay" || paymentMethod === "zalopay") && (
-                  <div className="bg-gray-50 rounded-2xl p-6 flex flex-col items-center gap-3 border border-gray-200">
-                    <div className="w-40 h-40 bg-white border-4 border-primary rounded-xl flex items-center justify-center">
-                      <div className="grid grid-cols-5 gap-0.5">
-                        {Array.from({ length: 25 }).map((_, i) => (
-                          <div key={i} className={`w-3 h-3 rounded-sm ${Math.random() > 0.5 ? "bg-primary" : "bg-transparent"}`} />
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-sm font-semibold text-foreground/70">Quét mã QR bằng app {paymentMethod === "momo" ? "MoMo" : paymentMethod === "vnpay" ? "VNPay" : "ZaloPay"}</p>
-                    <div className="flex items-center gap-2 text-orange-600 text-sm font-bold bg-orange-50 px-4 py-2 rounded-full">
-                      <Clock size={16} weight="fill" />
-                      Mã hết hạn sau <span id="countdown">14:59</span>
-                    </div>
+                {paymentMethod === "vnpay" && (
+                  <div className="bg-sky-50 rounded-xl p-5 border border-sky-100 text-sm text-sky-900">
+                    <p className="font-bold mb-1">Thanh toán qua VNPay</p>
+                    <p>Bấm “Đặt hàng ngay” để chuyển sang cổng VNPay và hoàn tất thanh toán.</p>
+                    <p className="text-xs text-sky-700 mt-2">Sau khi thanh toán thành công, hệ thống sẽ tự động đưa bạn về trang xác nhận đơn hàng.</p>
                   </div>
                 )}
 
@@ -430,10 +456,11 @@ export default function CheckoutPage() {
                 {paymentMethod === "bank" && (
                   <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 space-y-2 text-sm">
                     <p className="font-bold text-foreground">Thông tin chuyển khoản:</p>
-                    <p><span className="text-foreground/60">Ngân hàng:</span> <span className="font-semibold">Vietcombank</span></p>
-                    <p><span className="text-foreground/60">Số tài khoản:</span> <span className="font-semibold font-mono">1234 5678 9012</span></p>
-                    <p><span className="text-foreground/60">Chủ tài khoản:</span> <span className="font-semibold">PLANS THANH TÙNG</span></p>
-                    <p><span className="text-foreground/60">Nội dung:</span> <span className="font-semibold text-primary">PSTT {form.phone}</span></p>
+                    <p><span className="text-foreground/60">Ngân hàng:</span> <span className="font-semibold">{BANK_NAME}</span></p>
+                    <p><span className="text-foreground/60">Số tài khoản:</span> <span className="font-semibold font-mono">{BANK_ACCOUNT_NUMBER}</span></p>
+                    <p><span className="text-foreground/60">Chủ tài khoản:</span> <span className="font-semibold">{BANK_ACCOUNT_NAME}</span></p>
+                    <p><span className="text-foreground/60">Nội dung chuyển khoản:</span> <span className="font-semibold text-primary">Mã đơn sẽ hiển thị sau khi đặt</span></p>
+                    <p className="text-xs text-foreground/60 pt-1">Đơn hàng sẽ được xử lý ngay khi hệ thống xác nhận đã nhận chuyển khoản.</p>
                   </div>
                 )}
 

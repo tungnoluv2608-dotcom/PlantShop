@@ -30,6 +30,12 @@ export const orderApi = {
 
   getOrderById: (id: string) => api.get<Order>(`/orders/${id}`).then((r) => r.data),
 
+  createVnpayPaymentUrl: (orderId: string) =>
+    api.post<{ paymentUrl: string }>(`/orders/${orderId}/vnpay-url`).then((r) => r.data),
+
+  verifyVnpayReturn: (params: URLSearchParams) =>
+    api.get<{ success: boolean; orderId?: string; message?: string }>("/orders/vnpay/verify", { params }).then((r) => r.data),
+
   cancel: (id: string) => api.patch(`/orders/${id}/cancel`).then((r) => r.data),
 };
 

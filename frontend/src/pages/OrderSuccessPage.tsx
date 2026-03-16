@@ -1,14 +1,20 @@
 import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useLocation } from "react-router";
 import { CheckCircle, ShoppingBag, ArrowRight, Plant, Leaf } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
 import { productService } from "../services/productService";
 import type { Product } from "../types";
 
+const BANK_NAME = import.meta.env.VITE_BANK_NAME || "Vietinbank";
+const BANK_ACCOUNT_NUMBER = import.meta.env.VITE_BANK_ACCOUNT_NUMBER || "100877669164";
+const BANK_ACCOUNT_NAME = import.meta.env.VITE_BANK_ACCOUNT_NAME || "PHAM THANH TUNG";
+
 export default function OrderSuccessPage() {
   const { orderId } = useParams();
+  const location = useLocation();
   const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
+  const method = new URLSearchParams(location.search).get("method") || "cod";
 
   useEffect(() => {
     productService.getProducts({ page: 1, pageSize: 4 }).then((r) => setSuggestedProducts(r.products));
@@ -45,22 +51,37 @@ export default function OrderSuccessPage() {
 
           {/* Estimated delivery */}
           <div className="bg-primary/5 border border-primary/10 rounded-2xl p-5 mt-6 text-left">
-            <h3 className="font-bold text-foreground mb-3">Thông tin giao hàng dự kiến</h3>
-            <div className="flex flex-col sm:flex-row gap-4 text-sm">
-              <div className="flex-1 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-foreground/60">Phương thức:</span>
-                  <span className="font-semibold">Giao hàng tiêu chuẩn</span>
+            {method === "bank" ? (
+              <>
+                <h3 className="font-bold text-foreground mb-3">Hướng dẫn chuyển khoản</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-foreground/60">Ngân hàng:</span><span className="font-semibold">{BANK_NAME}</span></div>
+                  <div className="flex justify-between"><span className="text-foreground/60">Số tài khoản:</span><span className="font-semibold font-mono">{BANK_ACCOUNT_NUMBER}</span></div>
+                  <div className="flex justify-between"><span className="text-foreground/60">Chủ tài khoản:</span><span className="font-semibold">{BANK_ACCOUNT_NAME}</span></div>
+                  <div className="flex justify-between"><span className="text-foreground/60">Nội dung CK:</span><span className="font-semibold text-primary">{orderId}</span></div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-foreground/60">Dự kiến nhận hàng:</span>
-                  <span className="font-semibold text-primary">3-5 ngày làm việc</span>
+                <p className="text-xs text-foreground/50 mt-3 italic">Sau khi hệ thống xác nhận giao dịch chuyển khoản, đơn sẽ được duyệt và giao đi.</p>
+              </>
+            ) : (
+              <>
+                <h3 className="font-bold text-foreground mb-3">Thông tin giao hàng dự kiến</h3>
+                <div className="flex flex-col sm:flex-row gap-4 text-sm">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-foreground/60">Thanh toán:</span>
+                      <span className="font-semibold">{method === "vnpay" ? "VNPay" : "COD"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-foreground/60">Dự kiến nhận hàng:</span>
+                      <span className="font-semibold text-primary">3-5 ngày làm việc</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <p className="text-xs text-foreground/50 mt-3 italic">
-              📦 Cây sẽ được đóng gói cẩn thận trước khi giao. Bạn sẽ nhận SMS xác nhận khi hàng được giao cho đơn vị vận chuyển.
-            </p>
+                <p className="text-xs text-foreground/50 mt-3 italic">
+                  📦 Cây sẽ được đóng gói cẩn thận trước khi giao. Bạn sẽ nhận SMS xác nhận khi hàng được giao cho đơn vị vận chuyển.
+                </p>
+              </>
+            )}
           </div>
         </div>
 
