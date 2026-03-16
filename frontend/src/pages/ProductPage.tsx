@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router";
-import { CaretDown, CheckCircle, MapPin, Plus, Minus, CaretLeft, CaretRight, Star, ThumbsUp, X, ShoppingCart, Camera, ArrowRight, Heart } from "@phosphor-icons/react";
+import { CheckCircleIcon, PlusIcon, MinusIcon, CaretLeftIcon, CaretRightIcon, Star, ThumbsUp, X, ShoppingCart, Camera, ArrowRight, Heart, CaretDownIcon } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
 import { ProductCard } from "../components/ui/ProductCard";
@@ -11,7 +11,7 @@ import { useAuthStore } from "../stores/authStore";
 import { useWishlistStore } from "../stores/wishlistStore";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { toast } from "sonner";
-import type { Product, Review } from "../types";
+import type { Product, Review, Planter } from "../types";
 
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,10 +22,8 @@ export default function ProductPage() {
   const [mainImageIndex, setMainImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("care");
-  const [planter, setPlanter] = useState("Không"); // Changed default to "Không"
-  const [availablePlanters, setAvailablePlanters] = useState<any[]>([]); // New state for available planters
-  const [pincode, setPincode] = useState("");
-  const [isCheckingDelivery, setIsCheckingDelivery] = useState(false);
+  const [selectedPlanterId, setSelectedPlanterId] = useState<string>("none");
+  const [availablePlanters, setAvailablePlanters] = useState<Planter[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isReviewLoading, setIsReviewLoading] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
@@ -106,14 +104,13 @@ export default function ProductPage() {
       }
 
       const planterOptions = productData?.planterOptions ?? [];
+      setSelectedPlanterId("none");
+      setAvailablePlanters([]);
       if (planterOptions.length > 0) {
         try {
           const allPlanters = await planterApi.list();
-          const filtered = allPlanters.filter((p: any) => planterOptions.includes(p.id));
+          const filtered = (allPlanters as Planter[]).filter((p) => planterOptions.includes(p.id));
           setAvailablePlanters(filtered);
-          if (filtered.length > 0) {
-            setPlanter(`Có (Kèm ${filtered[0].name})`);
-          }
         } catch (error) {
           console.error("Failed to fetch planters", error);
         }
@@ -151,16 +148,22 @@ export default function ProductPage() {
       return;
     }
 
+    const selectedPlanter = availablePlanters.find((p) => String(p.id) === selectedPlanterId);
+    const planterPrice = selectedPlanter?.price ?? 0;
+    const planterLabel = selectedPlanter
+      ? `Có (Kèm ${selectedPlanter.name}${planterPrice > 0 ? ` +${planterPrice.toLocaleString("vi-VN")}đ` : ""})`
+      : "Không (Chỉ cây và chậu nhựa ươm)";
+
     addItem({
       id: product.id,
       title: product.title,
-      price: product.price,
+      price: product.price + planterPrice,
       image: product.images[0],
-      planter: planter,
+      planter: planterLabel,
       quantity: quantity,
     });
     toast.success("Đã thêm vào giỏ hàng!", {
-      description: `${product.title} x${quantity}`,
+      description: `${product.title} x${quantity}${selectedPlanter ? ` • ${selectedPlanter.name}` : ""}`,
     });
   };
 
@@ -314,7 +317,7 @@ export default function ProductPage() {
                   onClick={handlePrevImage}
                   className="absolute left-0 p-1 bg-white/80 rounded-full shadow hover:bg-white text-primary z-10 cursor-pointer"
                 >
-                  <CaretLeft size={20} weight="bold" />
+                  <CaretLeftIcon size={20} weight="bold" />
                 </button>
 
                 <div className="flex gap-4 overflow-x-auto px-8 no-scrollbar">
@@ -333,7 +336,7 @@ export default function ProductPage() {
                   onClick={handleNextImage}
                   className="absolute right-0 p-1 bg-white/80 rounded-full shadow hover:bg-white text-primary z-10 cursor-pointer"
                 >
-                  <CaretRight size={20} weight="bold" />
+                  <CaretRightIcon size={20} weight="bold" />
                 </button>
               </div>
             )}
@@ -364,11 +367,11 @@ export default function ProductPage() {
                 <span className="block text-sm font-semibold mb-2">Số lượng</span>
                 <div className="flex items-center border border-border rounded-md bg-white">
                   <button onClick={decreaseQuantity} className="p-2 hover:bg-gray-50 text-foreground cursor-pointer">
-                    <Minus size={16} />
+                    <MinusIcon size={16} />
                   </button>
                   <span className="px-4 font-medium min-w-[3rem] text-center">{quantity}</span>
                   <button onClick={increaseQuantity} className="p-2 hover:bg-gray-50 text-foreground cursor-pointer">
-                    <Plus size={16} />
+                    <PlusIcon size={16} />
                   </button>
                 </div>
               </div>
@@ -376,18 +379,36 @@ export default function ProductPage() {
                {/* Include Planter */}
                <div>
                 <span className="block text-sm font-semibold mb-2">Chậu đi kèm</span>
-                <div className="relative border border-border rounded-md bg-white">
-                  <select
-                    value={planter}
-                    onChange={(e) => setPlanter(e.target.value)}
-                    className="appearance-none outline-none py-2 pl-4 pr-10 bg-transparent text-foreground cursor-pointer font-medium w-full"
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPlanterId("none")}
+                    className={`text-left rounded-xl border p-3 transition-all cursor-pointer ${selectedPlanterId === "none" ? "border-primary bg-primary/5" : "border-border bg-white hover:border-primary/40"}`}
                   >
-                    <option value="Không">Không (Chỉ cây và chậu nhựa ươm)</option>
-                    {availablePlanters.map(p => (
-                      <option key={p.id} value={`Có (Kèm ${p.name})`}>Có (Kèm {p.name} {p.price ? `+${p.price.toLocaleString("vi-VN")}đ` : ""})</option>
-                    ))}
-                  </select>
-                  <CaretDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-foreground" />
+                    <p className="text-sm font-semibold text-foreground">Không kèm chậu</p>
+                    <p className="text-xs text-foreground/60 mt-1">Chỉ cây và chậu nhựa ươm</p>
+                  </button>
+
+                  {availablePlanters.map((p) => {
+                    const isActive = selectedPlanterId === String(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setSelectedPlanterId(String(p.id))}
+                        className={`text-left rounded-xl border p-3 transition-all cursor-pointer ${isActive ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-white hover:border-primary/40"}`}
+                      >
+                        <div className="flex gap-3">
+                          <img src={p.imageUrl} alt={p.name} className="w-16 h-16 rounded-lg object-cover border border-border" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-foreground line-clamp-2">{p.name}</p>
+                            <p className="text-xs text-foreground/60 mt-0.5">{p.material}</p>
+                            <p className="text-sm font-semibold text-primary mt-1">+{p.price.toLocaleString("vi-VN")}đ</p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -411,40 +432,6 @@ export default function ProductPage() {
               </button>
             </div>
 
-            {/* Delivery Section */}
-            <div className="border-t border-border pt-8">
-              <h3 className="font-bold text-foreground mb-1 flex items-center gap-2">
-                <MapPin size={20} className="text-primary" />
-                Kiểm tra giao hàng
-              </h3>
-              <p className="text-sm text-foreground/70 mb-4">Nhập quận/huyện hoặc mã bưu điện để xem thời gian giao hàng.</p>
-              
-              <div className="flex items-center gap-4 mb-4">
-                <input 
-                  type="text" 
-                  placeholder="Ví dụ: Quận 1, 70000..." 
-                  value={pincode}
-                  onChange={(e) => setPincode(e.target.value)}
-                  className="flex-1 bg-white border border-border rounded-md px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-                <button 
-                  onClick={() => setIsCheckingDelivery(true)}
-                  className="font-bold text-primary tracking-wide hover:text-primary/80 transition-colors cursor-pointer"
-                >
-                  KIỂM TRA
-                </button>
-              </div>
-
-              {isCheckingDelivery && (
-                <div className="bg-white border border-border rounded-md p-4 text-sm text-foreground/80 shadow-sm">
-                  <p className="font-semibold text-primary flex items-center gap-1 mb-1">
-                    <CheckCircle size={16} weight="fill" /> Có hỗ trợ giao hàng tới khu vực này.
-                  </p>
-                  <p>Thời gian giao hàng dự kiến: 2-3 ngày làm việc (Giao hàng tiêu chuẩn).</p>
-                </div>
-              )}
-            </div>
-            
           </div>
         </div>
 
@@ -459,21 +446,21 @@ export default function ProductPage() {
                 onClick={() => setActiveTab("care")}
                 className={`font-bold text-lg transition-colors flex items-center gap-2 cursor-pointer ${activeTab === "care" ? "text-primary-foreground" : "text-primary-foreground/50 hover:text-primary-foreground/80"}`}
               >
-                {activeTab === "care" && <CaretDown weight="fill" />} 
+                {activeTab === "care" && <CaretDownIcon weight="fill" />} 
                 Hướng dẫn chăm sóc
               </button>
               <button 
                 onClick={() => setActiveTab("bio")}
                 className={`font-bold text-lg transition-colors flex items-center gap-2 cursor-pointer ${activeTab === "bio" ? "text-primary-foreground" : "text-primary-foreground/50 hover:text-primary-foreground/80"}`}
               >
-                {activeTab === "bio" && <CaretDown weight="fill" />}
+                {activeTab === "bio" && <CaretDownIcon weight="fill" />}
                 Thông tin cây
               </button>
               <button 
                 onClick={() => setActiveTab("reviews")}
                 className={`font-bold text-lg transition-colors flex items-center gap-2 cursor-pointer ${activeTab === "reviews" ? "text-primary-foreground" : "text-primary-foreground/50 hover:text-primary-foreground/80"}`}
               >
-                {activeTab === "reviews" && <CaretDown weight="fill" />}
+                {activeTab === "reviews" && <CaretDownIcon weight="fill" />}
                 Đánh giá
               </button>
             </div>
@@ -578,7 +565,7 @@ export default function ProductPage() {
                                   <img src={review.avatar} alt={review.userName} className="w-12 h-12 rounded-full object-cover border border-secondary" />
                                   {review.verified && (
                                     <div className="absolute -bottom-1 -right-1 bg-green-500 text-white w-5 h-5 rounded-full flex items-center justify-center border-2 border-white" title="Đã mua hàng">
-                                      <CheckCircle size={11} weight="fill" />
+                                      <CheckCircleIcon size={11} weight="fill" />
                                     </div>
                                   )}
                                 </div>

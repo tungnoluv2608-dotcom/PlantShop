@@ -19,7 +19,7 @@ interface SearchResult {
 const navLinks = [
   { label: "Trang chủ", path: "/" },
   { label: "Cửa hàng", path: "/shop" },
-  { label: "Góc Xanh PlanS Thanh Tùng", path: "/blog" },
+  { label: "Góc Xanh", path: "/blog" },
 ];
 
 const baseNavDropdowns = [
