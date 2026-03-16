@@ -40,6 +40,15 @@ export default function AdminBlog() {
     title: "", excerpt: "", content: "", category: "", 
     readTime: "5 phút", tags: "", image: "", featured: false
   });
+  const [aiPrompt, setAiPrompt] = useState({
+    topic: "",
+    audience: "Người yêu cây cảnh tại Việt Nam",
+    tone: "Thân thiện, dễ hiểu, thực tế",
+    keywords: "",
+    brief: "",
+    desiredLength: 1200,
+  });
+  const [isGeneratingAiDraft, setIsGeneratingAiDraft] = useState(false);
 
   const { triggerUpload, uploading, InputElement } = useImageUpload({ multiple: false });
 
@@ -148,6 +157,43 @@ export default function AdminBlog() {
       productService.getBlogCategories().then(setCategoryOptions).catch(() => undefined);
     } catch {
       toast.error("Lỗi lưu bài viết");
+    }
+  };
+
+  const handleGenerateAiDraft = async () => {
+    if (!aiPrompt.topic.trim()) {
+      toast.error("Vui lòng nhập chủ đề để AI tạo nháp");
+      return;
+    }
+
+    try {
+      setIsGeneratingAiDraft(true);
+      const { draft } = await adminApi.generateBlogDraft({
+        topic: aiPrompt.topic.trim(),
+        category: form.category || "Tin tức",
+        audience: aiPrompt.audience.trim(),
+        tone: aiPrompt.tone.trim(),
+        keywords: aiPrompt.keywords.trim(),
+        brief: aiPrompt.brief.trim(),
+        desiredLength: Number(aiPrompt.desiredLength) || 1200,
+      });
+
+      setForm((prev) => ({
+        ...prev,
+        title: draft.title || prev.title,
+        excerpt: draft.excerpt || prev.excerpt,
+        content: draft.content || prev.content,
+        category: draft.category || prev.category,
+        readTime: draft.readTime || prev.readTime,
+        tags: Array.isArray(draft.tags) ? draft.tags.join(", ") : prev.tags,
+      }));
+      setEditorMode("write");
+      toast.success("AI đã tạo nháp bài viết. Hãy rà soát nội dung trước khi đăng.");
+    } catch (err: any) {
+      const message = err?.response?.data?.message || "Không thể tạo nháp bằng AI";
+      toast.error(message);
+    } finally {
+      setIsGeneratingAiDraft(false);
     }
   };
 
@@ -343,6 +389,84 @@ export default function AdminBlog() {
               </div>
               
               <div className="xl:col-span-4 space-y-4">
+                <div className="bg-[#F4FAF6] p-4 rounded-xl border border-[#D2E7D7] space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-black text-[#102C26]">AI hỗ trợ tạo nháp</h3>
+                    <span className="text-[10px] font-bold bg-[#102C26] text-[#F7E7CE] px-2 py-1 rounded-full">OpenRouter</span>
+                  </div>
+                  <p className="text-xs text-gray-600">Nhập brief để AI tạo nháp bài viết. Sau đó bạn kiểm tra nội dung và thêm ảnh thumb trước khi đăng.</p>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Chủ đề *</label>
+                    <input
+                      value={aiPrompt.topic}
+                      onChange={(e) => setAiPrompt((prev) => ({ ...prev, topic: e.target.value }))}
+                      placeholder="Ví dụ: 7 cây để bàn lọc không khí cho văn phòng"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Đối tượng độc giả</label>
+                    <input
+                      value={aiPrompt.audience}
+                      onChange={(e) => setAiPrompt((prev) => ({ ...prev, audience: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Giọng văn</label>
+                    <input
+                      value={aiPrompt.tone}
+                      onChange={(e) => setAiPrompt((prev) => ({ ...prev, tone: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Từ khóa ưu tiên</label>
+                    <input
+                      value={aiPrompt.keywords}
+                      onChange={(e) => setAiPrompt((prev) => ({ ...prev, keywords: e.target.value }))}
+                      placeholder="cây lọc không khí, cây văn phòng, chăm sóc dễ"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Yêu cầu thêm</label>
+                    <textarea
+                      value={aiPrompt.brief}
+                      onChange={(e) => setAiPrompt((prev) => ({ ...prev, brief: e.target.value }))}
+                      rows={3}
+                      placeholder="Ví dụ: Bài viết cần có checklist cuối bài và phần FAQ ngắn"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20 resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Độ dài mong muốn (từ)</label>
+                    <input
+                      type="number"
+                      min={400}
+                      max={3000}
+                      value={aiPrompt.desiredLength}
+                      onChange={(e) => setAiPrompt((prev) => ({ ...prev, desiredLength: Number(e.target.value) || 1200 }))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGenerateAiDraft}
+                    disabled={isGeneratingAiDraft}
+                    className="w-full bg-[#102C26] text-[#F7E7CE] py-2.5 rounded-xl text-sm font-bold hover:bg-[#102C26]/90 transition-colors disabled:opacity-60"
+                  >
+                    {isGeneratingAiDraft ? "AI đang tạo nháp..." : "Tạo nháp bằng AI"}
+                  </button>
+                </div>
+
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ảnh Thumb *</label>

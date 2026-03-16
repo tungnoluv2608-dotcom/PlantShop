@@ -1,6 +1,59 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const axios = require("axios");
 const { getPool, sql } = require("../libs/db");
+
+function stripMarkdownFence(text) {
+  const raw = String(text || "").trim();
+  if (!raw.startsWith("```")) return raw;
+  return raw.replace(/^```[a-zA-Z]*\s*/, "").replace(/```\s*$/, "").trim();
+}
+
+function tryParseJson(text) {
+  const cleaned = stripMarkdownFence(text);
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(cleaned.slice(start, end + 1));
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
+function normalizeAiDraftPayload(payload) {
+  const title = String(payload?.title || "").trim();
+  const excerpt = String(payload?.excerpt || "").trim();
+  const content = String(payload?.content || "").trim();
+  const category = String(payload?.category || "Tin tức").trim() || "Tin tức";
+
+  const tags = Array.isArray(payload?.tags)
+    ? payload.tags.map((t) => String(t).trim()).filter(Boolean)
+    : String(payload?.tags || "")
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+
+  const readTimeCandidate = String(payload?.readTime || "").trim();
+  const autoReadTime = `${Math.max(1, Math.ceil(content.split(/\s+/).filter(Boolean).length / 220))} phút`;
+  const readTime = /^\d+\s*phút$/i.test(readTimeCandidate) ? readTimeCandidate : autoReadTime;
+
+  return {
+    title,
+    excerpt,
+    content,
+    category,
+    readTime,
+    tags: tags.slice(0, 12),
+    featured: false,
+  };
+}
 
 async function hasAccessoryMetaColumns(pool) {
   const result = await pool.request().query(
@@ -603,6 +656,111 @@ async function deleteBlogPost(req, res, next) {
   } catch (err) { next(err); }
 }
 
+// POST /api/admin/blog/ai-draft
+async function generateBlogDraft(req, res, next) {
+  try {
+    const apiKey = String(process.env.OPENROUTER_API_KEY || "").trim();
+    const model = String(process.env.OPENROUTER_MODEL || "deepseek/deepseek-chat-v3-0324:free").trim();
+    const siteUrl = String(process.env.OPENROUTER_SITE_URL || "http://localhost:5173").trim();
+    const appName = String(process.env.OPENROUTER_APP_NAME || "PlantWeb Admin").trim();
+
+    if (!apiKey) {
+      return res.status(400).json({ message: "Chưa cấu hình OPENROUTER_API_KEY trên server." });
+    }
+
+    const {
+      topic,
+      category,
+      audience,
+      tone,
+      keywords,
+      brief,
+      desiredLength,
+    } = req.body || {};
+
+    const normalizedTopic = String(topic || "").trim();
+    if (!normalizedTopic) {
+      return res.status(400).json({ message: "Vui lòng nhập chủ đề bài viết." });
+    }
+
+    const normalizedCategory = String(category || "Tin tức").trim() || "Tin tức";
+    const normalizedAudience = String(audience || "người yêu cây cảnh").trim();
+    const normalizedTone = String(tone || "thân thiện, chuyên môn dễ hiểu").trim();
+    const normalizedKeywords = String(keywords || "").trim();
+    const normalizedBrief = String(brief || "").trim();
+    const length = Number(desiredLength);
+    const safeLength = Number.isFinite(length) ? Math.min(3000, Math.max(400, Math.round(length))) : 1200;
+
+    const systemPrompt = [
+      "Bạn là biên tập viên nội dung cho blog cây cảnh.",
+      "Viết bằng tiếng Việt tự nhiên, rõ ràng, có cấu trúc markdown.",
+      "Chỉ trả về JSON hợp lệ, không thêm giải thích.",
+      "Schema JSON: {",
+      '  "title": string,',
+      '  "excerpt": string,',
+      '  "content": string,',
+      '  "category": string,',
+      '  "readTime": string,',
+      '  "tags": string[]',
+      "}",
+      "content phải dùng markdown với tiêu đề phụ và danh sách khi phù hợp.",
+    ].join("\n");
+
+    const userPrompt = [
+      `Chủ đề chính: ${normalizedTopic}`,
+      `Chuyên mục: ${normalizedCategory}`,
+      `Độc giả mục tiêu: ${normalizedAudience}`,
+      `Giọng văn: ${normalizedTone}`,
+      normalizedKeywords ? `Từ khóa bắt buộc ưu tiên: ${normalizedKeywords}` : "",
+      normalizedBrief ? `Yêu cầu bổ sung: ${normalizedBrief}` : "",
+      `Độ dài mong muốn khoảng ${safeLength} từ.`,
+      "excerpt khoảng 2 câu ngắn.",
+      "tags từ 4-8 thẻ, ngắn gọn.",
+      "readTime định dạng: 'X phút'.",
+    ].filter(Boolean).join("\n");
+
+    const aiResponse = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model,
+        temperature: 0.7,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": siteUrl,
+          "X-Title": appName,
+        },
+        timeout: 45000,
+      }
+    );
+
+    const content = aiResponse?.data?.choices?.[0]?.message?.content;
+    const parsed = tryParseJson(content);
+    if (!parsed) {
+      return res.status(502).json({ message: "AI trả về định dạng không hợp lệ. Vui lòng thử lại." });
+    }
+
+    const draft = normalizeAiDraftPayload(parsed);
+    if (!draft.title || !draft.content) {
+      return res.status(502).json({ message: "AI chưa tạo đủ nội dung cần thiết. Vui lòng thử lại." });
+    }
+
+    return res.json({ draft });
+  } catch (err) {
+    if (err?.response?.data?.error?.message) {
+      return res.status(502).json({ message: `OpenRouter lỗi: ${err.response.data.error.message}` });
+    }
+    return next(err);
+  }
+}
+
 module.exports = {
   adminLogin, getStats,
   listProducts, createProduct, updateProduct, deleteProduct,
@@ -611,5 +769,5 @@ module.exports = {
   listCategories, createCategory, updateCategory, deleteCategory,
   listAllReviews, updateReview, deleteReview,
   adminListPlanters, createPlanter, updatePlanter, deletePlanter,
-  adminListBlog, createBlogPost, updateBlogPost, deleteBlogPost,
+  adminListBlog, createBlogPost, updateBlogPost, deleteBlogPost, generateBlogDraft,
 };

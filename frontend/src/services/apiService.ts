@@ -115,6 +115,15 @@ export const adminApi = {
 
   // Blog
   listBlog: () => api.get("/admin/blog").then((r) => r.data),
+  generateBlogDraft: (body: {
+    topic: string;
+    category?: string;
+    audience?: string;
+    tone?: string;
+    keywords?: string;
+    brief?: string;
+    desiredLength?: number;
+  }) => api.post<{ draft: { title: string; excerpt: string; content: string; category: string; readTime: string; tags: string[]; featured?: boolean } }>("/admin/blog/ai-draft", body).then((r) => r.data),
   createBlogPost: (body: object) => api.post("/admin/blog", body).then((r) => r.data),
   updateBlogPost: (id: string | number, body: object) => api.put(`/admin/blog/${id}`, body).then((r) => r.data),
   deleteBlogPost: (id: string | number) => api.delete(`/admin/blog/${id}`).then((r) => r.data),

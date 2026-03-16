@@ -9,7 +9,7 @@ const {
   listCategories, createCategory, updateCategory, deleteCategory,
   listAllReviews, updateReview, deleteReview,
   adminListPlanters, createPlanter, updatePlanter, deletePlanter,
-  adminListBlog, createBlogPost, updateBlogPost, deleteBlogPost,
+  adminListBlog, createBlogPost, updateBlogPost, deleteBlogPost, generateBlogDraft,
 } = require("../controllers/adminController");
 
 // Public admin login
@@ -54,6 +54,7 @@ router.delete("/planters/:id", deletePlanter);
 
 // Blog
 router.get("/blog", adminListBlog);
+router.post("/blog/ai-draft", generateBlogDraft);
 router.post("/blog", createBlogPost);
 router.put("/blog/:id", updateBlogPost);
 router.delete("/blog/:id", deleteBlogPost);
