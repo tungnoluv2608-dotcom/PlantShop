@@ -25,7 +25,8 @@ export function useImageUpload({ multiple = false }: UseImageUploadOptions = {})
     const res = await api.post("/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-    const url = `${BASE_URL}${res.data.url}`;
+    const raw = res.data.url as string;
+    const url = raw.startsWith("http") ? raw : `${BASE_URL}${raw}`;
     console.log("Uploaded single file URL:", url);
     return url;
   };
@@ -36,7 +37,9 @@ export function useImageUpload({ multiple = false }: UseImageUploadOptions = {})
     const res = await api.post("/upload/multiple", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-    const finalUrls = (res.data.urls as string[]).map(url => `${BASE_URL}${url}`);
+    const finalUrls = (res.data.urls as string[]).map(url =>
+      url.startsWith("http") ? url : `${BASE_URL}${url}`
+    );
     console.log("Uploaded multiple files URLs:", finalUrls);
     return finalUrls;
   };

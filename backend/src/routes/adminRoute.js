@@ -52,9 +52,9 @@ router.post("/planters", createPlanter);
 router.put("/planters/:id", updatePlanter);
 router.delete("/planters/:id", deletePlanter);
 
-// Blog
-router.get("/blog", adminListBlog);
+// Blog - literal routes first, then param routes
 router.post("/blog/ai-draft", generateBlogDraft);
+router.get("/blog", adminListBlog);
 router.post("/blog", createBlogPost);
 router.put("/blog/:id", updateBlogPost);
 router.delete("/blog/:id", deleteBlogPost);

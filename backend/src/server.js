@@ -21,7 +21,7 @@ const app = express();
 
 // ── Middleware ────────────────────────────────────────────────
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:3000"],
+  origin: ["http://localhost:5176", "http://localhost:3000", "http://localhost:5173"],
   credentials: true,
 }));
 app.use(express.json());
@@ -45,7 +45,7 @@ app.use("/api/wishlist", wishlistRoute);
 
 // ── Health check ──────────────────────────────────────────────
 app.get("/", (req, res) => {
-  res.json({ message: "🌱 PlantWeb API is running!", version: "1.0.0" });
+  res.json({ message: "PlantWeb API is running!", version: "1.0.0" });
 });
 
 // ── Global error handler ──────────────────────────────────────
@@ -58,10 +58,10 @@ async function start() {
   try {
     await getPool(); // test DB connection on startup
     app.listen(PORT, () => {
-      console.log(`🚀 PlantWeb backend running at http://localhost:${PORT}`);
+      console.log(`PlantWeb backend running at http://localhost:${PORT}`);
     });
   } catch (err) {
-    console.error("❌ Failed to connect to database:", err.message);
+    console.error("Failed to connect to database:", err.message);
     process.exit(1);
   }
 }
