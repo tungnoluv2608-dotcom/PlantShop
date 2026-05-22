@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Order, Review, Product } from "../types";
+import type { Order, Review, Product, WholesaleInquiry, WholesaleInquiryStatus } from "../types";
 import {
   clearAdminSessionStorage,
   clearUserSessionStorage,
@@ -105,6 +105,22 @@ export const wishlistApi = {
     api.delete(`/wishlist/${productId}`).then((r) => r.data),
 };
 
+// ── Wholesale ─────────────────────────────────────────────────
+export const wholesaleApi = {
+  createInquiry: (body: {
+    company: string;
+    contact: string;
+    phone: string;
+    email: string;
+    quantity?: string;
+    type?: string;
+    location?: string;
+    budget?: string;
+    timeline?: string;
+    note?: string;
+  }) => api.post<{ id: string; message: string }>("/wholesale-inquiries", body).then((r) => r.data),
+};
+
 // ── Admin ──────────────────────────────────────────────────────
 export const adminApi = {
   login: (email: string, password: string) =>
@@ -132,6 +148,17 @@ export const adminApi = {
 
   // Customers
   listCustomers: () => api.get("/admin/customers").then((r) => r.data),
+
+  // Wholesale inquiries
+  listWholesaleInquiries: (params?: { status?: string; q?: string }) =>
+    api.get<WholesaleInquiry[]>("/admin/wholesale-inquiries", { params }).then((r) => r.data),
+  getWholesaleInquiryDetail: (id: string | number) =>
+    api.get<WholesaleInquiry>(`/admin/wholesale-inquiries/${id}`).then((r) => r.data),
+  updateWholesaleInquiry: (id: string | number, body: {
+    status: WholesaleInquiryStatus;
+    assignedTo?: string;
+    adminNote?: string;
+  }) => api.patch<WholesaleInquiry>(`/admin/wholesale-inquiries/${id}`, body).then((r) => r.data),
 
   // Categories
   listCategories: () => api.get("/admin/categories").then((r) => r.data),

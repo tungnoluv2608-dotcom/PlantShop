@@ -30,6 +30,7 @@ import AdminProductForm from './pages/admin/AdminProductForm'
 import AdminOrders from './pages/admin/AdminOrders'
 import AdminOrderDetail from './pages/admin/AdminOrderDetail'
 import AdminCustomers from './pages/admin/AdminCustomers'
+import AdminWholesale from './pages/admin/AdminWholesale'
 import AdminBlog from './pages/admin/AdminBlog'
 import AdminCategories from './pages/admin/AdminCategories'
 import AdminReviews from './pages/admin/AdminReviews'
@@ -84,6 +85,7 @@ function App() {
           <Route path='orders' element={<AdminOrders />} />
           <Route path='orders/:id' element={<AdminOrderDetail />} />
           <Route path='customers' element={<AdminCustomers />} />
+          <Route path='wholesale' element={<AdminWholesale />} />
           <Route path='reviews' element={<AdminReviews />} />
           <Route path='categories' element={<AdminCategories />} />
           <Route path='planters' element={<AdminPlanters />} />

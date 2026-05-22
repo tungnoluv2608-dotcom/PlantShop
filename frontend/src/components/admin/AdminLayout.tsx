@@ -3,7 +3,7 @@ import { NavLink, Outlet, Navigate, useNavigate } from "react-router";
 import {
   Leaf, Gauge, Package, ShoppingBag, Users, Newspaper,
   SignOut, List, X, Bell, MagnifyingGlass, CaretRight,
-  FolderOpen, Star, Flower, Wrench
+  FolderOpen, Star, Flower, Wrench, Buildings
 } from "@phosphor-icons/react";
 import { useAdminStore } from "../../stores/adminStore";
 
@@ -15,6 +15,7 @@ const navItems = [
   { to: "/admin/accessories", label: "Phụ kiện", icon: Wrench, exact: false, accent: "text-amber-700" },
   { to: "/admin/orders", label: "Đơn hàng", icon: ShoppingBag, exact: false, accent: "text-rose-700" },
   { to: "/admin/customers", label: "Khách hàng", icon: Users, exact: false, accent: "text-indigo-700" },
+  { to: "/admin/wholesale", label: "Bán sỉ", icon: Buildings, exact: false, accent: "text-cyan-700" },
   { to: "/admin/reviews", label: "Đánh giá", icon: Star, exact: false, accent: "text-yellow-700" },
   { to: "/admin/blog", label: "Blog", icon: Newspaper, exact: false, accent: "text-lime-700" },
 ];

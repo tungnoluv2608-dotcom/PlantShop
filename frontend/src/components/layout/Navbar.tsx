@@ -19,6 +19,7 @@ interface SearchResult {
 const navLinks = [
   { label: "Trang chủ", path: "/" },
   { label: "Cửa hàng", path: "/shop" },
+  { label: "Bán sỉ", path: "/wholesale" },
   { label: "Góc Xanh", path: "/blog" },
 ];
 

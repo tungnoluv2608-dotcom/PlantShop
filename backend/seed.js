@@ -10,6 +10,7 @@ async function seed() {
   console.log("🧹 Clearing old data...");
   await pool.request().query(`
     DELETE FROM UserWishlistItems;
+    IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'WholesaleInquiries') DELETE FROM WholesaleInquiries;
     DELETE FROM ReviewImages;
     DELETE FROM ReviewTags;
     DELETE FROM Reviews;
@@ -29,6 +30,7 @@ async function seed() {
 
     -- Reset Identity counters
     IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'UserWishlistItems') DBCC CHECKIDENT ('UserWishlistItems', RESEED, 0);
+    IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'WholesaleInquiries') DBCC CHECKIDENT ('WholesaleInquiries', RESEED, 0);
     IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'ReviewImages') DBCC CHECKIDENT ('ReviewImages', RESEED, 0);
     IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'ReviewTags') DBCC CHECKIDENT ('ReviewTags', RESEED, 0);
     IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Reviews') DBCC CHECKIDENT ('Reviews', RESEED, 0);

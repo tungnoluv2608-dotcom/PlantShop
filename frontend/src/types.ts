@@ -152,3 +152,34 @@ export interface ShippingAddress {
   address: string;
   isDefault: boolean;
 }
+
+export type WholesaleInquiryStatus =
+  | "new"
+  | "contacted"
+  | "qualified"
+  | "quoted"
+  | "won"
+  | "lost"
+  | "archived";
+
+export interface WholesaleInquiry {
+  id: string;
+  company: string;
+  contact: string;
+  phone: string;
+  email: string;
+  quantity: string;
+  type: string;
+  location: string;
+  budget: string;
+  timeline: string;
+  note: string;
+  status: WholesaleInquiryStatus;
+  source: string;
+  assignedTo: string;
+  adminNote: string;
+  createdAt: string;
+  updatedAt: string;
+  contactedAt?: string | null;
+  closedAt?: string | null;
+}

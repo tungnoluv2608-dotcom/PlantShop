@@ -11,6 +11,11 @@ const {
   adminListPlanters, createPlanter, updatePlanter, deletePlanter,
   adminListBlog, createBlogPost, updateBlogPost, deleteBlogPost, generateBlogDraft,
 } = require("../controllers/adminController");
+const {
+  listWholesaleInquiries,
+  getWholesaleInquiryById,
+  updateWholesaleInquiry,
+} = require("../controllers/wholesaleController");
 
 // Public admin login
 router.post("/login", adminLogin);
@@ -34,6 +39,11 @@ router.patch("/orders/:id/status", updateOrderStatus);
 
 // Customers
 router.get("/customers", listCustomers);
+
+// Wholesale inquiries
+router.get("/wholesale-inquiries", listWholesaleInquiries);
+router.get("/wholesale-inquiries/:id", getWholesaleInquiryById);
+router.patch("/wholesale-inquiries/:id", updateWholesaleInquiry);
 
 // Categories
 router.get("/categories", listCategories);

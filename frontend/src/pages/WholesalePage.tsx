@@ -1,191 +1,307 @@
 import { useState } from "react";
-import { Buildings, Plant, Flower, TreePalm, Check, PaperPlaneTilt } from "@phosphor-icons/react";
+import { Buildings, CheckCircle, PaperPlaneTilt, PhoneCall, Truck } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
 import { toast } from "sonner";
 import forestPattern from "../assets/forest_pattern.jpg";
+import { wholesaleApi } from "../services/apiService";
 
-const tiers = [
-  { label: "Gói Khởi Đầu", qty: "10 – 49 cây", discount: "10%", badge: "", color: "border-gray-200" },
-  { label: "Gói Doanh Nghiệp", qty: "50 – 99 cây", discount: "18%", badge: "PHỔ BIẾN", color: "border-primary bg-primary/5" },
-  { label: "Gói Đối Tác", qty: "100+ cây", discount: "25%+", badge: "BEST VALUE", color: "border-primary bg-primary/5" },
+const highlights = [
+  {
+    icon: Buildings,
+    title: "Phù hợp doanh nghiệp",
+    desc: "Văn phòng, nhà hàng, khách sạn, sự kiện.",
+  },
+  {
+    icon: Truck,
+    title: "Giao và lắp đặt",
+    desc: "Tư vấn và triển khai tận nơi.",
+  },
+  {
+    icon: PhoneCall,
+    title: "Phản hồi nhanh",
+    desc: "Liên hệ lại trong giờ làm việc.",
+  },
 ];
 
-const useCases = [
-  { icon: Buildings, label: "Văn phòng", desc: "Cây lọc không khí, tăng năng suất làm việc" },
-  { icon: Flower, label: "Khách sạn & Resort", desc: "Tăng thẩm mỹ không gian, thu hút khách hàng" },
-  { icon: Plant, label: "Nhà hàng & Café", desc: "Tạo không gian xanh độc đáo, sống ảo" },
-  { icon: TreePalm, label: "Sự kiện & Tiệc cưới", desc: "Trang trí concept thiên nhiên, hot trend" },
+const benefits = [
+  "Chiết khấu tốt hơn khi mua số lượng lớn",
+  "Tư vấn chọn cây theo không gian và ngân sách",
+  "Có thể kèm dịch vụ chăm sóc định kỳ",
+  "Hỗ trợ xuất hóa đơn VAT cho doanh nghiệp",
 ];
 
-const services = [
-  "Tư vấn chọn cây phù hợp với không gian và ngân sách",
-  "Thiết kế layout bố trí cây theo từng khu vực",
-  "Giao hàng và lắp đặt tận nơi",
-  "Dịch vụ chăm sóc định kỳ theo hợp đồng",
-  "Thay thế cây miễn phí nếu cây không phát triển tốt",
-  "Hóa đơn VAT đầy đủ cho doanh nghiệp",
+const spaceOptions = [
+  "Văn phòng",
+  "Khách sạn / Resort",
+  "Nhà hàng / Café",
+  "Sự kiện / Tiệc cưới",
+  "Showroom / Cửa hàng",
+  "Khác",
+];
+
+const budgetOptions = [
+  "Dưới 10 triệu",
+  "10 - 30 triệu",
+  "30 - 70 triệu",
+  "70 - 150 triệu",
+  "Trên 150 triệu",
+  "Chưa xác định",
+];
+
+const timelineOptions = [
+  "Cần ngay trong 1 tuần",
+  "Trong 2 - 4 tuần",
+  "Trong 1 - 2 tháng",
+  "Trên 2 tháng",
+  "Chưa xác định",
 ];
 
 export default function WholesalePage() {
-  const [form, setForm] = useState({ company: "", contact: "", phone: "", email: "", quantity: "", type: "", note: "" });
+  const [form, setForm] = useState({
+    company: "",
+    contact: "",
+    phone: "",
+    email: "",
+    quantity: "",
+    type: "",
+    location: "",
+    budget: "",
+    timeline: "",
+    note: "",
+  });
   const [sending, setSending] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSending(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setSending(false);
-    setForm({ company: "", contact: "", phone: "", email: "", quantity: "", type: "", note: "" });
-    toast.success("Yêu cầu đã gửi! Chuyên viên B2B sẽ liên hệ bạn trong vòng 2 giờ làm việc.");
+    try {
+      const response = await wholesaleApi.createInquiry(form);
+      setForm({ company: "", contact: "", phone: "", email: "", quantity: "", type: "", location: "", budget: "", timeline: "", note: "" });
+      toast.success(`${response.message} Mã yêu cầu: #${response.id}`);
+    } catch (error: unknown) {
+      const message = typeof error === "object" && error && "response" in error
+        ? String((error as { response?: { data?: { message?: string } } }).response?.data?.message || "")
+        : "";
+      toast.error(message || "Không thể gửi yêu cầu báo giá. Vui lòng thử lại.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[var(--background)] font-sans text-foreground flex flex-col">
       <Navbar />
 
-      {/* Hero */}
-      <div
-        className="relative w-full h-56 md:h-72 flex items-center justify-center overflow-hidden"
-        style={{ backgroundImage: `url(${forestPattern})`, backgroundSize: "cover", backgroundPosition: "center" }}
+      <section
+        className="relative overflow-hidden border-b border-border/70"
+        style={{ backgroundImage: `linear-gradient(rgba(24,34,26,0.72), rgba(24,34,26,0.72)), url(${forestPattern})`, backgroundSize: "cover", backgroundPosition: "center" }}
       >
-        <div className="absolute inset-0 bg-black/55" />
-        <div className="relative z-10 text-center px-4">
-          <span className="inline-block bg-secondary text-primary text-xs font-black px-4 py-1.5 rounded-full mb-4 uppercase tracking-wider">Dành cho doanh nghiệp</span>
-          <h1 className="text-4xl md:text-6xl font-black text-white tracking-wide uppercase mb-2">MUA SỐ LƯỢNG LỚN</h1>
-          <p className="text-white/80 md:text-lg">Ưu đãi hấp dẫn · Giao hàng tận nơi · Chăm sóc định kỳ</p>
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+          <div className="max-w-3xl">
+            <span className="inline-flex rounded-full bg-white/12 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-white/88">
+              Giải pháp cây xanh cho doanh nghiệp
+            </span>
+            <h1 className="mt-5 text-4xl font-black leading-tight text-white md:text-5xl">
+              Mua cây số lượng lớn, quy trình rõ ràng, liên hệ nhanh
+            </h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-white/80 md:text-lg">
+              Gửi nhu cầu của bạn để nhận báo giá theo quy mô thực tế.
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <main className="flex-grow max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12">
-
-        {/* Use Cases */}
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-black text-foreground mb-2">Phù hợp với mọi không gian</h2>
-          <p className="text-foreground/60">PlanS Thanh Tùng đã phục vụ hàng trăm doanh nghiệp trên toàn quốc</p>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-14">
-          {useCases.map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="bg-card rounded-2xl p-5 shadow-sm border border-secondary text-center group hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-primary transition-colors">
-                <Icon size={24} className="text-primary group-hover:text-white transition-colors" weight="fill" />
+      <main className="flex-grow">
+        <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+          <div className="grid gap-4 md:grid-cols-3">
+            {highlights.map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Icon size={22} weight="fill" />
+                </div>
+                <h2 className="text-lg font-black text-foreground">{title}</h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{desc}</p>
               </div>
-              <p className="font-bold text-sm mb-1">{label}</p>
-              <p className="text-xs text-foreground/50 leading-relaxed">{desc}</p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </section>
 
-        {/* Pricing Tiers */}
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-black text-foreground mb-2">Bảng giá chiết khấu</h2>
-          <p className="text-foreground/60">Chiết khấu càng nhiều khi mua số lượng lớn</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-14">
-          {tiers.map((tier) => (
-            <div key={tier.label} className={`bg-card rounded-2xl p-6 border-2 shadow-sm relative ${tier.color}`}>
-              {tier.badge && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-black px-4 py-1 rounded-full shadow">
-                  {tier.badge}
-                </span>
-              )}
-              <p className="font-black text-lg text-foreground mb-1">{tier.label}</p>
-              <p className="text-foreground/60 text-sm mb-4">{tier.qty}</p>
-              <p className="text-5xl font-black text-primary mb-1">{tier.discount}</p>
-              <p className="text-foreground/50 text-sm mb-6">chiết khấu</p>
-              <ul className="space-y-2">
-                {["Miễn phí vận chuyển", "Tư vấn chuyên sâu miễn phí", tier.badge ? "Chăm sóc định kỳ miễn phí 1 tháng" : "Giao hàng ưu tiên"].map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-foreground/70">
-                    <Check size={16} className="text-green-600 shrink-0" weight="bold" />
-                    {f}
+        <section className="mx-auto grid max-w-6xl gap-6 px-4 pb-12 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+          <div className="space-y-6">
+            <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+              <h2 className="text-2xl font-black text-foreground">Vì sao nên gửi yêu cầu tại đây?</h2>
+              <ul className="mt-5 space-y-3">
+                {benefits.map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm leading-6 text-foreground/78">
+                    <CheckCircle size={18} weight="fill" className="mt-0.5 shrink-0 text-primary" />
+                    <span>{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
-          ))}
-        </div>
 
-        {/* Services */}
-        <div className="bg-primary rounded-3xl p-8 md:p-10 text-white mb-14">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <div>
-              <h2 className="text-3xl font-black mb-4">Dịch vụ trọn gói</h2>
-              <p className="text-white/70 mb-6">Chúng tôi không chỉ bán cây — chúng tôi mang đến giải pháp xanh hóa không gian toàn diện.</p>
-              <ul className="space-y-3">
-                {services.map((s) => (
-                  <li key={s} className="flex items-start gap-3 text-sm">
-                    <Check size={18} className="text-secondary shrink-0 mt-0.5" weight="bold" />
-                    <span className="text-white/80">{s}</span>
-                  </li>
+            <div className="rounded-3xl border border-primary/15 bg-primary/5 p-6">
+              <h2 className="text-2xl font-black text-foreground">Quy trình ngắn gọn</h2>
+              <div className="mt-5 space-y-4">
+                {[
+                  "Bạn gửi thông tin doanh nghiệp và nhu cầu dự kiến.",
+                  "Chúng tôi liên hệ để làm rõ quy mô, ngân sách và tiến độ.",
+                  "Đội ngũ gửi phương án cây xanh và báo giá phù hợp.",
+                ].map((step, index) => (
+                  <div key={step} className="flex gap-4">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-black text-primary-foreground">
+                      {index + 1}
+                    </div>
+                    <p className="pt-1 text-sm leading-6 text-foreground/78">{step}</p>
+                  </div>
                 ))}
-              </ul>
-            </div>
-            <div className="rounded-2xl overflow-hidden h-64 shadow-xl">
-              <img src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop" alt="Office plants" className="w-full h-full object-cover" />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* B2B Contact Form */}
-        <div className="bg-card rounded-3xl shadow-sm border border-secondary p-6 md:p-10">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-black text-foreground mb-2">Yêu cầu báo giá</h2>
-            <p className="text-foreground/60">Điền form bên dưới — chuyên viên B2B của chúng tôi sẽ liên hệ trong vòng 2 giờ làm việc.</p>
+          <div className="rounded-3xl border border-border bg-card p-6 shadow-sm md:p-8">
+            <div className="mb-6">
+              <h2 className="text-2xl font-black text-foreground">Yêu cầu báo giá</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">Điền thông tin cơ bản để chúng tôi liên hệ lại.</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-foreground/75">Tên công ty *</label>
+                  <input
+                    required
+                    value={form.company}
+                    onChange={(e) => setForm((prev) => ({ ...prev, company: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                    placeholder="Công ty ABC"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-foreground/75">Người liên hệ *</label>
+                  <input
+                    required
+                    value={form.contact}
+                    onChange={(e) => setForm((prev) => ({ ...prev, contact: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                    placeholder="Nguyễn Văn A"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-foreground/75">Số điện thoại *</label>
+                  <input
+                    required
+                    type="tel"
+                    value={form.phone}
+                    onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                    placeholder="0901 234 567"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-foreground/75">Email *</label>
+                  <input
+                    required
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                    placeholder="hr@company.com"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-foreground/75">Số lượng dự kiến</label>
+                  <input
+                    value={form.quantity}
+                    onChange={(e) => setForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                    placeholder="Ví dụ: 30 cây"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-foreground/75">Loại không gian</label>
+                  <select
+                    value={form.type}
+                    onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                  >
+                    <option value="">Chọn loại không gian</option>
+                    {spaceOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-foreground/75">Địa điểm triển khai</label>
+                  <input
+                    value={form.location}
+                    onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                    placeholder="Ví dụ: Quận 1, TP.HCM"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-foreground/75">Ngân sách dự kiến</label>
+                  <select
+                    value={form.budget}
+                    onChange={(e) => setForm((prev) => ({ ...prev, budget: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                  >
+                    <option value="">Chọn ngân sách</option>
+                    {budgetOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-foreground/75">Thời gian triển khai</label>
+                  <select
+                    value={form.timeline}
+                    onChange={(e) => setForm((prev) => ({ ...prev, timeline: e.target.value }))}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                  >
+                    <option value="">Chọn thời gian</option>
+                    {timelineOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-foreground/75">Mô tả nhu cầu</label>
+                <textarea
+                  value={form.note}
+                  onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
+                  rows={5}
+                  className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm leading-6 focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15"
+                  placeholder="Ví dụ: cần cây cho văn phòng, ưu tiên dễ chăm..."
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={sending}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-4 text-sm font-bold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-70"
+              >
+                {sending ? (
+                  <>
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Đang gửi yêu cầu...
+                  </>
+                ) : (
+                  <>
+                    <PaperPlaneTilt size={18} weight="fill" />
+                    Gửi yêu cầu báo giá
+                  </>
+                )}
+              </button>
+            </form>
           </div>
-          <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Tên công ty *</label>
-                <input required value={form.company} onChange={(e) => setForm((p) => ({ ...p, company: e.target.value }))}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
-                  placeholder="Công ty ABC" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Người liên hệ *</label>
-                <input required value={form.contact} onChange={(e) => setForm((p) => ({ ...p, contact: e.target.value }))}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
-                  placeholder="Nguyễn Văn A" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Số điện thoại *</label>
-                <input required value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} type="tel"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
-                  placeholder="0901 234 567" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Email *</label>
-                <input required value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} type="email"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
-                  placeholder="hr@company.com" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Số lượng cây dự kiến</label>
-                <input value={form.quantity} onChange={(e) => setForm((p) => ({ ...p, quantity: e.target.value }))}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
-                  placeholder="VD: 50 cây" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Loại không gian</label>
-                <select value={form.type} onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all bg-white">
-                  <option value="">Chọn loại không gian</option>
-                  {["Văn phòng", "Khách sạn / Resort", "Nhà hàng / Café", "Sự kiện / Tiệc cưới", "Khác"].map((t) => <option key={t}>{t}</option>)}
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Yêu cầu thêm</label>
-              <textarea value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))} rows={3}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all resize-none"
-                placeholder="Mô tả không gian, loại cây mong muốn, timeline dự án..." />
-            </div>
-            <button type="submit" disabled={sending}
-              className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-bold text-lg hover:bg-primary/90 transition-all shadow-md hover:-translate-y-0.5 disabled:opacity-70 flex items-center justify-center gap-2">
-              {sending ? <><span className="animate-spin border-2 border-white border-t-transparent rounded-full w-5 h-5" />Đang gửi...</> : <><PaperPlaneTilt size={20} weight="fill" />Gửi yêu cầu báo giá</>}
-            </button>
-          </form>
-        </div>
+        </section>
       </main>
+
       <Footer />
     </div>
   );
