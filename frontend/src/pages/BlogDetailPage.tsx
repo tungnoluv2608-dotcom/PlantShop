@@ -28,15 +28,15 @@ export default function BlogDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F0F5F1] flex items-center justify-center">
-        <span className="w-10 h-10 border-2 border-[#102C26] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
+        <span className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!post) {
     return (
-      <div className="min-h-screen bg-[#F0F5F1] font-sans flex flex-col">
+      <div className="min-h-screen bg-[var(--background)] font-sans flex flex-col">
         <Navbar />
         <div className="flex-grow flex flex-col items-center justify-center gap-4">
           <p className="text-xl font-bold text-gray-500">Không tìm thấy bài viết</p>
@@ -48,7 +48,7 @@ export default function BlogDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] font-sans text-foreground flex flex-col">
       <Navbar />
 
       <main className="flex-grow max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
@@ -62,7 +62,7 @@ export default function BlogDetailPage() {
         </div>
 
         {/* Article */}
-        <article className="bg-white rounded-3xl shadow-sm border border-secondary overflow-hidden mb-8">
+        <article className="bg-card rounded-3xl shadow-sm border border-secondary overflow-hidden mb-8">
           {/* Hero Image */}
           <div className="relative h-64 md:h-80">
             <img src={post.image} alt={post.title} className="w-full h-full object-cover" />
@@ -127,7 +127,7 @@ export default function BlogDetailPage() {
             <h2 className="text-xl font-black text-foreground mb-5">Cây phù hợp với bài viết</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {related.map((product) => (
-                <Link key={product.id} to={`/product/${product.id}`} className="group bg-white rounded-2xl overflow-hidden border border-secondary hover:shadow-md transition-all">
+                <Link key={product.id} to={`/product/${product.id}`} className="group bg-card rounded-2xl overflow-hidden border border-secondary hover:shadow-md transition-all">
                   <div className="aspect-square overflow-hidden">
                     <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>

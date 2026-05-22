@@ -1,10 +1,28 @@
+import { useState, useEffect } from "react";
 import { SectionHeader } from "../ui/SectionHeader";
 import { ArrowRight } from "@phosphor-icons/react";
-import { blogPosts } from "../../data/mockData";
+import { blogPosts as fallbackPosts } from "../../data/mockData";
+import { productService } from "../../services/productService";
+import type { BlogPost } from "../../types";
 import { useNavigate } from "react-router";
 
 export function Blogs() {
   const navigate = useNavigate();
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+
+  useEffect(() => {
+    productService.getBlogPosts()
+      .then((data) => {
+        if (data && data.length > 0) {
+          setPosts(data.slice(0, 2));
+        } else {
+          setPosts(fallbackPosts);
+        }
+      })
+      .catch(() => {
+        setPosts(fallbackPosts);
+      });
+  }, []);
 
   const handleBlogClick = (blogId: string | number) => {
     navigate(`/blog/${blogId}`);
@@ -15,7 +33,7 @@ export function Blogs() {
   };
 
   return (
-    <section className="py-16 bg-gray-50">
+    <section className="py-16 bg-secondary/22">
       <div className="container mx-auto px-6 md:px-12">
         <SectionHeader 
           title="Bài viết mới" 
@@ -23,10 +41,10 @@ export function Blogs() {
         />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-          {blogPosts.map(blog => (
+          {posts.map(blog => (
             <div 
               key={blog.id} 
-              className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col sm:flex-row cursor-pointer"
+              className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:flex-row"
               onClick={() => handleBlogClick(blog.id)}
             >
               {/* Image */}
@@ -41,11 +59,11 @@ export function Blogs() {
               {/* Content */}
               <div className="p-6 sm:w-3/5 flex flex-col justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800 leading-snug mb-3 group-hover:text-primary transition-colors">
+                  <h3 className="mb-3 text-xl font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
                     {blog.title}
                   </h3>
                   {blog.excerpt && (
-                    <p className="text-sm text-gray-500 leading-relaxed mb-4 line-clamp-2">{blog.excerpt}</p>
+                    <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{blog.excerpt}</p>
                   )}
                 </div>
                 

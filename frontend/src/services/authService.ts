@@ -1,5 +1,6 @@
 import axios from "axios";
 import type { SignInData, SignUpData, User } from "../types";
+import { clearUserSessionStorage, getUserToken } from "./authStorage";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -7,7 +8,7 @@ const api = axios.create({ baseURL: API_URL });
 
 // Attach token to requests if available
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = getUserToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -26,7 +27,7 @@ export const authService = {
   },
 
   async signOut(): Promise<void> {
-    localStorage.removeItem("token");
+    clearUserSessionStorage();
   },
 
   async getMe(): Promise<{ user: User }> {

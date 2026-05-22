@@ -34,8 +34,8 @@ export default function VnpayReturnPage() {
   }, [location.search, navigate, clearCart]);
 
   return (
-    <div className="min-h-screen bg-[#F0F5F1] flex items-center justify-center px-4">
-      <div className="bg-white border border-secondary rounded-3xl p-8 max-w-md w-full text-center shadow-sm">
+    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center px-4">
+      <div className="bg-card border border-secondary rounded-3xl p-8 max-w-md w-full text-center shadow-sm">
         <div className="w-16 h-16 mx-auto rounded-full bg-blue-50 flex items-center justify-center mb-4">
           <Clock size={30} className="text-blue-600" weight="fill" />
         </div>

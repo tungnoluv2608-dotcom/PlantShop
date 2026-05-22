@@ -14,12 +14,14 @@ const adminRoute = require("./routes/adminRoute");
 const uploadRoute = require("./routes/uploadRoute");
 const addressRoute = require("./routes/addressRoute");
 const wishlistRoute = require("./routes/wishlistRoute");
+const payosRoute = require("./routes/payosRoute");
 const errorHandler = require("./middlewares/errorHandler");
 const { getPool } = require("./libs/db");
 
 const app = express();
 
 // ── Middleware ────────────────────────────────────────────────
+app.use("/api/webhooks/payos-webhook", express.raw({ type: "application/json" }));
 app.use(cors({
   origin: ["http://localhost:5176", "http://localhost:3000", "http://localhost:5173"],
   credentials: true,
@@ -42,6 +44,7 @@ app.use("/api/admin", adminRoute);
 app.use("/api/upload", uploadRoute);
 app.use("/api/addresses", addressRoute);
 app.use("/api/wishlist", wishlistRoute);
+app.use("/api/webhooks", payosRoute);
 
 // ── Health check ──────────────────────────────────────────────
 app.get("/", (req, res) => {

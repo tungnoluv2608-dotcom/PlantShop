@@ -7,6 +7,8 @@ import { toast } from "sonner";
 
 function getItemDetailPath(id: string) {
   if (/^\d+$/.test(id)) return `/product/${id}`;
+  const productMatch = id.match(/^product-(\d+)(?:-.+)?$/i);
+  if (productMatch) return `/product/${productMatch[1]}`;
   const planterMatch = id.match(/^planter-(\d+)$/i);
   if (planterMatch) return `/planters/${planterMatch[1]}`;
   const accessoryMatch = id.match(/^accessory-(\d+)$/i);
@@ -38,7 +40,7 @@ export default function CartPage() {
         <h1 className="text-3xl font-black text-foreground mb-8">Giỏ hàng của bạn</h1>
 
         {items.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-secondary">
+          <div className="text-center py-20 bg-card rounded-2xl shadow-sm border border-secondary">
             <h2 className="text-2xl font-bold mb-4">Giỏ hàng trốn đi đâu mất rồi?</h2>
             <p className="text-foreground/70 mb-8 max-w-md mx-auto">Có vẻ như bạn chưa thêm cây xanh nào vào giỏ. Khám phá các loại cây tuyệt đẹp của chúng tôi ngay nhé!</p>
             <Link 
@@ -54,7 +56,7 @@ export default function CartPage() {
             
             {/* Cart Items List */}
             <div className="flex-1">
-              <div className="bg-white rounded-2xl shadow-sm border border-secondary overflow-hidden">
+              <div className="bg-card rounded-2xl shadow-sm border border-secondary overflow-hidden">
                 {/* List Header */}
                 <div className="hidden sm:grid grid-cols-12 gap-4 p-6 border-b border-secondary bg-gray-50/50 text-sm font-semibold text-foreground/70 uppercase tracking-wider text-center">
                   <div className="col-span-6 text-left">Sản phẩm</div>
@@ -111,7 +113,7 @@ export default function CartPage() {
 
                       {/* Quantity Control */}
                       <div className="col-span-2 w-full flex justify-center items-center h-full">
-                        <div className="inline-flex items-center border border-secondary rounded-lg bg-white overflow-hidden shadow-sm">
+                        <div className="inline-flex items-center border border-secondary rounded-lg bg-card overflow-hidden shadow-sm">
                           <button 
                             onClick={() => updateQuantity(item.id, item.quantity - 1)} 
                             className="p-2 hover:bg-secondary/50 text-foreground transition-colors cursor-pointer"
@@ -145,7 +147,7 @@ export default function CartPage() {
 
             {/* Order Summary */}
             <div className="w-full lg:w-96 shrink-0">
-              <div className="bg-white rounded-2xl shadow-xl border border-secondary p-6 sticky top-28">
+              <div className="bg-card rounded-2xl shadow-xl border border-secondary p-6 sticky top-28">
                 <h2 className="text-xl font-bold mb-6 text-foreground border-b border-border pb-4">Tóm tắt đơn hàng</h2>
                 
                 <div className="space-y-4 mb-6">

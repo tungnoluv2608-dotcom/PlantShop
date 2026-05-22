@@ -50,98 +50,98 @@ export default function AdminProducts() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Sản phẩm</h1>
-          <p className="text-gray-500 text-sm">{filtered.length} sản phẩm</p>
+          <h1 className="text-2xl font-black text-foreground">Sản phẩm</h1>
+          <p className="text-muted-foreground text-sm">{filtered.length} sản phẩm</p>
         </div>
         <Link to="/admin/products/new"
-          className="inline-flex items-center gap-2 bg-[#102C26] text-[#F7E7CE] px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-[#102C26]/90 transition-all shadow-sm">
+          className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-primary/90 transition-all shadow-sm">
           <Plus size={17} weight="bold" /> Thêm sản phẩm
         </Link>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row gap-3">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-4 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Tìm tên sản phẩm..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 focus:border-[#102C26]/40 transition-all"
+            className="w-full pl-9 pr-4 py-2.5 bg-background text-foreground placeholder-muted-foreground/50 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
           />
         </div>
         <select
           value={categoryFilter}
           onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-          className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 focus:border-[#102C26]/40">
+          className="px-4 py-2.5 rounded-xl border border-border text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40">
           <option value="all">Tất cả danh mục</option>
-          {categories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+          {categories.map((c) => <option key={c.id} value={c.name} className="bg-card text-foreground">{c.name}</option>)}
         </select>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <span className="w-8 h-8 border-2 border-[#102C26] border-t-transparent rounded-full animate-spin" />
+            <span className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/70">
-                    <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Sản phẩm</th>
-                    <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">Danh mục</th>
-                    <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Giá</th>
-                    <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Giá gốc</th>
-                    <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                    <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Thao tác</th>
+                  <tr className="border-b border-border bg-gray-50/10">
+                    <th className="text-left px-5 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Sản phẩm</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Danh mục</th>
+                    <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Giá</th>
+                    <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Giá gốc</th>
+                    <th className="text-center px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Trạng thái</th>
+                    <th className="text-center px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Thao tác</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-border">
                   {paged.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center py-12 text-gray-400 font-medium">Không có sản phẩm</td></tr>
+                    <tr><td colSpan={6} className="text-center py-12 text-muted-foreground font-medium">Không có sản phẩm</td></tr>
                   ) : paged.map((product) => (
-                    <tr key={product.id} className="hover:bg-gray-50/50 transition-colors group">
+                    <tr key={product.id} className="hover:bg-secondary/20 transition-colors group">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <img src={product.imageUrl} alt={product.title}
-                            className="w-10 h-10 rounded-lg object-cover border border-gray-100 shrink-0" />
+                            className="w-10 h-10 rounded-lg object-cover border border-border shrink-0" />
                           <div className="min-w-0">
-                            <p className="font-semibold text-gray-900 truncate max-w-[180px]">{product.title}</p>
-                            <p className="text-gray-400 text-xs">ID: #{product.id}</p>
+                            <p className="font-semibold text-foreground truncate max-w-[180px]">{product.title}</p>
+                            <p className="text-muted-foreground/60 text-xs">ID: #{product.id}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3.5 hidden md:table-cell">
-                        <span className="bg-[#102C26]/10 text-[#102C26] text-xs font-semibold px-2.5 py-1 rounded-full">{product.category}</span>
+                        <span className="bg-primary/10 text-primary text-xs font-semibold px-2.5 py-1 rounded-full">{product.category}</span>
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        <span className="font-bold text-[#102C26]">{product.price.toLocaleString("vi-VN")}đ</span>
+                        <span className="font-bold text-primary">{product.price.toLocaleString("vi-VN")}đ</span>
                       </td>
                       <td className="px-4 py-3.5 text-right hidden sm:table-cell">
                         {product.originalPrice
-                          ? <span className="text-gray-400 line-through text-xs">{product.originalPrice.toLocaleString("vi-VN")}đ</span>
-                          : <span className="text-gray-300">—</span>}
+                          ? <span className="text-muted-foreground/60 line-through text-xs">{product.originalPrice.toLocaleString("vi-VN")}đ</span>
+                          : <span className="text-muted-foreground/30">—</span>}
                       </td>
                       <td className="px-4 py-3.5 text-center">
                         {product.discount
-                          ? <span className="bg-red-100 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full">Sale {product.discount}</span>
-                          : <span className="bg-green-100 text-green-700 text-xs font-semibold px-2.5 py-1 rounded-full">Đang bán</span>}
+                          ? <span className="bg-red-500/10 text-red-400 text-xs font-bold px-2.5 py-1 rounded-full">Sale {product.discount}</span>
+                          : <span className="bg-green-500/10 text-green-400 text-xs font-semibold px-2.5 py-1 rounded-full">Đang bán</span>}
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center justify-center gap-1">
                           <a href={`/product/${product.id}`} target="_blank"
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Xem">
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all" title="Xem">
                             <Eye size={15} />
                           </a>
                           <Link to={`/admin/products/${product.id}`}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-[#102C26] hover:bg-[#102C26]/10 transition-all" title="Sửa">
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all" title="Sửa">
                             <PencilSimple size={15} />
                           </Link>
                           <button onClick={() => handleDelete(product.id, product.title)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all" title="Xóa">
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all" title="Xóa">
                             <Trash size={15} />
                           </button>
                         </div>
@@ -152,12 +152,12 @@ export default function AdminProducts() {
               </table>
             </div>
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-5 py-3.5 border-t border-gray-100 bg-gray-50/50">
-                <p className="text-xs text-gray-500">Trang {page} / {totalPages} · {filtered.length} sản phẩm</p>
+              <div className="flex items-center justify-between px-5 py-3.5 border-t border-border bg-gray-50/10">
+                <p className="text-xs text-muted-foreground">Trang {page} / {totalPages} · {filtered.length} sản phẩm</p>
                 <div className="flex gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                     <button key={p} onClick={() => setPage(p)}
-                      className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${page === p ? "bg-[#102C26] text-white" : "text-gray-500 hover:bg-gray-100"}`}>
+                      className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${page === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary/20"}`}>
                       {p}
                     </button>
                   ))}

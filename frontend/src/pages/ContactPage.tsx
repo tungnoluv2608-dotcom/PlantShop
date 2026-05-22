@@ -21,15 +21,16 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] font-sans text-foreground flex flex-col">
       <Navbar />
 
       {/* Hero */}
       <div
-        className="relative w-full h-48 md:h-56 flex items-center justify-center overflow-hidden"
+        className="relative flex h-48 w-full items-center justify-center overflow-hidden md:h-56"
         style={{ backgroundImage: `url(${forestPattern})`, backgroundSize: "cover", backgroundPosition: "center" }}
       >
-        <div className="absolute inset-0 bg-black/50" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(36,53,42,0.72),rgba(79,127,79,0.45))]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,253,247,0.18),transparent_25%)]" />
         <div className="relative z-10 text-center">
           <h1 className="text-4xl md:text-6xl font-black text-white tracking-widest uppercase">LIÊN HỆ</h1>
           <p className="text-white/80 mt-2">Chúng tôi luôn sẵn sàng lắng nghe bạn</p>
@@ -41,7 +42,7 @@ export default function ContactPage() {
 
           {/* Contact Info */}
           <div className="space-y-5">
-            <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6">
+            <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
               <h2 className="text-xl font-bold mb-5 text-foreground">Thông tin liên hệ</h2>
               {[
                 { icon: MapPin, label: "Địa chỉ showroom", value: "123 Nguyễn Huệ, Quận 1\nTP. Hồ Chí Minh" },
@@ -62,7 +63,7 @@ export default function ContactPage() {
             </div>
 
             {/* Social */}
-            <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6">
+            <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
               <h3 className="font-bold mb-4">Nhắn tin nhanh qua mạng xã hội</h3>
               <div className="space-y-3">
                 {[
@@ -82,33 +83,33 @@ export default function ContactPage() {
           </div>
 
           {/* Contact Form */}
-          <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-secondary p-6 md:p-8">
+          <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm md:p-8 lg:col-span-2">
             <h2 className="text-xl font-bold mb-6">Gửi tin nhắn cho chúng tôi</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Họ và tên *</label>
                   <input required value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 transition-all focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
                     placeholder="Nguyễn Văn A" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Số điện thoại</label>
                   <input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} type="tel"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 transition-all focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
                     placeholder="0901 234 567" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Email *</label>
                 <input required value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} type="email"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 transition-all focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
                   placeholder="email@example.com" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Chủ đề</label>
                 <select value={form.subject} onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all bg-white">
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 transition-all focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/30">
                   <option value="">Chọn chủ đề...</option>
                   {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
@@ -116,7 +117,7 @@ export default function ContactPage() {
               <div>
                 <label className="block text-sm font-semibold text-foreground/70 mb-1.5">Nội dung *</label>
                 <textarea required value={form.message} onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))} rows={5}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all resize-none"
+                  className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 transition-all focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
                   placeholder="Nhập nội dung liên hệ..." />
               </div>
               <button type="submit" disabled={sending}
@@ -128,8 +129,8 @@ export default function ContactPage() {
         </div>
 
         {/* Map Placeholder */}
-        <div className="mt-8 bg-white rounded-2xl shadow-sm border border-secondary overflow-hidden h-64 relative">
-          <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+        <div className="relative mt-8 h-64 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+          <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(180deg,rgba(237,244,231,0.9),rgba(255,253,247,1))]">
             <div className="text-center">
               <MapPin size={48} className="text-primary/30 mx-auto mb-2" />
               <p className="text-foreground/40 font-medium">Google Maps</p>

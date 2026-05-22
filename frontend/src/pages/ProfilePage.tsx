@@ -62,7 +62,7 @@ function OrderCard({ order, onCancel, onReview }: { order: Order; onCancel: (id:
   const cfg = statusConfig[order.status];
 
   return (
-    <div className="bg-white rounded-2xl border border-secondary overflow-hidden shadow-sm">
+    <div className="bg-card rounded-2xl border border-secondary overflow-hidden shadow-sm">
       {/* Header */}
       <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex flex-col gap-1">
@@ -170,7 +170,10 @@ function OrderCard({ order, onCancel, onReview }: { order: Order; onCancel: (id:
 export default function ProfilePage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAuthenticated, updateUser } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const authToken = useAuthStore((s) => s.token);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated && Boolean(s.token));
+  const updateUser = useAuthStore((s) => s.updateUser);
   const [activeTab, setActiveTab] = useState(location.pathname === "/profile/orders" ? "orders" : "profile");
   const [profileForm, setProfileForm] = useState({
     name: user?.name || "",
@@ -206,27 +209,27 @@ export default function ProfilePage() {
   }, [user]);
 
   useEffect(() => {
-    if (activeTab === "orders" && isAuthenticated) {
+    if (activeTab === "orders" && authToken) {
       setOrdersLoading(true);
       orderApi.getMyOrders()
         .then(setOrders)
         .catch(() => toast.error("Không thể tải đơn hàng"))
         .finally(() => setOrdersLoading(false));
     }
-  }, [activeTab, isAuthenticated]);
+  }, [activeTab, authToken]);
 
   useEffect(() => {
-    if (activeTab !== "address" || !isAuthenticated) return;
+    if (activeTab !== "address" || !authToken) return;
     addressService
       .list()
       .then(setAddresses)
       .catch(() => toast.error("Không thể tải sổ địa chỉ"));
-  }, [activeTab, isAuthenticated]);
+  }, [activeTab, authToken]);
 
   useEffect(() => {
-    if (activeTab !== "wishlist" || !isAuthenticated) return;
+    if (activeTab !== "wishlist" || !authToken) return;
     syncWishlist().catch(() => toast.error("Không thể tải danh sách yêu thích"));
-  }, [activeTab, isAuthenticated, syncWishlist]);
+  }, [activeTab, authToken, syncWishlist]);
 
   const handleCancelOrder = async (orderId: string) => {
     try {
@@ -347,12 +350,12 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] font-sans text-foreground flex flex-col">
       <Navbar />
 
       <main className="flex-grow max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
         {/* Page Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6 flex items-center gap-5 mb-6">
+        <div className="bg-card rounded-2xl shadow-sm border border-secondary p-6 flex items-center gap-5 mb-6">
           <div className="relative">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-black text-primary border-2 border-primary/20">
               {getInitials(profileForm.name || "User")}
@@ -370,7 +373,7 @@ export default function ProfilePage() {
         <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar Tabs */}
           <div className="w-full md:w-60 shrink-0">
-            <nav className="bg-white rounded-2xl shadow-sm border border-secondary p-2 space-y-1">
+            <nav className="bg-card rounded-2xl shadow-sm border border-secondary p-2 space-y-1">
               {tabs.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
@@ -389,7 +392,7 @@ export default function ProfilePage() {
 
             {/* Profile Tab */}
             {activeTab === "profile" && (
-              <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6 md:p-8">
+              <div className="bg-card rounded-2xl shadow-sm border border-secondary p-6 md:p-8">
                 <h2 className="text-xl font-bold mb-6">Thông tin cá nhân</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {[
@@ -419,7 +422,7 @@ export default function ProfilePage() {
             {/* Orders Tab */}
             {activeTab === "orders" && (
               <div className="space-y-5">
-                <div className="bg-white rounded-2xl shadow-sm border border-secondary p-4 flex flex-wrap gap-2">
+                <div className="bg-card rounded-2xl shadow-sm border border-secondary p-4 flex flex-wrap gap-2">
                   {[
                     { val: "all", label: "Tất cả" },
                     { val: "shipping", label: "Đang giao" },
@@ -436,11 +439,11 @@ export default function ProfilePage() {
                   ))}
                 </div>
                 {ordersLoading ? (
-                  <div className="bg-white rounded-2xl border border-secondary p-12 text-center">
+                  <div className="bg-card rounded-2xl border border-secondary p-12 text-center">
                     <span className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin inline-block" />
                   </div>
                 ) : filteredOrders.length === 0 ? (
-                  <div className="bg-white rounded-2xl border border-secondary p-12 text-center">
+                  <div className="bg-card rounded-2xl border border-secondary p-12 text-center">
                     <ShoppingBag size={48} className="text-foreground/20 mx-auto mb-4" />
                     <p className="text-foreground/50 font-medium">Không có đơn hàng nào</p>
                     <Link to="/shop" className="mt-4 inline-block text-primary font-bold hover:underline">Mua sắm ngay →</Link>
@@ -453,7 +456,7 @@ export default function ProfilePage() {
 
             {/* Address Tab */}
             {activeTab === "address" && (
-              <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6 md:p-8">
+              <div className="bg-card rounded-2xl shadow-sm border border-secondary p-6 md:p-8">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold">Địa chỉ giao hàng</h2>
                   <button
@@ -572,10 +575,10 @@ export default function ProfilePage() {
 
             {/* Wishlist Tab */}
             {activeTab === "wishlist" && (
-              <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6 md:p-8">
+              <div className="bg-card rounded-2xl shadow-sm border border-secondary p-6 md:p-8">
                 <h2 className="text-xl font-bold mb-6">Sản phẩm yêu thích</h2>
                 {wishlistLoading ? (
-                  <div className="bg-white rounded-2xl border border-secondary p-12 text-center">
+                  <div className="bg-card rounded-2xl border border-secondary p-12 text-center">
                     <span className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin inline-block" />
                   </div>
                 ) : wishlistItems.length === 0 ? (
@@ -606,7 +609,7 @@ export default function ProfilePage() {
 
             {/* Password Tab */}
             {activeTab === "password" && (
-              <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6 md:p-8">
+              <div className="bg-card rounded-2xl shadow-sm border border-secondary p-6 md:p-8">
                 <h2 className="text-xl font-bold mb-6">Đổi mật khẩu</h2>
                 <div className="max-w-md space-y-4">
                   {["Mật khẩu hiện tại", "Mật khẩu mới", "Xác nhận mật khẩu mới"].map((label) => (

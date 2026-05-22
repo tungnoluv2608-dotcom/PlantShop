@@ -35,7 +35,8 @@ export default function ProductPage() {
   const [hasPurchased, setHasPurchased] = useState(false); // New state for purchase check
   const [isWishlistBusy, setIsWishlistBusy] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const authToken = useAuthStore((s) => s.token);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated && Boolean(s.token));
   const isFavorite = useWishlistStore((s) => s.isFavorite(product?.id));
   const toggleWishlist = useWishlistStore((s) => s.toggleWishlist);
   const syncWishlist = useWishlistStore((s) => s.syncWishlist);
@@ -46,6 +47,7 @@ export default function ProductPage() {
     error: reviewUploadError,
     InputElement: ReviewImageInput,
   } = useImageUpload({ multiple: true });
+  const isOutOfStock = product?.inStock === false;
 
   async function loadReviews() {
     if (!id) return;
@@ -54,18 +56,25 @@ export default function ProductPage() {
       const reviewData = await reviewApi.getByProduct(id);
       setReviews(reviewData);
 
-      // Check purchase history if authenticated
-      if (isAuthenticated) {
+      if (!authToken) {
+        setHasPurchased(false);
+        return;
+      }
+
+      try {
         const orders = await orderApi.getMyOrders();
-        const bought = orders.some(o =>
-          o.status === 'delivered' &&
-          o.items.some(item => item.id === id)
+        const bought = orders.some(
+          (o) => o.status === "delivered" && o.items.some((item) => item.id === id)
         );
         setHasPurchased(bought);
+      } catch (error) {
+        setHasPurchased(false);
+        console.error("Failed to check purchase history:", error);
       }
     } catch (err) {
       console.error("Failed to load reviews:", err);
       setReviews([]);
+      setHasPurchased(false);
     } finally {
       setIsReviewLoading(false);
     }
@@ -74,57 +83,68 @@ export default function ProductPage() {
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
-      const productId = id ?? "1";
+      try {
+        const productId = id ?? "1";
 
-      const [productData, related] = await Promise.all([
-        productService.getProductById(productId),
-        productService.getRelatedProducts(productId),
-      ]);
+        const [productData, related] = await Promise.all([
+          productService.getProductById(productId),
+          productService.getRelatedProducts(productId),
+        ]);
 
-      await loadReviews(); // Call the new loadReviews function here
+        await loadReviews();
 
-      setProduct(productData);
-      setRelatedProducts(related);
-      setMainImageIndex(0);
-      setQuantity(1);
-      const requestedTab = new URLSearchParams(location.search).get("tab");
-      const openReviewTab = requestedTab === "reviews";
-      setActiveTab(openReviewTab ? "reviews" : "care");
-      setReviewRating(5);
-      setReviewTitle("");
-      setReviewContent("");
-      setReviewTagsInput("");
-      setReviewImages([]);
+        setProduct(productData);
+        setRelatedProducts(related);
+        setMainImageIndex(0);
+        setQuantity(1);
+        const requestedTab = new URLSearchParams(location.search).get("tab");
+        const openReviewTab = requestedTab === "reviews";
+        setActiveTab(openReviewTab ? "reviews" : "care");
+        setReviewRating(5);
+        setReviewTitle("");
+        setReviewContent("");
+        setReviewTagsInput("");
+        setReviewImages([]);
 
-      if (openReviewTab) {
-        setTimeout(() => {
-          const reviewSection = document.getElementById("review-form");
-          reviewSection?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 0);
-      }
-
-      const planterOptions = productData?.planterOptions ?? [];
-      setSelectedPlanterId("none");
-      setAvailablePlanters([]);
-      if (planterOptions.length > 0) {
-        try {
-          const allPlanters = await planterApi.list();
-          const filtered = (allPlanters as Planter[]).filter((p) => planterOptions.includes(p.id));
-          setAvailablePlanters(filtered);
-        } catch (error) {
-          console.error("Failed to fetch planters", error);
+        if (openReviewTab) {
+          setTimeout(() => {
+            const reviewSection = document.getElementById("review-form");
+            reviewSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 0);
         }
-      }
 
-      setIsLoading(false);
+        const planterOptions = productData?.planterOptions ?? [];
+        setSelectedPlanterId("none");
+        setAvailablePlanters([]);
+        if (planterOptions.length > 0) {
+          try {
+            const allPlanters = await planterApi.list();
+            const filtered = (allPlanters as Planter[]).filter(
+              (p) => planterOptions.includes(p.id) && p.inStock
+            );
+            setAvailablePlanters(filtered);
+          } catch (error) {
+            console.error("Failed to fetch planters", error);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load product page:", error);
+        setProduct(null);
+        setRelatedProducts([]);
+        setAvailablePlanters([]);
+        setReviews([]);
+        setHasPurchased(false);
+      } finally {
+        setIsLoading(false);
+      }
     }
     fetchData();
-  }, [id, location.search]);
+  }, [id, location.search, authToken]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!authToken) return;
     syncWishlist().catch(() => undefined);
-  }, [isAuthenticated, syncWishlist]);
+  }, [authToken, syncWishlist]);
 
   const increaseQuantity = () => setQuantity((q) => q + 1);
   const decreaseQuantity = () => setQuantity((q) => (q > 1 ? q - 1 : 1));
@@ -139,13 +159,18 @@ export default function ProductPage() {
     setMainImageIndex((i) => (i < product.images.length - 1 ? i + 1 : 0));
   };
 
-  const handleAddToCart = () => {
+  const buildCartItem = () => {
     if (!product) return;
-    
+
     if (!isAuthenticated) {
       toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng");
       navigate("/signin");
-      return;
+      return null;
+    }
+
+    if (product.inStock === false) {
+      toast.error("Sản phẩm hiện đang tạm hết hàng");
+      return null;
     }
 
     const selectedPlanter = availablePlanters.find((p) => String(p.id) === selectedPlanterId);
@@ -153,17 +178,43 @@ export default function ProductPage() {
     const planterLabel = selectedPlanter
       ? `Có (Kèm ${selectedPlanter.name}${planterPrice > 0 ? ` +${planterPrice.toLocaleString("vi-VN")}đ` : ""})`
       : "Không (Chỉ cây và chậu nhựa ươm)";
+    const cartItemId = selectedPlanter
+      ? `product-${product.id}-planter-${selectedPlanter.id}`
+      : `product-${product.id}-none`;
+
+    return {
+      item: {
+        id: cartItemId,
+        title: product.title,
+        price: product.price + planterPrice,
+        image: product.images[0],
+        planter: planterLabel,
+        quantity,
+      },
+      selectedPlanter,
+    };
+  };
+
+  const handleAddToCart = () => {
+    const cartPayload = buildCartItem();
+    if (!cartPayload) return;
 
     addItem({
-      id: product.id,
-      title: product.title,
-      price: product.price + planterPrice,
-      image: product.images[0],
-      planter: planterLabel,
-      quantity: quantity,
+      ...cartPayload.item,
     });
     toast.success("Đã thêm vào giỏ hàng!", {
-      description: `${product.title} x${quantity}${selectedPlanter ? ` • ${selectedPlanter.name}` : ""}`,
+      description: `${cartPayload.item.title} x${cartPayload.item.quantity}${cartPayload.selectedPlanter ? ` • ${cartPayload.selectedPlanter.name}` : ""}`,
+    });
+  };
+
+  const handleBuyNow = () => {
+    const cartPayload = buildCartItem();
+    if (!cartPayload) return;
+
+    navigate("/checkout", {
+      state: {
+        buyNowItem: cartPayload.item,
+      },
     });
   };
 
@@ -345,6 +396,10 @@ export default function ProductPage() {
           {/* Right Column: Info & Actions */}
           <div className="flex flex-col">
             <h1 className="text-4xl font-extrabold text-foreground mb-4">{product.title}</h1>
+
+            <p className={`text-sm font-semibold mb-4 ${isOutOfStock ? "text-red-600" : "text-green-600"}`}>
+              {isOutOfStock ? "Tạm hết hàng" : "Còn hàng"}
+            </p>
             
             <div className="flex items-end gap-3 mb-6">
               <span className="text-3xl font-bold text-primary">{product.price.toLocaleString('vi-VN')} đ</span>
@@ -414,18 +469,26 @@ export default function ProductPage() {
             </div>
 
             {/* Add to Cart */}
-            <div className="w-full sm:w-80 flex items-stretch gap-3 mb-10">
+            <div className="w-full sm:w-96 flex items-stretch gap-3 mb-10">
               <button
                 onClick={handleAddToCart}
-                className="flex-1 bg-primary text-primary-foreground font-bold text-lg py-4 rounded-xl hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+                disabled={isOutOfStock}
+                className="flex-1 border border-primary bg-background text-primary font-bold text-lg py-4 rounded-xl hover:bg-primary/5 transition-all shadow-sm hover:-translate-y-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
-                Thêm vào giỏ hàng
+                {isOutOfStock ? "Tạm hết hàng" : "Thêm vào giỏ"}
+              </button>
+              <button
+                onClick={handleBuyNow}
+                disabled={isOutOfStock}
+                className="flex-1 bg-primary text-primary-foreground font-bold text-lg py-4 rounded-xl hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-lg"
+              >
+                Mua ngay
               </button>
               <button
                 type="button"
                 onClick={handleToggleWishlist}
                 disabled={isWishlistBusy}
-                className={`w-14 rounded-xl border transition-all cursor-pointer flex items-center justify-center ${isFavorite ? "bg-red-50 border-red-200 text-red-500" : "bg-white border-gray-200 text-foreground/70 hover:text-red-500"}`}
+                className={`w-14 rounded-xl border transition-all cursor-pointer flex items-center justify-center ${isFavorite ? "bg-red-50 border-red-200 text-red-500" : "bg-card border-gray-200 text-foreground/70 hover:text-red-500"}`}
                 aria-label={isFavorite ? "Bỏ yêu thích" : "Thêm yêu thích"}
               >
                 <Heart size={24} weight={isFavorite ? "fill" : "regular"} />
@@ -492,7 +555,7 @@ export default function ProductPage() {
                 const ratingCounts = [5, 4, 3, 2, 1].map(star => ({ star, count: productReviews.filter(r => r.rating === star).length }));
                 return (
                   <div className="space-y-8">
-                    <div className="bg-white rounded-2xl border border-secondary p-6 md:p-8 shadow-sm">
+                    <div className="bg-card rounded-2xl border border-secondary p-6 md:p-8 shadow-sm">
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                         <div className="text-center lg:text-left">
                           <p className="text-sm font-semibold text-foreground/60 mb-2">Đánh giá trung bình</p>
@@ -558,7 +621,7 @@ export default function ProductPage() {
                     ) : (
                       <div className="space-y-4">
                         {productReviews.map(review => (
-                          <div key={review.id} className="bg-white border border-secondary p-5 md:p-6 rounded-2xl shadow-sm">
+                          <div key={review.id} className="bg-card border border-secondary p-5 md:p-6 rounded-2xl shadow-sm">
                             <div className="flex items-center justify-between gap-3 mb-4">
                               <div className="flex items-center gap-4">
                                 <div className="relative shrink-0">
@@ -615,7 +678,7 @@ export default function ProductPage() {
                     <div id="review-form" className="pt-8 border-t border-gray-100">
                       <div className="max-w-3xl mx-auto">
                         {!isAuthenticated ? (
-                          <div className="bg-white rounded-2xl p-8 md:p-10 text-center border border-secondary shadow-sm">
+                          <div className="bg-card rounded-2xl p-8 md:p-10 text-center border border-secondary shadow-sm">
                              <div className="bg-gray-50 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
                               <X size={24} className="text-red-400" />
                             </div>
@@ -629,7 +692,7 @@ export default function ProductPage() {
                             </button>
                           </div>
                         ) : !hasPurchased ? (
-                          <div className="bg-white rounded-2xl p-8 md:p-10 text-center border border-secondary shadow-sm">
+                          <div className="bg-card rounded-2xl p-8 md:p-10 text-center border border-secondary shadow-sm">
                              <div className="bg-orange-50 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 border border-orange-100">
                               <ShoppingCart size={24} className="text-orange-500" />
                             </div>
@@ -643,7 +706,7 @@ export default function ProductPage() {
                             </button>
                           </div>
                         ) : (
-                          <div className="bg-white rounded-2xl p-6 md:p-8 border border-secondary shadow-sm">
+                          <div className="bg-card rounded-2xl p-6 md:p-8 border border-secondary shadow-sm">
                               <h3 className="text-2xl font-bold text-foreground mb-1">Đánh giá sản phẩm</h3>
                               <p className="text-foreground/60 text-sm mb-6">Bạn đang đánh giá: <span className="text-primary font-semibold">{product.title}</span></p>
 
@@ -678,7 +741,7 @@ export default function ProductPage() {
                                       value={reviewTitle}
                                       onChange={(e) => setReviewTitle(e.target.value)}
                                       placeholder="VD: Cây rất đẹp và tươi"
-                                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                                      className="w-full bg-card border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
                                     />
                                   </div>
                                   <div className="space-y-2">
@@ -687,7 +750,7 @@ export default function ProductPage() {
                                       value={reviewTagsInput}
                                       onChange={(e) => setReviewTagsInput(e.target.value)}
                                       placeholder="Tươi, đẹp, đóng gói kỹ..."
-                                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                                      className="w-full bg-card border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
                                     />
                                   </div>
                                 </div>
@@ -699,7 +762,7 @@ export default function ProductPage() {
                                     onChange={(e) => setReviewContent(e.target.value)}
                                     placeholder="Nội dung đánh giá của bạn giúp ích rất nhiều cho người mua sau..."
                                     rows={5}
-                                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                                    className="w-full bg-card border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
                                   />
                                 </div>
 
@@ -711,7 +774,7 @@ export default function ProductPage() {
                                         type="button"
                                         onClick={triggerReviewImageUpload}
                                         disabled={isUploadingReviewImages || reviewImages.length >= 5}
-                                        className="bg-white border border-gray-200 px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-100 transition-colors text-foreground/70 flex items-center gap-2 disabled:opacity-50"
+                                        className="bg-card border border-gray-200 px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-100 transition-colors text-foreground/70 flex items-center gap-2 disabled:opacity-50"
                                       >
                                         <Camera size={18} weight="fill" className="text-primary" />
                                         {isUploadingReviewImages ? "Đang xử lý ảnh..." : "Tải lên hình ảnh thực tế"}

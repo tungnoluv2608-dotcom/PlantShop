@@ -55,7 +55,7 @@ export default function BlogPage() {
   }, [currentPage, totalPages]);
 
   return (
-    <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] font-sans text-foreground flex flex-col">
       <Navbar />
 
       {/* Hero Banner */}
@@ -80,7 +80,7 @@ export default function BlogPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm kiếm bài viết..."
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-card focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
             />
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -124,7 +124,7 @@ export default function BlogPage() {
         {/* Blog Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {paginatedPosts.map((post) => (
-            <Link key={post.id} to={`/blog/${post.id}`} className="group bg-white rounded-2xl overflow-hidden border border-secondary hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <Link key={post.id} to={`/blog/${post.id}`} className="group bg-card rounded-2xl overflow-hidden border border-secondary hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <div className="h-48 overflow-hidden">
                 <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               </div>
@@ -177,7 +177,7 @@ export default function BlogPage() {
         )}
 
         {!loading && listForGrid.length === 0 && (
-          <div className="text-center py-16 bg-white rounded-2xl border border-secondary">
+          <div className="text-center py-16 bg-card rounded-2xl border border-secondary">
             <p className="text-foreground/50 text-lg font-medium mb-2">Không tìm thấy bài viết nào</p>
             <button onClick={() => { setSearchQuery(""); setSelectedCategory("Tất cả"); }} className="text-primary font-semibold hover:underline text-sm">
               Xem tất cả bài viết

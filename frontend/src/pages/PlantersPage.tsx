@@ -105,7 +105,7 @@ export default function PlantersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] font-sans text-foreground flex flex-col">
       <Navbar />
 
       <main className="flex-grow w-full">
@@ -131,7 +131,7 @@ export default function PlantersPage() {
           <div className="w-full md:w-64 shrink-0 flex flex-col gap-6">
             
             {/* Filter Group */}
-            <div className="bg-[#fcfaf5] p-5 rounded-2xl shadow-sm border border-secondary">
+            <div className="bg-muted p-5 rounded-2xl shadow-sm border border-secondary">
               <button
                 onClick={() => handleMaterialSelect(undefined)}
                 className={`flex items-center gap-2 mb-4 font-bold cursor-pointer hover:text-primary transition-colors w-full text-left ${!selectedMaterial ? "text-primary" : "text-foreground"}`}
@@ -168,7 +168,7 @@ export default function PlantersPage() {
             </div>
 
             {/* Price Filter */}
-            <div className="bg-[#fcfaf5] p-5 rounded-2xl shadow-sm border border-secondary">
+            <div className="bg-muted p-5 rounded-2xl shadow-sm border border-secondary">
               <button
                 className="flex items-center gap-2 font-bold cursor-pointer hover:text-primary transition-colors w-full text-left"
                 onClick={() => setIsPriceOpen(!isPriceOpen)}
@@ -233,7 +233,7 @@ export default function PlantersPage() {
                 <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             ) : filteredPlanters.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-secondary">
+              <div className="text-center py-20 bg-card rounded-2xl shadow-sm border border-secondary">
                 <p className="text-xl text-foreground font-semibold mb-2">Không có sản phẩm nào!</p>
                 <p className="text-foreground/60">Vui lòng thử điều kiện lộc khác.</p>
                 <button 
@@ -249,7 +249,7 @@ export default function PlantersPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredPlanters.map((product) => (
-                  <Link to={`/planters/${product.id}`} key={product.id} className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-secondary/50 flex flex-col h-full hover:-translate-y-1">
+                  <Link to={`/planters/${product.id}`} key={product.id} className="group bg-card rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-secondary/50 flex flex-col h-full hover:-translate-y-1">
                     <div className="aspect-square bg-secondary/30 relative overflow-hidden">
                       <img 
                         src={product.imageUrl} 

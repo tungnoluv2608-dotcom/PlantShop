@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import {
   CaretLeft, CaretRight, CheckCircle, MapPin, Truck,
-  CreditCard, ShieldCheck, Package, Bank, Money, QrCode
+  CreditCard, ShieldCheck, Package, Money, QrCode
 } from "@phosphor-icons/react";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
@@ -11,15 +11,11 @@ import { useAuthStore } from "../stores/authStore";
 import { orderApi } from "../services/apiService";
 import { toast } from "sonner";
 import { addressService } from "../services/addressService";
-import type { ShippingAddress } from "../types";
+import type { CartItem, ShippingAddress } from "../types";
 
 import { VIETNAM_PROVINCES, getDistricts } from "../data/vietnamLocations";
 
 const steps = ["Giỏ hàng", "Thông tin giao hàng", "Thanh toán", "Xác nhận"];
-
-const BANK_NAME = import.meta.env.VITE_BANK_NAME || "Vietinbank";
-const BANK_ACCOUNT_NUMBER = import.meta.env.VITE_BANK_ACCOUNT_NUMBER || "100877669164";
-const BANK_ACCOUNT_NAME = import.meta.env.VITE_BANK_ACCOUNT_NAME || "PHAM THANH TUNG";
 
 const shippingMethods = [
   { id: "standard", label: "Giao hàng Tiêu chuẩn", time: "3-5 ngày làm việc", price: 0, note: "Miễn phí từ 500.000đ" },
@@ -36,23 +32,25 @@ const paymentMethods = [
     iconStyle: "bg-emerald-50 text-emerald-700 border-emerald-100",
   },
   {
+    id: "payos",
+    label: "PayOS",
+    desc: "Quét QR VietQR, thanh toán ngay",
+    icon: QrCode,
+    iconStyle: "bg-violet-50 text-violet-700 border-violet-100",
+  },
+  {
     id: "vnpay",
     label: "VNPay",
     desc: "Chuyển sang cổng thanh toán VNPay bảo mật",
     icon: QrCode,
     iconStyle: "bg-sky-50 text-sky-700 border-sky-100",
   },
-  {
-    id: "bank",
-    label: "Chuyển khoản ngân hàng",
-    desc: "Tạo đơn trước, chuyển khoản theo mã đơn",
-    icon: Bank,
-    iconStyle: "bg-amber-50 text-amber-700 border-amber-100",
-  },
 ];
 
 const getItemDetailPath = (id: string) => {
   if (/^\d+$/.test(id)) return `/product/${id}`;
+  const productMatch = id.match(/^product-(\d+)(?:-.+)?$/i);
+  if (productMatch) return `/product/${productMatch[1]}`;
   const planterMatch = id.match(/^planter-(\d+)$/i);
   if (planterMatch) return `/planters/${planterMatch[1]}`;
   const accessoryMatch = id.match(/^accessory-(\d+)$/i);
@@ -62,10 +60,16 @@ const getItemDetailPath = (id: string) => {
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuthStore();
-  const items = useCartStore((s) => s.items);
-  const subtotal = useCartStore((s) => s.subtotal());
+  const location = useLocation();
+  const user = useAuthStore((s) => s.user);
+  const authToken = useAuthStore((s) => s.token);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated && Boolean(s.token));
+  const cartItems = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clearCart);
+  const buyNowItem = (location.state as { buyNowItem?: CartItem } | null)?.buyNowItem;
+  const items = buyNowItem ? [buyNowItem] : cartItems;
+  const isBuyNowFlow = Boolean(buyNowItem);
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const [currentStep, setCurrentStep] = useState(1); // 1 = Shipping info, 2 = Payment
   const [form, setForm] = useState({
@@ -97,7 +101,7 @@ export default function CheckoutPage() {
   };
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!authToken) return;
 
     addressService
       .list()
@@ -121,7 +125,7 @@ export default function CheckoutPage() {
       .catch(() => {
         setSavedAddresses([]);
       });
-  }, [isAuthenticated, user?.name, user?.email]);
+  }, [authToken, user?.name, user?.email]);
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -186,8 +190,19 @@ export default function CheckoutPage() {
         return;
       }
 
-      clearCart();
-      const methodQuery = paymentMethod === "bank" ? "?method=bank" : "?method=cod";
+      if (paymentMethod === "payos") {
+        const { checkoutUrl } = await orderApi.createPayosPaymentUrl(orderId);
+        if (!checkoutUrl) {
+          throw new Error("Không tạo được liên kết thanh toán PayOS.");
+        }
+        window.location.href = checkoutUrl;
+        return;
+      }
+
+      if (!isBuyNowFlow) {
+        clearCart();
+      }
+      const methodQuery = paymentMethod === "payos" ? "?method=payos" : paymentMethod === "vnpay" ? "?method=vnpay" : "?method=cod";
       navigate(`/order-success/${orderId}${methodQuery}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Đặt hàng thất bại. Vui lòng thử lại.";
@@ -202,7 +217,7 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-background font-sans text-foreground flex flex-col">
         <Navbar />
         <main className="flex-grow flex flex-col items-center justify-center p-8 text-center">
-          <p className="text-2xl font-bold mb-4">Giỏ hàng trống!</p>
+          <p className="text-2xl font-bold mb-4">{isBuyNowFlow ? "Không có sản phẩm để mua ngay!" : "Giỏ hàng trống!"}</p>
           <Link to="/shop" className="bg-primary text-primary-foreground px-8 py-3 rounded-full font-bold hover:bg-primary/90 transition-all">
             Tiếp tục mua sắm
           </Link>
@@ -215,7 +230,7 @@ export default function CheckoutPage() {
 
 
   return (
-    <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] font-sans text-foreground flex flex-col">
       <Navbar />
 
       <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
@@ -246,7 +261,7 @@ export default function CheckoutPage() {
 
             {/* Step 1: Shipping Info */}
             {currentStep === 1 && (
-              <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6 md:p-8 space-y-6">
+              <div className="bg-card rounded-2xl shadow-sm border border-secondary p-6 md:p-8 space-y-6">
                 <h2 className="text-xl font-bold flex items-center gap-2"><MapPin size={22} className="text-primary" />Thông tin giao hàng</h2>
 
                 {savedAddresses.length > 0 && (
@@ -417,7 +432,7 @@ export default function CheckoutPage() {
 
             {/* Step 2: Payment */}
             {currentStep === 2 && (
-              <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6 md:p-8 space-y-6">
+              <div className="bg-card rounded-2xl shadow-sm border border-secondary p-6 md:p-8 space-y-6">
                 <div className="flex items-center gap-3">
                   <button onClick={() => setCurrentStep(1)} className="text-foreground/50 hover:text-primary transition-colors">
                     <CaretLeft size={22} weight="bold" />
@@ -447,20 +462,16 @@ export default function CheckoutPage() {
                 {paymentMethod === "vnpay" && (
                   <div className="bg-sky-50 rounded-xl p-5 border border-sky-100 text-sm text-sky-900">
                     <p className="font-bold mb-1">Thanh toán qua VNPay</p>
-                    <p>Bấm “Đặt hàng ngay” để chuyển sang cổng VNPay và hoàn tất thanh toán.</p>
+                    <p>Bạn bấm "Đặt hàng ngay" để chuyển sang cổng VNPay và hoàn tất thanh toán.</p>
                     <p className="text-xs text-sky-700 mt-2">Sau khi thanh toán thành công, hệ thống sẽ tự động đưa bạn về trang xác nhận đơn hàng.</p>
                   </div>
                 )}
 
-                {/* Bank transfer */}
-                {paymentMethod === "bank" && (
-                  <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 space-y-2 text-sm">
-                    <p className="font-bold text-foreground">Thông tin chuyển khoản:</p>
-                    <p><span className="text-foreground/60">Ngân hàng:</span> <span className="font-semibold">{BANK_NAME}</span></p>
-                    <p><span className="text-foreground/60">Số tài khoản:</span> <span className="font-semibold font-mono">{BANK_ACCOUNT_NUMBER}</span></p>
-                    <p><span className="text-foreground/60">Chủ tài khoản:</span> <span className="font-semibold">{BANK_ACCOUNT_NAME}</span></p>
-                    <p><span className="text-foreground/60">Nội dung chuyển khoản:</span> <span className="font-semibold text-primary">Mã đơn sẽ hiển thị sau khi đặt</span></p>
-                    <p className="text-xs text-foreground/60 pt-1">Đơn hàng sẽ được xử lý ngay khi hệ thống xác nhận đã nhận chuyển khoản.</p>
+                {paymentMethod === "payos" && (
+                  <div className="bg-violet-50 rounded-xl p-5 border border-violet-100 text-sm text-violet-900">
+                    <p className="font-bold mb-1">Thanh toán qua PayOS</p>
+                    <p>Bạn sẽ được chuyển đến trang thanh toán PayOS để quét QR VietQR.</p>
+                    <p className="text-xs text-violet-700 mt-2">Sau khi thanh toán thành công, hệ thống sẽ tự động cập nhật đơn hàng.</p>
                   </div>
                 )}
 
@@ -486,7 +497,7 @@ export default function CheckoutPage() {
 
           {/* Right: Order Summary */}
           <div className="w-full lg:w-96 shrink-0">
-            <div className="bg-white rounded-2xl shadow-sm border border-secondary p-6 sticky top-28">
+            <div className="bg-card rounded-2xl shadow-sm border border-secondary p-6 sticky top-28">
               <h2 className="text-lg font-bold mb-5 pb-4 border-b border-secondary">Tóm tắt đơn hàng ({items.length} sản phẩm)</h2>
               <div className="space-y-3 mb-5 max-h-60 overflow-y-auto pr-1">
                 {items.map((item) => {

@@ -9,7 +9,7 @@ import { Blogs } from "../components/home/Blogs";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-secondary">
+    <div className="min-h-screen bg-background font-sans text-foreground selection:bg-secondary">
       {/* Global Layout Headers */}
       <Navbar />
 

@@ -13,6 +13,8 @@ export interface ProductFilters {
   includeType?: string;
   page?: number;
   pageSize?: number;
+  sort?: "sale" | "trending" | "best-selling" | "price-asc" | "price-desc";
+  saleOnly?: boolean;
 }
 
 export interface BlogFilters {
@@ -28,13 +30,15 @@ export interface BlogCategoryOption {
 
 export const productService = {
   async getProducts(filters?: ProductFilters): Promise<{ products: Product[]; total: number }> {
-    const params: Record<string, string | number | undefined> = {};
+    const params: Record<string, string | number | boolean | undefined> = {};
     if (filters?.category) params.category = filters.category;
     if (filters?.search) params.search = filters.search;
     if (filters?.minPrice !== undefined) params.minPrice = filters.minPrice;
     if (filters?.maxPrice !== undefined) params.maxPrice = filters.maxPrice;
     if (filters?.page) params.page = filters.page;
     if (filters?.pageSize) params.pageSize = filters.pageSize;
+    if (filters?.sort) params.sort = filters.sort;
+    if (filters?.saleOnly !== undefined) params.saleOnly = filters.saleOnly;
 
     const res = await api.get("/products", { params });
     return res.data;

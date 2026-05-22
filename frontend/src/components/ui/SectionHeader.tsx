@@ -8,7 +8,7 @@ interface SectionHeaderProps {
 export function SectionHeader({ title, onViewAllClick }: SectionHeaderProps) {
   return (
     <div className="flex items-center justify-between mb-8">
-      <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+      <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground md:text-3xl">
         {title}
       </h2>
       

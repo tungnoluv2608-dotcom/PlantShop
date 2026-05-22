@@ -53,14 +53,14 @@ export function ProductCard({
   };
 
   return (
-    <div className="group flex flex-col bg-white rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100 h-full">
+    <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
       {/* Image Container */}
-      <Link to={`/product/${id || 1}`} className="relative aspect-square overflow-hidden bg-gray-50 p-6 flex items-center justify-center cursor-pointer group-hover:opacity-90 transition-opacity">
+      <Link to={`/product/${id || 1}`} className="relative flex aspect-square cursor-pointer items-center justify-center overflow-hidden bg-[linear-gradient(180deg,rgba(255,253,247,1),rgba(237,244,231,0.8))] p-6 transition-opacity group-hover:opacity-90">
         <button
           type="button"
           onClick={handleToggleFavorite}
           disabled={isToggling}
-          className={`absolute top-3 left-3 z-10 w-9 h-9 rounded-full border flex items-center justify-center transition-all ${isFavorite ? "bg-red-50 border-red-200 text-red-500" : "bg-white/90 border-gray-200 text-foreground/70 hover:text-red-500"}`}
+          className={`absolute top-3 left-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border transition-all ${isFavorite ? "border-red-200 bg-red-50 text-red-500" : "border-border bg-white/90 text-foreground/70 hover:text-red-500"}`}
           aria-label={isFavorite ? "Bỏ yêu thích" : "Thêm yêu thích"}
         >
           <Heart size={18} weight={isFavorite ? "fill" : "regular"} />
@@ -89,13 +89,13 @@ export function ProductCard({
       {/* Content */}
       <div className="p-5 flex flex-col flex-grow">
         <Link to={`/product/${id || 1}`} className="hover:text-primary transition-colors inline-block mb-2">
-          <h3 className="font-semibold text-gray-800 text-lg line-clamp-1">{title}</h3>
+          <h3 className="line-clamp-1 text-lg font-semibold text-foreground">{title}</h3>
         </Link>
         
         <div className="flex items-center gap-2 mb-4">
           <span className="font-bold text-lg text-primary">{price.toLocaleString('vi-VN')} đ</span>
           {originalPrice && (
-            <span className="text-sm text-gray-400 line-through">{originalPrice.toLocaleString('vi-VN')} đ</span>
+            <span className="text-sm text-muted-foreground/75 line-through">{originalPrice.toLocaleString('vi-VN')} đ</span>
           )}
         </div>
 

@@ -148,7 +148,7 @@ export default function AdminProductForm() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <span className="w-10 h-10 border-4 border-[#102C26] border-t-transparent rounded-full animate-spin" />
+        <span className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -157,10 +157,10 @@ export default function AdminProductForm() {
     <div className="p-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
+        <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-secondary/40 transition-colors text-muted-foreground">
           <ArrowLeft size={20} weight="bold" />
         </button>
-        <h1 className="text-2xl font-black text-gray-900">
+        <h1 className="text-2xl font-black text-foreground">
           {isEdit ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
         </h1>
       </div>
@@ -170,81 +170,81 @@ export default function AdminProductForm() {
           {/* ── LEFT: Main Info ── */}
           <div className="lg:col-span-2 space-y-5">
             {/* Basic Info */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
-              <h2 className="font-bold text-gray-900 text-base">Thông tin cơ bản</h2>
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5 space-y-4">
+              <h2 className="font-bold text-foreground text-base">Thông tin cơ bản</h2>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tên sản phẩm *</label>
+                <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Tên sản phẩm *</label>
                 <input name="title" value={form.title} onChange={handleChange} required
                   placeholder="VD: Cẩm Cù Linearis"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all" />
+                  className="w-full bg-background text-foreground placeholder-muted-foreground/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Giá bán (đ) *</label>
+                  <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Giá bán (đ) *</label>
                   <input name="price" type="number" value={form.price || ""} onChange={handleChange} required min={0}
                     placeholder="350000"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all" />
+                    className="w-full bg-background text-foreground placeholder-muted-foreground/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Giá gốc (đ)</label>
+                  <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Giá gốc (đ)</label>
                   <input name="originalPrice" type="number" value={form.originalPrice} onChange={handleChange} min={0}
                     placeholder="450000"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all" />
+                    className="w-full bg-background text-foreground placeholder-muted-foreground/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Danh mục</label>
+                <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Danh mục</label>
                 <select name="category" value={form.category} onChange={handleChange}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all">
-                  {categories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  className="w-full bg-background text-foreground border border-border rounded-xl px-4 py-2.5 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all">
+                  {categories.map((c) => <option key={c.id} value={c.name} className="bg-card text-foreground">{c.name}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Mô tả ngắn *</label>
+                <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Mô tả ngắn *</label>
                 <textarea name="description" value={form.description} onChange={handleChange} rows={3}
                   placeholder="Mô tả ngắn gọn về sản phẩm..."
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 resize-none transition-all" />
+                  className="w-full bg-background text-foreground placeholder-muted-foreground/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none transition-all" />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Thông tin sinh học (Bio)</label>
+                <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Thông tin sinh học (Bio)</label>
                 <textarea name="bio" value={form.bio} onChange={handleChange} rows={3}
                   placeholder="Nguồn gốc, họ thực vật, đặc điểm sinh học..."
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 resize-none transition-all" />
+                  className="w-full bg-background text-foreground placeholder-muted-foreground/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none transition-all" />
               </div>
             </div>
 
             {/* ── Care Guide Editor ── */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
-              <h2 className="font-bold text-gray-900 text-base flex items-center gap-2">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5 space-y-4">
+              <h2 className="font-bold text-foreground text-base flex items-center gap-2">
                 Hướng dẫn chăm sóc
-                <span className="text-xs font-normal text-gray-400">({careGuide.length} bước)</span>
+                <span className="text-xs font-normal text-muted-foreground/60">({careGuide.length} bước)</span>
               </h2>
 
               {/* Existing steps */}
               {careGuide.length > 0 && (
                 <div className="space-y-3">
                   {careGuide.map((guide, idx) => (
-                    <div key={idx} className="flex gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                      <div className="w-6 h-6 bg-[#102C26] rounded-full flex items-center justify-center text-[#F7E7CE] text-xs font-black shrink-0 mt-0.5">
+                    <div key={idx} className="flex gap-3 p-3 bg-secondary/40 rounded-xl border border-border">
+                      <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xs font-black shrink-0 mt-0.5">
                         {idx + 1}
                       </div>
                       <div className="flex-1 space-y-2">
                         <input value={guide.title}
                           onChange={(e) => updateCareGuide(idx, "title", e.target.value)}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 bg-white"
+                          className="w-full bg-background text-foreground border border-border rounded-lg px-3 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20"
                           placeholder="Tiêu đề (VD: Tưới nước)" />
                         <textarea value={guide.content}
                           onChange={(e) => updateCareGuide(idx, "content", e.target.value)}
-                          rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 resize-none bg-white"
+                          rows={2} className="w-full bg-background text-foreground border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
                           placeholder="Nội dung hướng dẫn..." />
                       </div>
                       <button type="button" onClick={() => removeCareGuide(idx)}
-                        className="text-gray-400 hover:text-red-500 transition-colors shrink-0 mt-1">
+                        className="text-muted-foreground hover:text-destructive transition-colors shrink-0 mt-1">
                         <Trash size={15} />
                       </button>
                     </div>
@@ -253,31 +253,31 @@ export default function AdminProductForm() {
               )}
 
               {/* Add new step */}
-              <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 space-y-2">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Thêm bước mới</p>
+              <div className="border-2 border-dashed border-border rounded-xl p-4 space-y-2">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Thêm bước mới</p>
                 <input value={newCareTitle} onChange={(e) => setNewCareTitle(e.target.value)}
                   placeholder="Tiêu đề (VD: Ánh sáng)"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all" />
+                  className="w-full bg-background text-foreground placeholder-muted-foreground/50 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
                 <textarea value={newCareContent} onChange={(e) => setNewCareContent(e.target.value)} rows={2}
                   placeholder="Nội dung hướng dẫn chăm sóc..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all" />
+                  className="w-full bg-background text-foreground placeholder-muted-foreground/50 border border-border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
                 <button type="button" onClick={addCareGuide}
-                  className="flex items-center gap-2 text-sm font-bold text-[#102C26] bg-[#102C26]/10 px-4 py-2 rounded-lg hover:bg-[#102C26]/20 transition-colors">
+                  className="flex items-center gap-2 text-sm font-bold text-primary bg-primary/10 px-4 py-2 rounded-lg hover:bg-primary/20 transition-colors">
                   <Plus size={15} weight="bold" /> Thêm bước
                 </button>
               </div>
             </div>
 
             {/* ── Planter Options ── */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
-              <h2 className="font-bold text-gray-900 text-base">Chậu đi kèm có thể chọn</h2>
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5 space-y-3">
+              <h2 className="font-bold text-foreground text-base">Chậu đi kèm có thể chọn</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {plantersList.map((planter) => {
                   const selected = form.planterOptions.includes(planter.id);
                   return (
                     <label key={planter.id}
-                      className={`flex items-center gap-2.5 p-3 rounded-xl border-2 cursor-pointer transition-all ${selected ? "border-[#102C26] bg-[#102C26]/5" : "border-gray-100 hover:border-gray-200"}`}>
-                      <input type="checkbox" checked={selected} className="accent-[#102C26]"
+                      className={`flex items-center gap-2.5 p-3 rounded-xl border-2 cursor-pointer transition-all ${selected ? "border-primary bg-primary/10" : "border-border hover:border-border/80 bg-background"}`}>
+                      <input type="checkbox" checked={selected} className="accent-primary"
                         onChange={(e) => setForm((prev) => ({
                           ...prev,
                           planterOptions: e.target.checked
@@ -285,8 +285,8 @@ export default function AdminProductForm() {
                             : prev.planterOptions.filter((p) => p !== planter.id)
                         }))} />
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-gray-800 truncate">{planter.name}</p>
-                        <p className="text-xs text-gray-400">{planter.price.toLocaleString("vi-VN")}đ</p>
+                        <p className="text-xs font-semibold text-foreground truncate">{planter.name}</p>
+                        <p className="text-xs text-muted-foreground/80">{planter.price.toLocaleString("vi-VN")}đ</p>
                       </div>
                     </label>
                   );
@@ -297,13 +297,13 @@ export default function AdminProductForm() {
 
           {/* ── RIGHT: Image + Settings ── */}
           <div className="space-y-5">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
-              <h2 className="font-bold text-gray-900 text-base">Ảnh đại diện *</h2>
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5 space-y-3">
+              <h2 className="font-bold text-foreground text-base">Ảnh đại diện *</h2>
               
               <div 
                 onClick={triggerMainUpload}
                 className={`w-full aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden relative group
-                  ${form.imageUrl ? "border-transparent" : "border-gray-300 hover:border-[#102C26]/50 bg-gray-50 hover:bg-[#102C26]/5"}`}
+                  ${form.imageUrl ? "border-transparent" : "border-border hover:border-primary/50 bg-background"}`}
               >
                 {form.imageUrl ? (
                   <>
@@ -315,16 +315,16 @@ export default function AdminProductForm() {
                   </>
                 ) : mainUploading ? (
                   <>
-                    <span className="animate-spin border-2 border-[#102C26] border-t-transparent rounded-full w-8 h-8 mb-2" />
-                    <p className="text-sm font-semibold text-[#102C26]">Đang tải lên...</p>
+                    <span className="animate-spin border-2 border-primary border-t-transparent rounded-full w-8 h-8 mb-2" />
+                    <p className="text-sm font-semibold text-primary">Đang tải lên...</p>
                   </>
                 ) : (
                   <>
-                    <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center text-gray-400 mb-2">
+                    <div className="w-12 h-12 bg-secondary rounded-full shadow-sm flex items-center justify-center text-gray-400 mb-2">
                       <CloudArrowUp size={24} weight="bold" />
                     </div>
-                    <p className="text-sm font-bold text-gray-700">Click để chọn ảnh đại diện</p>
-                    <p className="text-xs text-gray-400">JPG, PNG, WEBP (Tối đa 5MB)</p>
+                    <p className="text-sm font-bold text-foreground">Click để chọn ảnh đại diện</p>
+                    <p className="text-xs text-muted-foreground/60">JPG, PNG, WEBP (Tối đa 5MB)</p>
                   </>
                 )}
               </div>
@@ -332,17 +332,17 @@ export default function AdminProductForm() {
             </div>
 
             {/* Gallery Images */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
-              <h2 className="font-bold text-gray-900 text-base flex items-center gap-2">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5 space-y-3">
+              <h2 className="font-bold text-foreground text-base flex items-center gap-2">
                 Thư viện ảnh
-                <span className="text-xs font-normal text-gray-400">({form.images.length} ảnh)</span>
+                <span className="text-xs font-normal text-muted-foreground/60">({form.images.length} ảnh)</span>
               </h2>
 
               {/* Existing images */}
               <div className="grid grid-cols-3 gap-2">
                 {form.images.map((img, i) => (
                   <div key={i} className="relative group aspect-square">
-                    <img src={img} alt={`img-${i}`} className="w-full h-full object-cover rounded-lg border border-gray-100" />
+                    <img src={img} alt={`img-${i}`} className="w-full h-full object-cover rounded-lg border border-border" />
                     <button type="button" onClick={() => removeImage(i)}
                       className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Trash size={10} />
@@ -356,7 +356,7 @@ export default function AdminProductForm() {
                 type="button" 
                 onClick={triggerGalleryUpload}
                 disabled={galleryUploading}
-                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold text-gray-500 hover:border-[#102C26]/50 hover:text-[#102C26] hover:bg-[#102C26]/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 border-2 border-dashed border-border rounded-xl flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/10 bg-background transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {galleryUploading ? (
                   <><span className="animate-spin border-2 border-gray-400 border-t-transparent rounded-full w-4 h-4" /> Đang tải...</>
@@ -368,13 +368,13 @@ export default function AdminProductForm() {
             </div>
 
             {/* Settings */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
-              <h2 className="font-bold text-gray-900 text-base">Trạng thái</h2>
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5 space-y-3">
+              <h2 className="font-bold text-foreground text-base">Trạng thái</h2>
               <label className="flex items-center gap-3 cursor-pointer">
                 <input type="checkbox" checked={form.inStock}
                   onChange={(e) => setForm((prev) => ({ ...prev, inStock: e.target.checked }))}
-                  className="w-4 h-4 accent-[#102C26]" />
-                <span className="text-sm font-medium text-gray-700">Còn hàng</span>
+                  className="w-4 h-4 accent-primary" />
+                <span className="text-sm font-medium text-muted-foreground">Còn hàng</span>
               </label>
             </div>
           </div>
@@ -383,11 +383,11 @@ export default function AdminProductForm() {
         {/* Submit */}
         <div className="flex items-center gap-3 pt-2 pb-8">
           <button type="submit"
-            className="bg-[#102C26] text-[#F7E7CE] font-bold px-8 py-3 rounded-xl text-sm hover:bg-[#102C26]/90 transition-all shadow-sm flex items-center gap-2">
+            className="bg-primary text-primary-foreground font-bold px-8 py-3 rounded-xl text-sm hover:bg-primary/90 transition-all shadow-sm flex items-center gap-2">
             <PencilSimple size={16} /> {isEdit ? "Lưu thay đổi" : "Thêm sản phẩm"}
           </button>
           <button type="button" onClick={() => navigate(-1)}
-            className="text-gray-500 font-semibold px-6 py-3 rounded-xl text-sm hover:bg-gray-100 transition-all">
+            className="text-muted-foreground font-semibold px-6 py-3 rounded-xl text-sm hover:bg-secondary/40 transition-all">
             Hủy
           </button>
         </div>

@@ -133,7 +133,7 @@ export default function AccessoriesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] font-sans text-foreground flex flex-col">
       <Navbar />
 
       <main className="flex-grow w-full">
@@ -154,7 +154,7 @@ export default function AccessoriesPage() {
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 flex flex-col md:flex-row gap-8">
           <div className="w-full md:w-64 shrink-0 flex flex-col gap-6">
-            <div className="bg-[#fcfaf5] p-5 rounded-2xl shadow-sm border border-secondary">
+            <div className="bg-muted p-5 rounded-2xl shadow-sm border border-secondary">
               <button
                 onClick={() => handleGroupSelect(undefined)}
                 className={`flex items-center gap-2 mb-4 font-bold cursor-pointer hover:text-primary transition-colors w-full text-left ${
@@ -192,7 +192,7 @@ export default function AccessoriesPage() {
               </div>
             </div>
 
-            <div className="bg-[#fcfaf5] p-5 rounded-2xl shadow-sm border border-secondary">
+            <div className="bg-muted p-5 rounded-2xl shadow-sm border border-secondary">
               <button
                 className="flex items-center gap-2 font-bold cursor-pointer hover:text-primary transition-colors w-full text-left"
                 onClick={() => setIsBrandOpen(!isBrandOpen)}
@@ -222,7 +222,7 @@ export default function AccessoriesPage() {
               )}
             </div>
 
-            <div className="bg-[#fcfaf5] p-5 rounded-2xl shadow-sm border border-secondary">
+            <div className="bg-muted p-5 rounded-2xl shadow-sm border border-secondary">
               <button
                 className="flex items-center gap-2 font-bold cursor-pointer hover:text-primary transition-colors w-full text-left"
                 onClick={() => setIsUsageOpen(!isUsageOpen)}
@@ -252,7 +252,7 @@ export default function AccessoriesPage() {
               )}
             </div>
 
-            <div className="bg-[#fcfaf5] p-5 rounded-2xl shadow-sm border border-secondary">
+            <div className="bg-muted p-5 rounded-2xl shadow-sm border border-secondary">
               <button
                 className="flex items-center gap-2 font-bold cursor-pointer hover:text-primary transition-colors w-full text-left"
                 onClick={() => setIsPriceOpen(!isPriceOpen)}
@@ -322,7 +322,7 @@ export default function AccessoriesPage() {
                 <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             ) : filteredAccessories.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-secondary">
+              <div className="text-center py-20 bg-card rounded-2xl shadow-sm border border-secondary">
                 <p className="text-xl text-foreground font-semibold mb-2">Không có phụ kiện phù hợp!</p>
                 <p className="text-foreground/60">Vui lòng thử điều kiện lọc khác.</p>
                 <button
@@ -341,7 +341,7 @@ export default function AccessoriesPage() {
                   <Link
                     to={`/accessories/${item.id}`}
                     key={item.id}
-                    className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-secondary/50 flex flex-col h-full hover:-translate-y-1"
+                    className="group bg-card rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-secondary/50 flex flex-col h-full hover:-translate-y-1"
                   >
                     <div className="aspect-square bg-secondary/30 relative overflow-hidden">
                       <img

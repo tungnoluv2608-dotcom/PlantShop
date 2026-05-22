@@ -41,7 +41,7 @@ export default function WholesalePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] font-sans text-foreground flex flex-col">
       <Navbar />
 
       {/* Hero */}
@@ -66,7 +66,7 @@ export default function WholesalePage() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-14">
           {useCases.map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="bg-white rounded-2xl p-5 shadow-sm border border-secondary text-center group hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+            <div key={label} className="bg-card rounded-2xl p-5 shadow-sm border border-secondary text-center group hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
               <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-primary transition-colors">
                 <Icon size={24} className="text-primary group-hover:text-white transition-colors" weight="fill" />
               </div>
@@ -83,7 +83,7 @@ export default function WholesalePage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-14">
           {tiers.map((tier) => (
-            <div key={tier.label} className={`bg-white rounded-2xl p-6 border-2 shadow-sm relative ${tier.color}`}>
+            <div key={tier.label} className={`bg-card rounded-2xl p-6 border-2 shadow-sm relative ${tier.color}`}>
               {tier.badge && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-black px-4 py-1 rounded-full shadow">
                   {tier.badge}
@@ -127,7 +127,7 @@ export default function WholesalePage() {
         </div>
 
         {/* B2B Contact Form */}
-        <div className="bg-white rounded-3xl shadow-sm border border-secondary p-6 md:p-10">
+        <div className="bg-card rounded-3xl shadow-sm border border-secondary p-6 md:p-10">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-black text-foreground mb-2">Yêu cầu báo giá</h2>
             <p className="text-foreground/60">Điền form bên dưới — chuyên viên B2B của chúng tôi sẽ liên hệ trong vòng 2 giờ làm việc.</p>

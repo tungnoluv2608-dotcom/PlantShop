@@ -23,10 +23,17 @@ function uploadStream(fileStream, options = {}) {
 }
 
 function uploadBuffer(buffer, options = {}) {
-  return cloudinary.v2.uploader.upload(
-    buffer,
-    { folder: FOLDER, ...TRANSFORM, ...options }
-  );
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.v2.uploader.upload_stream(
+      { folder: FOLDER, ...TRANSFORM, ...options },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+
+    stream.end(buffer);
+  });
 }
 
 module.exports = { cloudinary, uploadStream, uploadBuffer };

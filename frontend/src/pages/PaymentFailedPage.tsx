@@ -7,10 +7,10 @@ export default function PaymentFailedPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] font-sans text-foreground flex flex-col">
       <Navbar />
       <main className="flex-grow flex items-center justify-center px-4 py-16">
-        <div className="max-w-md w-full bg-white rounded-3xl shadow-sm border border-secondary p-8 md:p-10 text-center">
+        <div className="max-w-md w-full bg-card rounded-3xl shadow-sm border border-secondary p-8 md:p-10 text-center">
 
           <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow">
             <WarningCircle size={48} className="text-red-500" weight="fill" />

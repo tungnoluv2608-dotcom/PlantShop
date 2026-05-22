@@ -201,63 +201,63 @@ export default function AdminBlog() {
     <div className="p-6 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Blog</h1>
-          <p className="text-gray-500 text-sm">{filtered.length} bài viết</p>
+          <h1 className="text-2xl font-black text-foreground">Blog</h1>
+          <p className="text-muted-foreground text-sm">{filtered.length} bài viết</p>
         </div>
         <button
           onClick={() => openFormModal()}
-          className="inline-flex items-center gap-2 bg-[#102C26] text-[#F7E7CE] px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-[#102C26]/90 transition-all shadow-sm"
+          className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-primary/90 transition-all shadow-sm"
         >
           <Plus size={17} weight="bold" /> Viết bài mới
         </button>
       </div>
 
       {/* Search */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-4">
         <div className="relative">
-          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm bài viết..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-background text-foreground placeholder-muted-foreground/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
           />
         </div>
       </div>
 
       {isLoading ? (
-        <div className="py-20 text-center"><span className="animate-spin inline-block w-8 h-8 border-4 border-[#102C26] border-t-transparent rounded-full" /></div>
+        <div className="py-20 text-center"><span className="animate-spin inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>
       ) : (
         <>
           {/* Posts Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {paginatedPosts.map((post) => (
-              <div key={post.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-md transition-shadow">
+              <div key={post.id} className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden group hover:shadow-md transition-shadow">
                 <div className="h-40 overflow-hidden relative">
                   <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   {post.featured && (
-                    <span className="absolute top-2 left-2 bg-[#102C26] text-[#F7E7CE] text-[10px] font-black px-2 py-1 rounded-full">NỔI BẬT</span>
+                    <span className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] font-black px-2 py-1 rounded-full">NỔI BẬT</span>
                   )}
                 </div>
                 <div className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    {post.category && <span className="text-[10px] font-bold text-[#102C26] bg-[#102C26]/10 px-2 py-0.5 rounded-full">{post.category}</span>}
-                    <span className="text-[10px] text-gray-400 ml-auto">{post.readTime}</span>
+                    {post.category && <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{post.category}</span>}
+                    <span className="text-[10px] text-muted-foreground ml-auto">{post.readTime}</span>
                   </div>
-                  <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1 line-clamp-2">{post.title}</h3>
-                  <p className="text-xs text-gray-500 line-clamp-2 mb-3">{post.excerpt}</p>
-                  <div className="flex items-center justify-between text-xs text-gray-400">
+                  <h3 className="font-bold text-foreground text-sm leading-snug mb-1 line-clamp-2">{post.title}</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{post.excerpt}</p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground/60">
                     <span>{post.date}</span>
                     <div className="flex items-center gap-1">
                       <Link to={`/blog/${post.id}`} target="_blank"
-                        className="p-1.5 rounded-lg hover:bg-gray-100 hover:text-[#102C26] transition-colors" title="Xem bài viết">
+                        className="p-1.5 rounded-lg hover:bg-secondary/40 hover:text-primary transition-colors" title="Xem bài viết">
                         <Eye size={14} />
                       </Link>
-                      <button onClick={() => openFormModal(post)} className="p-1.5 rounded-lg hover:bg-gray-100 hover:text-[#102C26] transition-colors" title="Sửa">
+                      <button onClick={() => openFormModal(post)} className="p-1.5 rounded-lg hover:bg-secondary/40 hover:text-primary transition-colors" title="Sửa">
                         <PencilSimple size={14} />
                       </button>
                       <button onClick={() => handleDelete(post.id, post.title)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors" title="Xóa">
+                        className="p-1.5 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-colors" title="Xóa">
                         <Trash size={14} />
                       </button>
                     </div>
@@ -272,7 +272,7 @@ export default function AdminBlog() {
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 rounded-lg text-sm font-semibold border border-border bg-card text-foreground hover:bg-secondary/40 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Trước
               </button>
@@ -281,7 +281,7 @@ export default function AdminBlog() {
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`min-w-9 px-3 py-2 rounded-lg text-sm font-semibold border transition-all ${currentPage === page ? "bg-[#102C26] text-[#F7E7CE] border-[#102C26]" : "bg-white text-gray-700 border-gray-200 hover:border-[#102C26]/40"}`}
+                  className={`min-w-9 px-3 py-2 rounded-lg text-sm font-semibold border transition-all ${currentPage === page ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:bg-secondary/40"}`}
                 >
                   {page}
                 </button>
@@ -290,7 +290,7 @@ export default function AdminBlog() {
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 rounded-lg text-sm font-semibold border border-border bg-card text-foreground hover:bg-secondary/40 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Sau
               </button>
@@ -298,8 +298,8 @@ export default function AdminBlog() {
           )}
 
           {filtered.length === 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-              <p className="text-gray-400 font-medium">Không tìm thấy bài viết nào</p>
+            <div className="bg-card rounded-2xl border border-border p-12 text-center">
+              <p className="text-muted-foreground font-medium">Không tìm thấy bài viết nào</p>
             </div>
           )}
         </>
@@ -308,79 +308,79 @@ export default function AdminBlog() {
       {/* Form Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center p-4 md:p-6 bg-black/50 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl p-6 md:p-8 relative min-h-[92vh] max-h-[95vh] overflow-y-auto">
-            <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-7xl p-6 md:p-8 relative min-h-[92vh] max-h-[95vh] overflow-y-auto border border-border">
+            <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 p-2 text-muted-foreground hover:bg-secondary/40 rounded-full transition-colors">
               <X size={20} weight="bold" />
             </button>
-            <h2 className="text-3xl font-black text-gray-900 mb-6">{editingId ? "Sửa bài viết" : "Thêm bài viết mới"}</h2>
+            <h2 className="text-3xl font-black text-foreground mb-6">{editingId ? "Sửa bài viết" : "Thêm bài viết mới"}</h2>
             
             <form onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-12 gap-6">
               <div className="xl:col-span-8 space-y-5">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tiêu đề *</label>
-                  <input value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all" required />
+                  <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Tiêu đề *</label>
+                  <input value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full bg-background text-foreground border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Trích dẫn (Excerpt)</label>
-                  <textarea value={form.excerpt} onChange={e => setForm({...form, excerpt: e.target.value})} rows={2} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all resize-none" />
+                  <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Trích dẫn (Excerpt)</label>
+                  <textarea value={form.excerpt} onChange={e => setForm({...form, excerpt: e.target.value})} rows={2} className="w-full bg-background text-foreground border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-sm font-semibold text-gray-700">Nội dung (Markdown) *</label>
-                    <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold">
-                      <button type="button" onClick={() => setEditorMode("write")} className={`px-3 py-1.5 ${editorMode === "write" ? "bg-[#102C26] text-[#F7E7CE]" : "bg-white text-gray-600"}`}>Viết</button>
-                      <button type="button" onClick={() => setEditorMode("preview")} className={`px-3 py-1.5 ${editorMode === "preview" ? "bg-[#102C26] text-[#F7E7CE]" : "bg-white text-gray-600"}`}>Xem trước</button>
+                    <label className="block text-sm font-semibold text-muted-foreground">Nội dung (Markdown) *</label>
+                    <div className="flex rounded-lg border border-border overflow-hidden text-xs font-semibold">
+                      <button type="button" onClick={() => setEditorMode("write")} className={`px-3 py-1.5 ${editorMode === "write" ? "bg-primary text-primary-foreground" : "bg-background text-foreground border border-border"}`}>Viết</button>
+                      <button type="button" onClick={() => setEditorMode("preview")} className={`px-3 py-1.5 ${editorMode === "preview" ? "bg-primary text-primary-foreground" : "bg-background text-foreground border border-border"}`}>Xem trước</button>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 items-start">
                     <div className="xl:col-span-3">
                       {editorMode === "write" ? (
-                        <textarea value={form.content} onChange={e => setForm({...form, content: e.target.value})} rows={18} className="w-full min-h-[520px] border border-gray-200 rounded-xl px-4 py-3 text-[15px] leading-7 outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all font-mono" required />
+                        <textarea value={form.content} onChange={e => setForm({...form, content: e.target.value})} rows={18} className="w-full min-h-[520px] bg-background text-foreground border border-border rounded-xl px-4 py-3 text-[15px] leading-7 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-mono" required />
                       ) : (
-                        <div className="w-full min-h-[520px] border border-gray-200 rounded-xl px-4 py-4 text-sm bg-gray-50 prose prose-sm max-w-none">
+                        <div className="w-full min-h-[520px] border border-border rounded-xl px-4 py-4 text-sm bg-secondary/20 prose prose-sm max-w-none text-foreground">
                           {form.content.trim() ? (
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{form.content}</ReactMarkdown>
                           ) : (
-                            <p className="text-gray-400">Chưa có nội dung để xem trước.</p>
+                            <p className="text-muted-foreground">Chưa có nội dung để xem trước.</p>
                           )}
                         </div>
                       )}
                     </div>
 
-                    <div className="xl:col-span-2 rounded-2xl border border-[#D2E7D7] bg-gradient-to-b from-[#F4FAF6] to-[#ECF7F1] p-4 md:p-5 shadow-sm">
-                      <div className="inline-flex items-center gap-2 rounded-full bg-[#102C26] px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#F7E7CE] mb-3">
+                    <div className="xl:col-span-2 rounded-2xl border border-border bg-gradient-to-b from-secondary/40 to-secondary/10 p-4 md:p-5 shadow-sm">
+                      <div className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-primary-foreground mb-3">
                         Mẹo Markdown
                       </div>
-                      <h4 className="text-base font-black text-[#102C26]">Hướng dẫn viết nội dung</h4>
-                      <p className="text-xs text-gray-600 mt-1 mb-4 leading-relaxed">
+                      <h4 className="text-base font-black text-primary">Hướng dẫn viết nội dung</h4>
+                      <p className="text-xs text-muted-foreground mt-1 mb-4 leading-relaxed">
                         Dùng Markdown để định dạng nhanh. Viết ở tab <span className="font-semibold">Viết</span>, kiểm tra lại ở tab <span className="font-semibold">Xem trước</span> trước khi đăng.
                       </p>
 
                       <div className="space-y-3 text-xs">
-                        <div className="rounded-xl border border-[#D9E6DE] bg-white p-3">
-                          <p className="font-semibold text-[#102C26] mb-1">Tiêu đề</p>
-                          <p className="font-mono text-gray-700"># Tiêu đề lớn</p>
-                          <p className="font-mono text-gray-700">## Tiêu đề vừa</p>
+                        <div className="rounded-xl border border-border bg-card p-3">
+                          <p className="font-semibold text-primary mb-1">Tiêu đề</p>
+                          <p className="font-mono text-foreground"># Tiêu đề lớn</p>
+                          <p className="font-mono text-foreground">## Tiêu đề vừa</p>
                         </div>
-                        <div className="rounded-xl border border-[#D9E6DE] bg-white p-3">
-                          <p className="font-semibold text-[#102C26] mb-1">Nhấn mạnh nội dung</p>
-                          <p className="font-mono text-gray-700">**in đậm** hoặc *in nghiêng*</p>
+                        <div className="rounded-xl border border-border bg-card p-3">
+                          <p className="font-semibold text-primary mb-1">Nhấn mạnh nội dung</p>
+                          <p className="font-mono text-foreground">**in đậm** hoặc *in nghiêng*</p>
                         </div>
-                        <div className="rounded-xl border border-[#D9E6DE] bg-white p-3">
-                          <p className="font-semibold text-[#102C26] mb-1">Danh sách và trích dẫn</p>
-                          <p className="font-mono text-gray-700">- Mục 1</p>
-                          <p className="font-mono text-gray-700">1. Bước 1</p>
-                          <p className="font-mono text-gray-700">&gt; Câu trích dẫn</p>
+                        <div className="rounded-xl border border-border bg-card p-3">
+                          <p className="font-semibold text-primary mb-1">Danh sách và trích dẫn</p>
+                          <p className="font-mono text-foreground">- Mục 1</p>
+                          <p className="font-mono text-foreground">1. Bước 1</p>
+                          <p className="font-mono text-foreground">&gt; Câu trích dẫn</p>
                         </div>
-                        <div className="rounded-xl border border-[#D9E6DE] bg-white p-3">
-                          <p className="font-semibold text-[#102C26] mb-1">Link, ảnh, mã</p>
-                          <p className="font-mono text-gray-700">[Tên link](https://...)</p>
-                          <p className="font-mono text-gray-700">![Mô tả ảnh](https://...)</p>
-                          <p className="font-mono text-gray-700">`code` hoặc ```code```</p>
+                        <div className="rounded-xl border border-border bg-card p-3">
+                          <p className="font-semibold text-primary mb-1">Link, ảnh, mã</p>
+                          <p className="font-mono text-foreground">[Tên link](https://...)</p>
+                          <p className="font-mono text-foreground">![Mô tả ảnh](https://...)</p>
+                          <p className="font-mono text-foreground">`code` hoặc ```code```</p>
                         </div>
                       </div>
 
-                      <div className="mt-4 rounded-xl border border-[#CFE2D5] bg-[#F8FCF9] px-3 py-2 text-[11px] text-gray-600 leading-relaxed">
+                      <div className="mt-4 rounded-xl border border-border bg-secondary/10 px-3 py-2 text-[11px] text-muted-foreground leading-relaxed">
                         Gợi ý: Viết câu ngắn, chia đoạn rõ ràng, dùng tiêu đề phụ để bài dễ đọc hơn trên cả điện thoại và desktop.
                       </div>
                     </div>
@@ -389,71 +389,71 @@ export default function AdminBlog() {
               </div>
               
               <div className="xl:col-span-4 space-y-4">
-                <div className="bg-[#F4FAF6] p-4 rounded-xl border border-[#D2E7D7] space-y-3">
+                <div className="bg-secondary/20 p-4 rounded-xl border border-border space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-black text-[#102C26]">AI hỗ trợ tạo nháp</h3>
-                    <span className="text-[10px] font-bold bg-[#102C26] text-[#F7E7CE] px-2 py-1 rounded-full">OpenRouter</span>
+                    <h3 className="text-sm font-black text-primary">AI hỗ trợ tạo nháp</h3>
+                    <span className="text-[10px] font-bold bg-primary text-primary-foreground px-2 py-1 rounded-full">OpenRouter</span>
                   </div>
-                  <p className="text-xs text-gray-600">Nhập brief để AI tạo nháp bài viết. Sau đó bạn kiểm tra nội dung và thêm ảnh thumb trước khi đăng.</p>
+                  <p className="text-xs text-muted-foreground">Nhập brief để AI tạo nháp bài viết. Sau đó bạn kiểm tra nội dung và thêm ảnh thumb trước khi đăng.</p>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Chủ đề *</label>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">Chủ đề *</label>
                     <input
                       value={aiPrompt.topic}
                       onChange={(e) => setAiPrompt((prev) => ({ ...prev, topic: e.target.value }))}
                       placeholder="Ví dụ: 7 cây để bàn lọc không khí cho văn phòng"
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20"
+                      className="w-full bg-background text-foreground border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Đối tượng độc giả</label>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">Đối tượng độc giả</label>
                     <input
                       value={aiPrompt.audience}
                       onChange={(e) => setAiPrompt((prev) => ({ ...prev, audience: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20"
+                      className="w-full bg-background text-foreground border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Giọng văn</label>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">Giọng văn</label>
                     <input
                       value={aiPrompt.tone}
                       onChange={(e) => setAiPrompt((prev) => ({ ...prev, tone: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20"
+                      className="w-full bg-background text-foreground border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Từ khóa ưu tiên</label>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">Từ khóa ưu tiên</label>
                     <input
                       value={aiPrompt.keywords}
                       onChange={(e) => setAiPrompt((prev) => ({ ...prev, keywords: e.target.value }))}
                       placeholder="cây lọc không khí, cây văn phòng, chăm sóc dễ"
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20"
+                      className="w-full bg-background text-foreground border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Yêu cầu thêm</label>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">Yêu cầu thêm</label>
                     <textarea
                       value={aiPrompt.brief}
                       onChange={(e) => setAiPrompt((prev) => ({ ...prev, brief: e.target.value }))}
                       rows={3}
                       placeholder="Ví dụ: Bài viết cần có checklist cuối bài và phần FAQ ngắn"
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20 resize-none"
+                      className="w-full bg-background text-foreground border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 resize-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Độ dài mong muốn (từ)</label>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">Độ dài mong muốn (từ)</label>
                     <input
                       type="number"
                       min={400}
                       max={3000}
                       value={aiPrompt.desiredLength}
                       onChange={(e) => setAiPrompt((prev) => ({ ...prev, desiredLength: Number(e.target.value) || 1200 }))}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20"
+                      className="w-full bg-background text-foreground border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
 
@@ -461,62 +461,62 @@ export default function AdminBlog() {
                     type="button"
                     onClick={handleGenerateAiDraft}
                     disabled={isGeneratingAiDraft}
-                    className="w-full bg-[#102C26] text-[#F7E7CE] py-2.5 rounded-xl text-sm font-bold hover:bg-[#102C26]/90 transition-colors disabled:opacity-60"
+                    className="w-full bg-primary text-primary-foreground py-2.5 rounded-xl text-sm font-bold hover:bg-primary/90 transition-colors disabled:opacity-60"
                   >
                     {isGeneratingAiDraft ? "AI đang tạo nháp..." : "Tạo nháp bằng AI"}
                   </button>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4">
+                <div className="bg-secondary/20 p-4 rounded-xl border border-border space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ảnh Thumb *</label>
+                    <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Ảnh Thumb *</label>
                     <div
                       onClick={() => !uploading && triggerUpload()}
-                      className="w-full h-36 border-2 border-dashed border-gray-300 rounded-xl bg-white cursor-pointer hover:border-[#102C26]/40 transition flex items-center justify-center overflow-hidden"
+                      className="w-full h-36 border-2 border-dashed border-border rounded-xl bg-background cursor-pointer hover:border-primary/50 transition flex items-center justify-center overflow-hidden"
                     >
                       {form.image ? (
                         <img src={form.image} alt="thumb" className="w-full h-full object-cover" />
                       ) : uploading ? (
-                        <div className="text-[#102C26] text-sm font-semibold">Đang tải...</div>
+                        <div className="text-primary text-sm font-semibold">Đang tải...</div>
                       ) : (
-                        <div className="text-gray-400 text-center px-4"><CloudArrowUp size={24} className="mx-auto mb-1"/><span className="text-xs">Tải lên hoặc chọn ảnh</span></div>
+                        <div className="text-muted-foreground text-center px-4"><CloudArrowUp size={24} className="mx-auto mb-1"/><span className="text-xs">Tải lên hoặc chọn ảnh</span></div>
                       )}
                     </div>
                     <InputElement onSuccess={handleImageUploadSuccess} />
-                    {uploading && <p className="text-xs text-[#102C26] mt-2 font-medium">Đang tải ảnh lên...</p>}
+                    {uploading && <p className="text-xs text-primary mt-2 font-medium">Đang tải ảnh lên...</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Chuyên mục</label>
-                    <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20 bg-white">
+                    <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Chuyên mục</label>
+                    <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full bg-background text-foreground border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 bg-card">
                       {categoryOptions.map((c) => (
-                        <option key={c.name} value={c.name}>{c.name}</option>
+                        <option key={c.name} value={c.name} className="bg-card text-foreground">{c.name}</option>
                       ))}
                       {!categoryOptions.find((c) => c.name === form.category) && form.category && (
-                        <option value={form.category}>{form.category}</option>
+                        <option value={form.category} className="bg-card text-foreground">{form.category}</option>
                       )}
                     </select>
                     <input
                       value={form.category}
                       onChange={e => setForm({...form, category: e.target.value})}
                       placeholder="Hoặc nhập chuyên mục mới"
-                      className="w-full mt-2 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20"
+                      className="w-full mt-2 bg-background text-foreground border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tags (cách nhau dấu phẩy)</label>
-                    <input value={form.tags} onChange={e => setForm({...form, tags: e.target.value})} className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[#102C26]/20" />
+                    <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Tags (cách nhau dấu phẩy)</label>
+                    <input value={form.tags} onChange={e => setForm({...form, tags: e.target.value})} className="w-full bg-background text-foreground border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20" />
                   </div>
                   <div>
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={form.featured} onChange={e => setForm({...form, featured: e.target.checked})} className="accent-[#102C26] w-4 h-4" />
-                      <span className="text-sm font-semibold text-gray-700">Bài viết nổi bật</span>
+                      <input type="checkbox" checked={form.featured} onChange={e => setForm({...form, featured: e.target.checked})} className="accent-primary w-4 h-4" />
+                      <span className="text-sm font-semibold text-muted-foreground">Bài viết nổi bật</span>
                     </label>
                   </div>
                 </div>
               </div>
-              <div className="xl:col-span-12 border-t border-gray-100 pt-5 flex justify-end gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition-colors">Hủy</button>
-                <button type="submit" disabled={uploading} className="px-6 py-2.5 rounded-xl text-sm font-bold text-[#F7E7CE] bg-[#102C26] hover:bg-[#102C26]/90 transition-colors disabled:opacity-50">
+              <div className="xl:col-span-12 border-t border-border pt-5 flex justify-end gap-3">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-muted-foreground hover:bg-secondary/40 transition-colors">Hủy</button>
+                <button type="submit" disabled={uploading} className="px-6 py-2.5 rounded-xl text-sm font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-colors disabled:opacity-50">
                   {editingId ? "Lưu thay đổi" : "Đăng bài"}
                 </button>
               </div>

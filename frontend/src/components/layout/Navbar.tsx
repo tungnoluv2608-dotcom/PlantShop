@@ -51,7 +51,10 @@ export function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const totalItems = useCartStore((s) => s.totalItems());
-  const { user, isAuthenticated, clearAuth } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const authToken = useAuthStore((s) => s.token);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated && Boolean(s.token));
+  const clearAuth = useAuthStore((s) => s.clearAuth);
   const syncWishlist = useWishlistStore((s) => s.syncWishlist);
   const clearWishlist = useWishlistStore((s) => s.clearWishlist);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
@@ -142,12 +145,12 @@ export function Navbar() {
   }, [searchQuery]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!authToken) {
       clearWishlist();
       return;
     }
     syncWishlist().catch(() => undefined);
-  }, [isAuthenticated, syncWishlist, clearWishlist]);
+  }, [authToken, syncWishlist, clearWishlist]);
 
   const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchQuery.trim()) {
@@ -175,24 +178,32 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="bg-white border-b border-gray-100 py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 z-50">
+      <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-border/80 bg-background/88 px-6 py-4 shadow-[0_14px_30px_-28px_rgba(36,53,42,0.9)] backdrop-blur-xl md:px-12">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <div className="font-bold text-2xl tracking-tighter text-primary">
-            PlanS Thanh Tùng
+        <Link to="/" className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/15 bg-gradient-to-br from-primary to-[#6f9d5d] shadow-[0_16px_35px_-22px_rgba(79,127,79,1)]">
+            <Plant size={22} weight="fill" className="text-primary-foreground" />
+          </div>
+          <div>
+            <div className="font-bold text-2xl tracking-tight text-primary">
+              PlanS Thanh Tùng
+            </div>
+            <p className="hidden text-[11px] font-medium uppercase tracking-[0.28em] text-foreground/45 md:block">
+              Plant Care System
+            </p>
           </div>
         </Link>
 
         {/* Desktop Navigation Links */}
-        <div className="hidden md:flex items-center gap-6 font-medium text-gray-700">
+        <div className="hidden items-center gap-3 rounded-full border border-border/70 bg-card/92 px-3 py-2 text-sm font-medium text-foreground/75 shadow-[0_12px_30px_-24px_rgba(36,53,42,0.75)] md:flex">
           {navLinks.map((link) => (
             <Link
               key={link.path}
               to={link.path}
-              className={`transition-colors pb-1 ${
+              className={`rounded-full px-4 py-2 transition-all ${
                 isActive(link.path)
-                  ? "text-primary font-semibold border-b-2 border-primary"
-                  : "hover:text-primary/80"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "hover:bg-secondary/70 hover:text-primary"
               }`}
             >
               {link.label}
@@ -207,7 +218,7 @@ export function Navbar() {
               onMouseEnter={() => handleDropdownEnter(dropdown.label)}
               onMouseLeave={handleDropdownLeave}
             >
-              <button className="flex items-center gap-1 hover:text-primary/80 transition-colors pb-1">
+              <button className="flex items-center gap-1 rounded-full px-4 py-2 transition-all hover:bg-secondary/70 hover:text-primary">
                 {dropdown.label}
                 <CaretDown
                   size={14}
@@ -218,7 +229,7 @@ export function Navbar() {
 
               {/* Dropdown Panel */}
               {openDropdown === dropdown.label && (
-                <div className="absolute top-full left-0 mt-2 w-52 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute left-0 top-full z-50 mt-3 w-56 overflow-hidden rounded-2xl border border-border/80 bg-card/96 shadow-[0_30px_60px_-35px_rgba(36,53,42,0.75)] animate-in fade-in slide-in-from-top-2 duration-200 backdrop-blur">
                   {dropdown.items.map((item) => (
                     <Link
                       key={item.name}
@@ -227,11 +238,11 @@ export function Navbar() {
                           ? `/shop?category=${encodeURIComponent(item.category)}`
                           : dropdown.label === "Chậu cây"
                             ? `/planters?material=${encodeURIComponent(item.category)}`
-                            : item.category === "*"
+                          : item.category === "*"
                               ? "/accessories"
                               : `/accessories?group=${encodeURIComponent(item.category)}`
                       }
-                      className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors border-b border-gray-50 last:border-0"
+                      className="block border-b border-border/50 px-4 py-3 text-sm text-foreground/75 transition-colors last:border-0 hover:bg-secondary/55 hover:text-primary"
                     >
                       {item.name}
                     </Link>
@@ -243,10 +254,10 @@ export function Navbar() {
         </div>
 
         {/* Search Bar & Icons - Desktop */}
-        <div className="hidden sm:flex items-center gap-4">
+        <div className="hidden items-center gap-4 sm:flex">
           <div className="relative w-40 lg:w-64" ref={searchRef}>
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlass size={18} className="text-gray-400" />
+              <MagnifyingGlass size={18} className="text-foreground/35" />
             </div>
             <input
               type="text"
@@ -255,15 +266,15 @@ export function Navbar() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
               onKeyDown={handleSearchSubmit}
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
+              className="w-full rounded-full border border-border/80 bg-card/92 py-2.5 pl-10 pr-4 text-sm shadow-[0_10px_25px_-22px_rgba(36,53,42,0.9)] transition-all focus:border-primary/45 focus:outline-none focus:ring-2 focus:ring-primary/15"
             />
 
             {/* Search Suggestions Dropdown */}
             {isSearchFocused && searchQuery.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute left-0 right-0 top-full z-50 mt-3 flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-card/96 shadow-[0_30px_60px_-35px_rgba(36,53,42,0.75)] animate-in fade-in slide-in-from-top-2 duration-200 backdrop-blur">
                 {searchResults.length > 0 ? (
                   <>
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 bg-gray-50/50 uppercase tracking-wider">
+                    <div className="bg-secondary/40 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-foreground/45">
                       Gợi ý sản phẩm
                     </div>
                     {searchResults.map((item) => (
@@ -271,9 +282,9 @@ export function Navbar() {
                         key={item.id}
                         to={`/product/${item.id}`}
                         onClick={() => { setIsSearchFocused(false); setSearchQuery(""); }}
-                        className="px-4 py-3 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-50 last:border-0"
+                        className="flex cursor-pointer items-center gap-3 border-b border-border/50 px-4 py-3 transition-colors last:border-0 hover:bg-secondary/40"
                       >
-                        <div className="w-8 h-8 rounded-full bg-secondary/30 flex items-center justify-center text-primary shrink-0">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
                           <Plant size={16} />
                         </div>
                         <div className="flex flex-col">
@@ -288,13 +299,13 @@ export function Navbar() {
                         navigate("/shop");
                         setSearchQuery("");
                       }}
-                      className="w-full text-left px-4 py-3 text-sm font-semibold text-primary hover:bg-gray-50 transition-colors bg-gray-50/30"
+                      className="w-full bg-secondary/35 px-4 py-3 text-left text-sm font-semibold text-primary transition-colors hover:bg-secondary/60"
                     >
                       Xem tất cả kết quả cho "{searchQuery}" &rarr;
                     </button>
                   </>
                 ) : (
-                  <div className="px-4 py-8 text-center text-sm text-gray-500">
+                  <div className="px-4 py-8 text-center text-sm text-muted-foreground">
                     Không tìm thấy sản phẩm nào phù hợp.
                   </div>
                 )}
@@ -303,7 +314,7 @@ export function Navbar() {
           </div>
 
           {/* Action Icons */}
-          <div className="flex items-center gap-4 border-l border-gray-200 pl-4 text-foreground">
+          <div className="flex items-center gap-4 border-l border-border/80 pl-4 text-foreground">
             <Link to="/cart" className="hover:text-primary transition-colors relative block">
               <ShoppingCart size={24} />
               {totalItems > 0 && (
@@ -317,28 +328,28 @@ export function Navbar() {
               <div className="relative" ref={userDropdownRef}>
                 <button 
                   onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                  className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary border border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer"
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-primary/15 bg-primary/10 text-sm font-bold text-primary transition-colors hover:bg-primary/20"
                 >
                   {getInitials(user?.name || "U")}
                 </button>
                 
                 {isUserDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="px-4 py-3 border-b border-gray-50 bg-gray-50/30">
-                      <p className="text-xs text-gray-400 font-medium truncate uppercase tracking-wider">Tài khoản</p>
-                      <p className="text-sm font-bold text-gray-800 truncate">{user?.name}</p>
+                  <div className="absolute right-0 top-full z-50 mt-3 w-52 overflow-hidden rounded-2xl border border-border/80 bg-card/96 shadow-[0_30px_60px_-35px_rgba(36,53,42,0.75)] animate-in fade-in slide-in-from-top-2 duration-200 backdrop-blur">
+                    <div className="border-b border-border/60 bg-secondary/35 px-4 py-3">
+                      <p className="truncate text-xs font-medium uppercase tracking-wider text-foreground/45">Tài khoản</p>
+                      <p className="truncate text-sm font-bold text-foreground">{user?.name}</p>
                     </div>
                     <Link
                       to="/profile"
                       onClick={() => setIsUserDropdownOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors"
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground/75 transition-colors hover:bg-secondary/45 hover:text-primary"
                     >
                       <UserCircle size={18} />
                       Trang cá nhân
                     </Link>
                     <button
                       onClick={handleSignOut}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors border-t border-gray-50"
+                      className="flex w-full items-center gap-2 border-t border-border/60 px-4 py-2.5 text-sm text-red-500 transition-colors hover:bg-red-50/80"
                     >
                       <SignOut size={18} />
                       Đăng xuất
@@ -384,11 +395,11 @@ export function Navbar() {
           />
 
           {/* Menu Panel */}
-          <div className="absolute top-[65px] left-0 right-0 bg-white border-b border-gray-100 shadow-xl max-h-[calc(100vh-65px)] overflow-y-auto animate-in slide-in-from-top-2 duration-300">
+          <div className="absolute left-0 right-0 top-[73px] max-h-[calc(100vh-73px)] overflow-y-auto border-b border-border/80 bg-card/96 shadow-[0_30px_60px_-35px_rgba(36,53,42,0.85)] animate-in slide-in-from-top-2 duration-300 backdrop-blur">
             {/* Search */}
-            <div className="p-4 border-b border-gray-100">
+            <div className="border-b border-border/70 p-4">
               <div className="relative">
-                <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/35" />
                 <input
                   type="text"
                   placeholder="Tìm kiếm sản phẩm..."
@@ -401,7 +412,7 @@ export function Navbar() {
                       setIsMobileMenuOpen(false);
                     }
                   }}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  className="w-full rounded-xl border border-border/80 bg-background py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/15"
                 />
               </div>
             </div>
@@ -414,8 +425,8 @@ export function Navbar() {
                   to={link.path}
                   className={`block px-6 py-3 font-medium transition-colors ${
                     isActive(link.path)
-                      ? "text-primary bg-primary/5 border-l-4 border-primary"
-                      : "text-gray-700 hover:bg-gray-50"
+                      ? "border-l-4 border-primary bg-primary/8 text-primary"
+                      : "text-foreground/75 hover:bg-secondary/40"
                   }`}
                 >
                   {link.label}
@@ -427,7 +438,7 @@ export function Navbar() {
                 <div key={dropdown.label}>
                   <button
                     onClick={() => setOpenDropdown(openDropdown === dropdown.label ? null : dropdown.label)}
-                    className="w-full flex items-center justify-between px-6 py-3 font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="flex w-full items-center justify-between px-6 py-3 font-medium text-foreground/75 transition-colors hover:bg-secondary/40"
                   >
                     {dropdown.label}
                     <CaretDown
@@ -437,7 +448,7 @@ export function Navbar() {
                     />
                   </button>
                   {openDropdown === dropdown.label && (
-                    <div className="bg-gray-50/50">
+                    <div className="bg-secondary/25">
                       {dropdown.items.map((item) => (
                         <Link
                           key={item.name}
@@ -450,7 +461,7 @@ export function Navbar() {
                                   ? "/accessories"
                                   : `/accessories?group=${encodeURIComponent(item.category)}`
                           }
-                          className="block pl-10 pr-6 py-2.5 text-sm text-gray-600 hover:text-primary transition-colors"
+                          className="block py-2.5 pl-10 pr-6 text-sm text-foreground/65 transition-colors hover:text-primary"
                         >
                           {item.name}
                         </Link>
@@ -462,7 +473,7 @@ export function Navbar() {
             </div>
 
             {/* Auth Links */}
-            <div className="border-t border-gray-100 p-4">
+            <div className="border-t border-border/70 p-4">
               {isAuthenticated ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 px-2 mb-2">
@@ -470,19 +481,19 @@ export function Navbar() {
                       {getInitials(user?.name || "U")}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-gray-800">{user?.name}</p>
-                      <p className="text-xs text-gray-500">{user?.email}</p>
+                      <p className="text-sm font-bold text-foreground">{user?.name}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
                     </div>
                   </div>
                   <Link
                     to="/profile"
-                    className="block w-full text-center py-3 rounded-xl border border-primary text-primary font-semibold hover:bg-primary/5 transition-colors"
+                    className="block w-full rounded-xl border border-primary/35 py-3 text-center font-semibold text-primary transition-colors hover:bg-primary/8"
                   >
                     Trang cá nhân
                   </Link>
                   <button
                     onClick={handleSignOut}
-                    className="w-full text-center py-3 rounded-xl bg-red-50 text-red-500 font-semibold hover:bg-red-100 transition-colors"
+                    className="w-full rounded-xl bg-red-50 py-3 text-center font-semibold text-red-500 transition-colors hover:bg-red-100"
                   >
                     Đăng xuất
                   </button>
@@ -491,7 +502,7 @@ export function Navbar() {
                 <div className="flex gap-3">
                   <Link
                     to="/signin"
-                    className="flex-1 text-center py-3 rounded-xl border border-primary text-primary font-semibold hover:bg-primary/5 transition-colors"
+                    className="flex-1 rounded-xl border border-primary/35 py-3 text-center font-semibold text-primary transition-colors hover:bg-primary/8"
                   >
                     Đăng nhập
                   </Link>

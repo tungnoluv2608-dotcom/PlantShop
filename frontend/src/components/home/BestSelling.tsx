@@ -1,9 +1,24 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { SectionHeader } from "../ui/SectionHeader";
 import { CategoryCard } from "../ui/CategoryCard";
+import { productService } from "../../services/productService";
+import type { Product } from "../../types";
 
 export function BestSelling() {
   const navigate = useNavigate();
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    productService
+      .getProducts({ sort: "best-selling", page: 1, pageSize: 3 })
+      .then((result) => {
+        setProducts(result.products);
+      })
+      .catch(() => {
+        setProducts([]);
+      });
+  }, []);
 
   const handleShopNow = (category: string) => {
     navigate(`/shop?category=${encodeURIComponent(category)}`);
@@ -14,7 +29,7 @@ export function BestSelling() {
   };
 
   return (
-    <section className="py-16 bg-white">
+    <section className="py-16">
       <div className="container mx-auto px-6 md:px-12">
         <SectionHeader 
           title="Bán chạy nhất" 
@@ -22,27 +37,16 @@ export function BestSelling() {
         />
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mt-8">
-          <CategoryCard 
-            id="1"
-            title="Cây trong nhà" 
-            price={150000}
-            imageUrl="https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=500&auto=format&fit=crop" 
-            onShopClick={() => handleShopNow("Cây trong nhà")}
-          />
-          <CategoryCard 
-            id="2"
-            title="Dịch lọc không khí" 
-            price={250000}
-            imageUrl="https://images.unsplash.com/photo-1545241047-6083a36a1c08?w=500&auto=format&fit=crop" 
-            onShopClick={() => handleShopNow("Dịch lọc không khí")}
-          />
-          <CategoryCard 
-            id="3"
-            title="Cây có hoa" 
-            price={180000}
-            imageUrl="https://images.unsplash.com/photo-1463936575829-25148e1db1b8?w=500&auto=format&fit=crop" 
-            onShopClick={() => handleShopNow("Cây có hoa")}
-          />
+          {products.map((product) => (
+            <CategoryCard
+              key={product.id}
+              id={product.id}
+              title={product.title}
+              price={product.price}
+              imageUrl={product.imageUrl}
+              onShopClick={() => handleShopNow(product.category)}
+            />
+          ))}
         </div>
       </div>
     </section>

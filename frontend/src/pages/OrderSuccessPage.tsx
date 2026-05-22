@@ -21,12 +21,12 @@ export default function OrderSuccessPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] font-sans text-foreground flex flex-col">
       <Navbar />
 
       <main className="flex-grow max-w-4xl mx-auto w-full px-4 sm:px-6 py-12">
         {/* Success Hero */}
-        <div className="bg-white rounded-3xl shadow-sm border border-secondary p-8 md:p-12 text-center mb-8 relative overflow-hidden">
+        <div className="bg-card rounded-3xl shadow-sm border border-secondary p-8 md:p-12 text-center mb-8 relative overflow-hidden">
           {/* Decorative leaves */}
           <div className="absolute top-4 left-4 opacity-10"><Leaf size={80} className="text-primary" weight="fill" /></div>
           <div className="absolute bottom-4 right-4 opacity-10"><Plant size={80} className="text-primary" weight="fill" /></div>
@@ -69,7 +69,7 @@ export default function OrderSuccessPage() {
                   <div className="flex-1 space-y-2">
                     <div className="flex justify-between">
                       <span className="text-foreground/60">Thanh toán:</span>
-                      <span className="font-semibold">{method === "vnpay" ? "VNPay" : "COD"}</span>
+                      <span className="font-semibold">{method === "vnpay" ? "VNPay" : method === "payos" ? "PayOS" : "COD"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-foreground/60">Dự kiến nhận hàng:</span>
@@ -106,7 +106,7 @@ export default function OrderSuccessPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {suggestedProducts.map((product) => (
                 <Link key={product.id} to={`/product/${product.id}`}
-                  className="bg-white rounded-2xl overflow-hidden border border-secondary hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+                  className="bg-card rounded-2xl overflow-hidden border border-secondary hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
                   <div className="aspect-square overflow-hidden">
                     <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>

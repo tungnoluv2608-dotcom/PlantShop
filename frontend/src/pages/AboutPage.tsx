@@ -19,23 +19,24 @@ const stats = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-white font-sans text-foreground flex flex-col">
+    <div className="min-h-screen bg-background font-sans text-foreground flex flex-col">
       <Navbar />
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-primary text-white py-24 md:py-32">
+      <section className="relative overflow-hidden bg-[linear-gradient(135deg,#557f55_0%,#87a96c_42%,#f0ddaa_100%)] py-24 text-white md:py-32">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,253,247,0.2),transparent_24%)]" />
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10"><Leaf size={120} weight="fill" /></div>
           <div className="absolute bottom-10 right-10"><Plant size={160} weight="fill" /></div>
           <div className="absolute top-1/2 left-1/3"><Leaf size={80} weight="fill" /></div>
         </div>
         <div className="relative max-w-4xl mx-auto px-6 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-5 py-2 rounded-full text-sm font-semibold mb-6 border border-white/20">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/12 px-5 py-2 text-sm font-semibold backdrop-blur-sm">
             <Leaf size={16} weight="fill" /> Câu chuyện của chúng tôi
           </div>
           <h1 className="text-5xl md:text-7xl font-black leading-tight mb-6">
             Trồng một mầm xanh<br />
-            <span className="text-secondary">đổi thay một không gian</span>
+            <span className="text-[#fff3d3]">đổi thay một không gian</span>
           </h1>
           <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
             PlanS Thanh Tùng ra đời từ tình yêu cây cảnh và niềm tin rằng mỗi góc nhỏ của cuộc sống đều có thể trở nên tươi đẹp hơn với một mầm xanh.
@@ -76,7 +77,7 @@ export default function AboutPage() {
       </section>
 
       {/* Stats */}
-      <section className="bg-primary py-16">
+      <section className="bg-[linear-gradient(180deg,rgba(79,127,79,0.96),rgba(88,138,84,0.88))] py-16">
         <div className="max-w-5xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map(({ icon: Icon, value, label }) => (
@@ -93,7 +94,7 @@ export default function AboutPage() {
       </section>
 
       {/* Values */}
-      <section className="py-20 bg-[#F0F5F1]">
+      <section className="py-20 bg-[var(--background)]">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-black text-foreground mb-3">Giá trị cốt lõi</h2>
@@ -101,7 +102,7 @@ export default function AboutPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {values.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="bg-white rounded-2xl p-8 shadow-sm border border-secondary hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+              <div key={title} className="bg-card rounded-2xl p-8 shadow-sm border border-secondary hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                 <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center mb-5 shadow-md">
                   <Icon size={28} weight="fill" className="text-white" />
                 </div>
@@ -134,11 +135,11 @@ export default function AboutPage() {
       </section>
 
       {/* CTA */}
-      <section className="bg-secondary py-16 text-center">
+      <section className="bg-secondary/65 py-16 text-center">
         <div className="max-w-2xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-black text-primary mb-4">Sẵn sàng trồng mầm xanh?</h2>
           <p className="text-foreground/70 mb-8">Khám phá hơn 500 loài cây cảnh từ PlanS Thanh Tùng và tìm ra người bạn xanh lý tưởng cho không gian của bạn.</p>
-          <Link to="/shop" className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-primary/90 transition-all shadow-xl hover:-translate-y-1">
+          <Link to="/shop" className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-4 text-lg font-bold text-primary-foreground shadow-xl transition-all hover:-translate-y-1 hover:bg-primary/90">
             Khám phá cửa hàng <ArrowRight size={20} weight="bold" />
           </Link>
         </div>

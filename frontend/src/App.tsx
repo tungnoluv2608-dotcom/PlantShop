@@ -13,6 +13,7 @@ import CheckoutPage from './pages/CheckoutPage'
 import OrderSuccessPage from './pages/OrderSuccessPage'
 import PaymentFailedPage from './pages/PaymentFailedPage'
 import VnpayReturnPage from './pages/VnpayReturnPage'
+import PayosReturnPage from './pages/PayosReturnPage'
 import ProfilePage from './pages/ProfilePage'
 import BlogPage from './pages/BlogPage'
 import BlogDetailPage from './pages/BlogDetailPage'
@@ -59,6 +60,8 @@ function App() {
         <Route path='/order-success/:orderId' element={<OrderSuccessPage />} />
         <Route path='/payment-failed' element={<PaymentFailedPage />} />
         <Route path='/payment/vnpay-return' element={<VnpayReturnPage />} />
+        <Route path='/payment/payos-return' element={<PayosReturnPage />} />
+        <Route path='/payment/payos-cancel' element={<PayosReturnPage />} />
 
         {/* Brand content */}
         <Route path='/about' element={<AboutPage />} />

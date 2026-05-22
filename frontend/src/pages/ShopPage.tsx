@@ -35,6 +35,8 @@ export default function ShopPage() {
   const [selectedPriceRange, setSelectedPriceRange] = useState(0);
   const [isPriceOpen, setIsPriceOpen] = useState(false);
   const [categoryTree, setCategoryTree] = useState<Category[]>([]);
+  const selectedSort = searchParams.get("sort") || undefined;
+  const saleOnly = searchParams.get("filter") === "sale" || searchParams.get("saleOnly") === "true" || selectedSort === "sale";
 
   const PAGE_SIZE = 6;
 
@@ -63,6 +65,8 @@ export default function ShopPage() {
         category: selectedCategory,
         minPrice: range.min,
         maxPrice: range.max,
+        sort: selectedSort as "sale" | "trending" | "best-selling" | "price-asc" | "price-desc" | undefined,
+        saleOnly,
         page: 1,
         pageSize: PAGE_SIZE,
       });
@@ -71,7 +75,7 @@ export default function ShopPage() {
       setIsLoading(false);
     }
     fetchProducts();
-  }, [selectedCategory, selectedPriceRange]);
+  }, [selectedCategory, selectedPriceRange, selectedSort, saleOnly]);
 
   const handleLoadMore = async () => {
     setIsLoadingMore(true);
@@ -81,6 +85,8 @@ export default function ShopPage() {
       category: selectedCategory,
       minPrice: range.min,
       maxPrice: range.max,
+      sort: selectedSort as "sale" | "trending" | "best-selling" | "price-asc" | "price-desc" | undefined,
+      saleOnly,
       page: nextPage,
       pageSize: PAGE_SIZE,
     });
@@ -105,13 +111,13 @@ export default function ShopPage() {
   const hasMore = products.length < total;
 
   return (
-    <div className="min-h-screen bg-[#F0F5F1] font-sans text-foreground flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] font-sans text-foreground flex flex-col">
       <Navbar />
 
       <main className="flex-grow w-full">
         {/* Top Banner */}
         <div 
-          className="w-full h-48 md:h-64 bg-primary relative flex items-center justify-center overflow-hidden"
+          className="relative flex h-48 w-full items-center justify-center overflow-hidden bg-primary md:h-64"
           style={{ 
             backgroundImage: `url(${forestPattern})`, 
             backgroundSize: 'cover', 
@@ -119,7 +125,8 @@ export default function ShopPage() {
             backgroundBlendMode: 'overlay'
           }}
         >
-          <div className="absolute inset-0 bg-black/40"></div>
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(36,53,42,0.68),rgba(79,127,79,0.42))]"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,253,247,0.18),transparent_25%)]"></div>
           <h1 className="relative z-10 text-white text-5xl md:text-6xl font-black tracking-widest uppercase shadow-sm">
             CỬA HÀNG
           </h1>
@@ -131,7 +138,7 @@ export default function ShopPage() {
           <div className="w-full md:w-64 shrink-0 flex flex-col gap-6">
             
             {/* Categories */}
-            <div className="bg-[#fcfaf5] p-5 rounded-2xl shadow-sm border border-secondary">
+            <div className="rounded-2xl border border-border/80 bg-card/92 p-5 shadow-sm">
               <button
                 onClick={() => handleCategorySelect(undefined)}
                 className={`flex items-center gap-2 mb-4 font-bold cursor-pointer hover:text-primary transition-colors w-full text-left ${!selectedCategory ? "text-primary" : "text-foreground"}`}
@@ -170,7 +177,7 @@ export default function ShopPage() {
             </div>
 
             {/* Price Filter */}
-            <div className="bg-[#fcfaf5] p-5 rounded-2xl shadow-sm border border-secondary">
+            <div className="rounded-2xl border border-border/80 bg-card/92 p-5 shadow-sm">
               <button
                 onClick={() => setIsPriceOpen(!isPriceOpen)}
                 className="flex justify-between items-center w-full cursor-pointer hover:text-primary transition-colors"
@@ -187,7 +194,7 @@ export default function ShopPage() {
                         name="price"
                         checked={selectedPriceRange === index}
                         onChange={() => setSelectedPriceRange(index)}
-                        className="w-4 h-4 text-primary bg-white border-gray-300 focus:ring-primary cursor-pointer"
+                        className="w-4 h-4 text-primary bg-card border-gray-300 focus:ring-primary cursor-pointer"
                       />
                       <span className={`group-hover:text-primary transition-colors ${selectedPriceRange === index ? "text-primary font-medium" : "text-foreground/80"}`}>
                         {range.label}
@@ -220,7 +227,7 @@ export default function ShopPage() {
             {isLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 h-[380px] animate-pulse">
+                  <div key={i} className="h-[380px] overflow-hidden rounded-2xl border border-border/80 bg-card animate-pulse">
                     <div className="aspect-square bg-secondary/30" />
                     <div className="p-5 space-y-3">
                       <div className="h-5 bg-secondary/30 rounded w-3/4" />
@@ -231,7 +238,7 @@ export default function ShopPage() {
                 ))}
               </div>
             ) : products.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-2xl border border-secondary">
+              <div className="text-center py-20 bg-card rounded-2xl border border-secondary">
                 <p className="text-lg font-medium text-foreground/70">Không tìm thấy sản phẩm nào.</p>
                 <button
                   onClick={() => handleCategorySelect(undefined)}

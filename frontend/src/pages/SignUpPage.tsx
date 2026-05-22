@@ -72,7 +72,7 @@ export default function SignUpPage() {
     }
   };
 
-  const inputClasses = "flex h-11 w-full rounded-md border bg-white px-3 py-2 text-sm text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 transition-all shadow-sm";
+  const inputClasses = "flex h-11 w-full rounded-md border bg-card px-3 py-2 text-sm text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 transition-all shadow-sm";
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -105,7 +105,7 @@ export default function SignUpPage() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-xl border border-secondary sm:rounded-2xl sm:px-10">
+        <div className="bg-card py-8 px-4 shadow-xl border border-secondary sm:rounded-2xl sm:px-10">
           <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
             <div>
               <label 
@@ -213,7 +213,7 @@ export default function SignUpPage() {
               <input
                 id="terms"
                 type="checkbox"
-                className="h-4 w-4 mt-0.5 bg-white border-input rounded text-primary focus:ring-primary cursor-pointer"
+                className="h-4 w-4 mt-0.5 bg-card border-input rounded text-primary focus:ring-primary cursor-pointer"
                 {...register("terms")}
               />
               <label htmlFor="terms" className="ml-2 block text-sm text-foreground cursor-pointer">

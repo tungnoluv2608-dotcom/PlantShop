@@ -119,18 +119,18 @@ export default function AdminAccessories() {
     <div className="p-6 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 mb-2">
-            <Wrench size={14} weight="bold" className="text-amber-700" />
-            <span className="text-[11px] font-black tracking-wide text-amber-700 uppercase">Khu vực phụ kiện</span>
+          <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 mb-2 border border-amber-500/20">
+            <Wrench size={14} weight="bold" className="text-amber-500" />
+            <span className="text-[11px] font-black tracking-wide text-amber-500 uppercase">Khu vực phụ kiện</span>
           </div>
-          <h1 className="text-2xl font-black text-gray-900">Phụ kiện</h1>
-          <p className="text-gray-500 text-sm">
+          <h1 className="text-2xl font-black text-foreground">Phụ kiện</h1>
+          <p className="text-muted-foreground text-sm">
             {accessories.length} phụ kiện · {accessories.filter((p) => p.inStock).length} còn hàng
           </p>
         </div>
         <button
           onClick={openAdd}
-          className="inline-flex items-center gap-2 bg-amber-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-amber-700 transition-all shadow-sm"
+          className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-primary/90 transition-all shadow-sm"
         >
           <Plus size={17} weight="bold" /> Thêm phụ kiện
         </button>
@@ -138,50 +138,50 @@ export default function AdminAccessories() {
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <span className="w-8 h-8 border-2 border-[#102C26] border-t-transparent rounded-full animate-spin" />
+          <span className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/70">
-                  <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Tên phụ kiện</th>
-                  <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">Nhóm</th>
-                  <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Giá</th>
-                  <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Tình trạng</th>
-                  <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Thao tác</th>
+                <tr className="border-b border-border bg-secondary/20">
+                  <th className="text-left px-5 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Tên phụ kiện</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Nhóm</th>
+                  <th className="text-right px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Giá</th>
+                  <th className="text-center px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Tình trạng</th>
+                  <th className="text-center px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-border">
                 {accessories.map((item) => (
-                  <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors group">
+                  <tr key={item.id} className="border-b border-border hover:bg-secondary/10 transition-colors group">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-100 overflow-hidden shrink-0">
+                        <div className="w-10 h-10 rounded-lg bg-background border border-border overflow-hidden shrink-0">
                           <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-bold text-gray-900 truncate">{item.name}</p>
-                          <p className="text-[10px] text-gray-400 font-medium">#{item.id}</p>
+                          <p className="font-bold text-foreground truncate">{item.name}</p>
+                          <p className="text-[10px] text-muted-foreground font-medium">#{item.id}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3.5 hidden md:table-cell">
                       <div className="flex gap-1.5 flex-wrap">
-                        <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">{item.material}</span>
+                        <span className="text-xs font-medium text-amber-400 bg-amber-500/10 border border-amber-500/25 px-2.5 py-1 rounded-full">{item.material}</span>
                         {!!item.accessoryBrand && (
-                          <span className="text-xs font-medium text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-full">{item.accessoryBrand}</span>
+                          <span className="text-xs font-medium text-indigo-400 bg-indigo-500/10 border border-indigo-500/25 px-2.5 py-1 rounded-full">{item.accessoryBrand}</span>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3.5 text-right">
-                      <span className="font-bold text-[#102C26]">{item.price.toLocaleString("vi-VN")}đ</span>
+                      <span className="font-bold text-primary">{item.price.toLocaleString("vi-VN")}đ</span>
                     </td>
                     <td className="px-4 py-3.5 text-center">
                       <span
                         className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                          item.inStock ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
+                          item.inStock ? "bg-green-500/10 text-green-400 border border-green-500/25" : "bg-red-500/10 text-red-400 border border-red-500/25"
                         }`}
                       >
                         {item.inStock ? "Còn hàng" : "Hết hàng"}
@@ -191,13 +191,13 @@ export default function AdminAccessories() {
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => openEdit(item)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-[#102C26] hover:bg-[#102C26]/10 transition-all"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/40 transition-all"
                         >
                           <PencilSimple size={15} />
                         </button>
                         <button
                           onClick={() => handleDelete(item.id, item.name)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all"
                         >
                           <Trash size={15} />
                         </button>
@@ -213,16 +213,16 @@ export default function AdminAccessories() {
 
       {modalOpen && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/55 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setModalOpen(false)}
         >
           <div
-            className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
+            className="bg-card rounded-3xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto border border-border"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-5">
-              <h2 className="font-black text-gray-900 text-lg">{editing ? "Sửa phụ kiện" : "Thêm phụ kiện mới"}</h2>
-              <button onClick={() => setModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <h2 className="font-black text-foreground text-lg">{editing ? "Sửa phụ kiện" : "Thêm phụ kiện mới"}</h2>
+              <button onClick={() => setModalOpen(false)} className="text-muted-foreground hover:text-foreground">
                 <X size={22} />
               </button>
             </div>
@@ -230,103 +230,103 @@ export default function AdminAccessories() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tên phụ kiện *</label>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">Tên phụ kiện *</label>
                   <input
                     value={draft.name}
                     onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
                     placeholder="VD: Đất trồng sen đá"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all"
+                    className="w-full bg-background text-foreground placeholder-muted-foreground/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nhóm phụ kiện *</label>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">Nhóm phụ kiện *</label>
                   <select
                     value={draft.material}
                     onChange={(e) => setDraft((p) => ({ ...p, material: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-200 bg-white"
+                    className="w-full border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 bg-background text-foreground"
                   >
-                    <option value="">Chọn nhóm phụ kiện đã có</option>
+                    <option value="" className="bg-card">Chọn nhóm phụ kiện đã có</option>
                     {groupOptions.map((group) => (
-                      <option key={group} value={group}>{group}</option>
+                      <option key={group} value={group} className="bg-card">{group}</option>
                     ))}
                     {!!draft.material && !groupOptions.includes(draft.material) && (
-                      <option value={draft.material}>{draft.material}</option>
+                      <option value={draft.material} className="bg-card">{draft.material}</option>
                     )}
                   </select>
                   <input
                     value={draft.material}
                     onChange={(e) => setDraft((p) => ({ ...p, material: e.target.value }))}
                     placeholder="Hoặc nhập nhóm phụ kiện mới"
-                    className="w-full mt-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 transition-all"
+                    className="w-full mt-2 bg-background text-foreground placeholder-muted-foreground/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Thương hiệu *</label>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">Thương hiệu *</label>
                   <select
                     value={draft.accessoryBrand || ""}
                     onChange={(e) => setDraft((p) => ({ ...p, accessoryBrand: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-200 bg-white"
+                    className="w-full border border-border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 bg-background text-foreground"
                   >
-                    <option value="">Chọn thương hiệu đã có</option>
+                    <option value="" className="bg-card">Chọn thương hiệu đã có</option>
                     {brandOptions.map((brand) => (
-                      <option key={brand} value={brand}>{brand}</option>
+                      <option key={brand} value={brand} className="bg-card">{brand}</option>
                     ))}
                     {!!draft.accessoryBrand && !brandOptions.includes(draft.accessoryBrand) && (
-                      <option value={draft.accessoryBrand}>{draft.accessoryBrand}</option>
+                      <option value={draft.accessoryBrand} className="bg-card">{draft.accessoryBrand}</option>
                     )}
                   </select>
                   <input
                     value={draft.accessoryBrand || ""}
                     onChange={(e) => setDraft((p) => ({ ...p, accessoryBrand: e.target.value }))}
                     placeholder="Hoặc nhập thương hiệu mới"
-                    className="w-full mt-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 transition-all"
+                    className="w-full mt-2 bg-background text-foreground placeholder-muted-foreground/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Giá (đ) *</label>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">Giá (đ) *</label>
                   <input
                     type="number"
                     value={draft.price || ""}
                     onChange={(e) => setDraft((p) => ({ ...p, price: Number(e.target.value) }))}
                     placeholder="45000"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#102C26]/20 transition-all"
+                    className="w-full bg-background text-foreground placeholder-muted-foreground/50 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Công dụng</label>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">Công dụng</label>
                 <div className="flex gap-2 mb-2">
                   <input
                     value={usageInput}
                     onChange={(e) => setUsageInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && addUsageTag()}
                     placeholder="VD: Kích rễ, Bổ sung dinh dưỡng"
-                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200"
+                    className="flex-1 bg-background text-foreground placeholder-muted-foreground/50 border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                   <button
                     onClick={addUsageTag}
-                    className="bg-amber-100 text-amber-700 px-3 rounded-xl hover:bg-amber-200 transition-colors"
+                    className="bg-secondary text-foreground px-3 rounded-xl hover:bg-secondary/80 transition-colors"
                   >
                     <Plus size={16} />
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {(draft.usageTags || []).map((tag, i) => (
-                    <span key={`${tag}-${i}`} className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 text-xs font-semibold px-2.5 py-1 rounded-full border border-amber-200">
+                    <span key={`${tag}-${i}`} className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 text-xs font-semibold px-2.5 py-1 rounded-full border border-amber-500/25">
                       {tag}
-                      <button onClick={() => removeUsageTag(i)} className="hover:text-red-500 transition-colors"><X size={10} /></button>
+                      <button onClick={() => removeUsageTag(i)} className="hover:text-red-400 transition-colors"><X size={10} /></button>
                     </span>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ảnh phụ kiện *</label>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">Ảnh phụ kiện *</label>
                 <div
                   onClick={triggerUpload}
                   className={`w-full h-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative group ${
-                    draft.imageUrl ? "border-transparent" : "border-gray-300 hover:border-[#102C26]"
+                    draft.imageUrl ? "border-transparent" : "border-border hover:border-primary"
                   }`}
                 >
                   {draft.imageUrl ? (
@@ -337,9 +337,9 @@ export default function AdminAccessories() {
                       </div>
                     </>
                   ) : uploading ? (
-                    <span className="animate-spin border-2 border-[#102C26] border-t-transparent w-6 h-6 rounded-full" />
+                    <span className="animate-spin border-2 border-primary border-t-transparent w-6 h-6 rounded-full" />
                   ) : (
-                    <div className="text-gray-400 text-center">
+                    <div className="text-muted-foreground text-center">
                       <CloudArrowUp size={24} className="mx-auto mb-1" />
                       <span className="text-sm">Tải ảnh lên</span>
                     </div>
@@ -355,20 +355,20 @@ export default function AdminAccessories() {
                   onChange={(e) => setDraft((p) => ({ ...p, inStock: e.target.checked }))}
                   className="w-4 h-4 accent-amber-600"
                 />
-                <span className="text-sm font-medium text-gray-700">Còn hàng</span>
+                <span className="text-sm font-medium text-foreground">Còn hàng</span>
               </label>
             </div>
 
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleSave}
-                className="flex-1 bg-amber-600 text-white font-bold py-3 rounded-xl text-sm hover:bg-amber-700 transition-all flex items-center justify-center gap-2"
+                className="flex-1 bg-primary text-primary-foreground font-bold py-3 rounded-xl text-sm hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
               >
                 <Check size={16} /> {editing ? "Lưu" : "Thêm"}
               </button>
               <button
                 onClick={() => setModalOpen(false)}
-                className="px-6 py-3 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition-all"
+                className="px-6 py-3 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-secondary/40 hover:text-foreground transition-all"
               >
                 Hủy
               </button>

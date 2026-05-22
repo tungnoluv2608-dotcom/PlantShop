@@ -59,6 +59,11 @@ function normalizeOrderItemProductId(rawId) {
       return { productId: Number(trimmed), itemType: "product" };
     }
 
+     const productMatch = trimmed.match(/^product-(\d+)(?:-.+)?$/i);
+     if (productMatch) {
+       return { productId: Number(productMatch[1]), itemType: "product" };
+     }
+
     const planterMatch = trimmed.match(/^planter-(\d+)$/i);
     if (planterMatch) {
       return { productId: Number(planterMatch[1]), itemType: "planter" };

@@ -1,20 +1,31 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { SectionHeader } from "../ui/SectionHeader";
 import { ProductCard } from "../ui/ProductCard";
-import { products } from "../../data/mockData";
-
-// Get 8 products for the "Trending" section
-const trendingProducts = products.slice(0, 8);
+import { productService } from "../../services/productService";
+import type { Product } from "../../types";
 
 export function TrendingPlants() {
   const navigate = useNavigate();
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    productService
+      .getProducts({ sort: "trending", page: 1, pageSize: 8 })
+      .then((result) => {
+        setProducts(result.products);
+      })
+      .catch(() => {
+        setProducts([]);
+      });
+  }, []);
 
   const handleViewAll = () => {
     navigate("/shop?sort=trending");
   };
 
   return (
-    <section className="py-16 bg-white">
+    <section className="py-16">
       <div className="container mx-auto px-6 md:px-12">
         <SectionHeader 
           title="Cây trồng xu hướng" 
@@ -22,7 +33,7 @@ export function TrendingPlants() {
         />
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-          {trendingProducts.map(product => (
+          {products.map((product) => (
             <ProductCard 
               key={product.id}
               id={product.id}

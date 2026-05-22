@@ -1,19 +1,51 @@
 import axios from "axios";
 import type { Order, Review, Product } from "../types";
+import {
+  clearAdminSessionStorage,
+  clearUserSessionStorage,
+  getAdminToken,
+  getUserToken,
+  isAdminApiRequest,
+} from "./authStorage";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export const api = axios.create({ baseURL: BASE });
+let hasHandledUnauthorized = false;
 
 // Attach JWT token automatically
 api.interceptors.request.use((config) => {
-  // Try admin token first, then user token
-  const adminToken = (() => { try { return JSON.parse(localStorage.getItem("pap-admin-auth") || "{}").state?.token; } catch { return null; } })();
-  const userToken = (() => { try { return JSON.parse(localStorage.getItem("plantweb-auth") || "{}").state?.token; } catch { return null; } })();
-  const token = adminToken || userToken;
+  const token = isAdminApiRequest(config.url) ? getAdminToken() : getUserToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    const requestUrl = String(error?.config?.url || "");
+    const isAuthRequest = [
+      "/auth/signin",
+      "/auth/signup",
+      "/auth/google",
+      "/auth/facebook",
+      "/admin/login",
+    ].some((path) => requestUrl.startsWith(path));
+
+    if (status === 401 && !isAuthRequest && !hasHandledUnauthorized && typeof window !== "undefined") {
+      hasHandledUnauthorized = true;
+      if (isAdminApiRequest(requestUrl)) {
+        clearAdminSessionStorage();
+      } else {
+        clearUserSessionStorage();
+      }
+      window.location.reload();
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 // ── Orders ──────────────────────────────────────────────────────
 export const orderApi = {
@@ -32,6 +64,12 @@ export const orderApi = {
 
   createVnpayPaymentUrl: (orderId: string) =>
     api.post<{ paymentUrl: string }>(`/orders/${orderId}/vnpay-url`).then((r) => r.data),
+
+  createPayosPaymentUrl: (orderId: string) =>
+    api.post<{ checkoutUrl: string; qrCode: string; paymentLinkId: string }>(`/orders/${orderId}/payos-url`).then((r) => r.data),
+
+  verifyPayosReturn: (params: URLSearchParams) =>
+    api.get<{ success: boolean; orderId?: string; message?: string; status?: string }>("/orders/payos/verify", { params }).then((r) => r.data),
 
   verifyVnpayReturn: (params: URLSearchParams) =>
     api.get<{ success: boolean; orderId?: string; message?: string }>("/orders/vnpay/verify", { params }).then((r) => r.data),
