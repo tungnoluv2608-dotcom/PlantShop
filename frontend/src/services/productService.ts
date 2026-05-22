@@ -1,9 +1,5 @@
-import axios from "axios";
 import type { Product, Category, BlogPost } from "../types";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
-const api = axios.create({ baseURL: API_URL });
+import { api } from "./apiService";
 
 export interface ProductFilters {
   category?: string;
@@ -26,6 +22,32 @@ export interface BlogFilters {
 export interface BlogCategoryOption {
   name: string;
   total: number;
+}
+
+export interface PlantAdvisorPreferences {
+  budget: number;
+  lightLevel: "low" | "medium" | "bright";
+  hasPets: boolean;
+  priority: "easy-care" | "decor";
+  customPrompt?: string;
+}
+
+export interface PlantAdvisorRecommendation {
+  product: Product;
+  reason: string;
+  fitTags: string[];
+}
+
+export interface PlantAdvisorResponse {
+  summary: string;
+  recommendations: PlantAdvisorRecommendation[];
+}
+
+export interface PlantAdvisorHistoryEntry extends PlantAdvisorPreferences {
+  id: number;
+  summary: string;
+  createdAt: string;
+  recommendations: PlantAdvisorRecommendation[];
 }
 
 export const productService = {
@@ -92,6 +114,16 @@ export const productService = {
     limit = 5
   ): Promise<Pick<Product, "id" | "title" | "category">[]> {
     const res = await api.get("/products/search", { params: { q: query, limit } });
+    return res.data;
+  },
+
+  async getAdvisorRecommendations(body: PlantAdvisorPreferences): Promise<PlantAdvisorResponse> {
+    const res = await api.post("/products/advisor", body);
+    return res.data;
+  },
+
+  async getAdvisorHistory(): Promise<PlantAdvisorHistoryEntry[]> {
+    const res = await api.get("/products/advisor/history");
     return res.data;
   },
 };

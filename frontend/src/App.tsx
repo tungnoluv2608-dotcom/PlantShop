@@ -37,6 +37,7 @@ import AdminReviews from './pages/admin/AdminReviews'
 import AdminPlanters from './pages/admin/AdminPlanters'
 import AdminAccessories from './pages/admin/AdminAccessories'
 import { Toaster } from 'sonner'
+import { PlantAdvisorChatbox } from './components/advisor/PlantAdvisorChatbox'
 
 function App() {
   return (
@@ -96,6 +97,7 @@ function App() {
         {/* Catch-all 404 */}
         <Route path='*' element={<NotFoundPage />} />
       </Routes>
+      <PlantAdvisorChatbox />
     </BrowserRouter>
   )
 }
