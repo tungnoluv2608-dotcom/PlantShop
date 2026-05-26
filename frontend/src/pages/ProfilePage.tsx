@@ -15,6 +15,7 @@ import { useWishlistStore } from "../stores/wishlistStore";
 import { orderApi } from "../services/apiService";
 import { addressService } from "../services/addressService";
 import { VIETNAM_PROVINCES, getDistricts } from "../data/vietnamLocations";
+import { trackingProviderLabels } from "../lib/tracking";
 
 const tabs = [
   { id: "profile", label: "Hồ sơ", icon: User },
@@ -122,8 +123,8 @@ function OrderCard({ order, onCancel, onReview }: { order: Order; onCancel: (id:
               </button>
             </>
           )}
-          {order.status === "shipping" && order.trackingNumber && (
-            <a href="#" className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-orange-300 text-orange-600 text-sm font-semibold hover:bg-orange-50 transition-colors">
+          {order.status === "shipping" && order.trackingNumber && order.trackingUrl && (
+            <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-orange-300 text-orange-600 text-sm font-semibold hover:bg-orange-50 transition-colors">
               <Truck size={15} weight="fill" /> Theo dõi đơn
             </a>
           )}
@@ -159,7 +160,9 @@ function OrderCard({ order, onCancel, onReview }: { order: Order; onCancel: (id:
           <div className="mt-5 pt-4 border-t border-gray-200 text-sm space-y-2 text-foreground/70">
             <div className="flex justify-between"><span>Địa chỉ giao hàng:</span><span className="font-medium text-right max-w-[200px]">{order.shippingAddress}</span></div>
             <div className="flex justify-between"><span>Thanh toán:</span><span className="font-medium">{order.paymentMethod}</span></div>
+            {order.trackingProvider && <div className="flex justify-between"><span>Đơn vị vận chuyển:</span><span className="font-medium">{trackingProviderLabels[order.trackingProvider]}</span></div>}
             {order.trackingNumber && <div className="flex justify-between"><span>Mã vận đơn:</span><span className="font-mono font-bold text-primary">{order.trackingNumber}</span></div>}
+            {order.trackingUrl && <div className="flex justify-between"><span>Tra cứu:</span><a href={order.trackingUrl} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">Mở liên kết</a></div>}
           </div>
         </div>
       )}

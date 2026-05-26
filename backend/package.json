@@ -4,9 +4,14 @@
   "description": "PlantWeb Backend API",
   "main": "src/server.js",
   "scripts": {
-    "dev": "nodemon src/server.js",
-    "start": "node src/server.js",
-    "seed": "node seed.js"
+    "dev": "nodemon scripts/start-with-migrations.js",
+    "start": "node scripts/start-with-migrations.js",
+    "seed": "node seed.js",
+    "migrate": "node scripts/migrate.js",
+    "migrate:status": "node scripts/migrate.js --status",
+    "migrate:baseline": "node scripts/migrate.js --baseline",
+    "migrate:mark-applied": "node scripts/migrate.js --mark-applied",
+    "migrate:new": "node scripts/create-migration.js"
   },
   "keywords": [],
   "author": "",

@@ -1,5 +1,6 @@
 const { getPool, sql } = require("../libs/db");
 const crypto = require("crypto");
+const { buildTrackingUrl, normalizeTrackingProvider } = require("../services/trackingService");
 
 function buildSortedQuery(obj) {
   return Object.keys(obj)
@@ -88,7 +89,8 @@ async function getMyOrders(req, res, next) {
       .query(
         `SELECT o.id, CONVERT(varchar, o.created_at, 23) AS date, o.status,
                 o.shipping_address AS shippingAddress, o.payment_method AS paymentMethod,
-                o.subtotal, o.shipping_fee AS shippingFee, o.total, o.tracking_number AS trackingNumber
+                o.subtotal, o.shipping_fee AS shippingFee, o.total, o.tracking_number AS trackingNumber,
+                o.tracking_provider AS trackingProvider, o.tracking_url AS trackingUrl
          FROM Orders o WHERE o.user_id = @userId ORDER BY o.created_at DESC`
       );
 
@@ -110,7 +112,8 @@ async function getOrderById(req, res, next) {
       .query(
         `SELECT o.id, CONVERT(varchar, o.created_at, 23) AS date, o.status,
                 o.shipping_address AS shippingAddress, o.payment_method AS paymentMethod,
-                o.subtotal, o.shipping_fee AS shippingFee, o.total, o.tracking_number AS trackingNumber
+                o.subtotal, o.shipping_fee AS shippingFee, o.total, o.tracking_number AS trackingNumber,
+                o.tracking_provider AS trackingProvider, o.tracking_url AS trackingUrl
          FROM Orders o WHERE o.id = @id AND o.user_id = @userId`
       );
 
@@ -449,6 +452,8 @@ async function enrichOrders(pool, orders) {
 
   return orders.map((o) => ({
     ...o,
+    trackingProvider: normalizeTrackingProvider(o.trackingProvider),
+    trackingUrl: buildTrackingUrl(o.trackingProvider, o.trackingNumber, o.trackingUrl),
     items: itemsMap[o.id] || [],
     timeline: timelineMap[o.id] || [],
   }));

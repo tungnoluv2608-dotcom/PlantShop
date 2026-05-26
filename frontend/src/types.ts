@@ -103,6 +103,8 @@ export interface Order {
   shippingFee: number;
   total: number;
   trackingNumber?: string;
+  trackingProvider?: "ghn" | "ghtk" | "viettelpost" | "other" | null;
+  trackingUrl?: string | null;
   timeline: OrderTimeline[];
 }
 

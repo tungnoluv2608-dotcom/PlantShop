@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const { getPool, sql } = require("../libs/db");
+const { buildTrackingUrl, normalizeTrackingProvider } = require("../services/trackingService");
 
 function stripMarkdownFence(text) {
   const raw = String(text || "").trim();
@@ -64,6 +65,32 @@ async function hasAccessoryMetaColumns(pool) {
   );
   const names = new Set(result.recordset.map((row) => row.name));
   return names.has("accessory_brand") && names.has("accessory_uses");
+}
+
+function getDefaultTimelineEntry(status, trackingProvider) {
+  const providerLabelMap = {
+    ghn: "GHN",
+    ghtk: "GHTK",
+    viettelpost: "Viettel Post",
+    other: "đơn vị vận chuyển",
+  };
+
+  switch (status) {
+    case "confirmed":
+      return "Đơn hàng đã được xác nhận";
+    case "packing":
+      return "Đơn hàng đang được đóng gói";
+    case "shipping": {
+      const providerLabel = providerLabelMap[trackingProvider] || providerLabelMap.other;
+      return `Đơn hàng đã được bàn giao cho ${providerLabel}`;
+    }
+    case "delivered":
+      return "Đơn hàng đã được giao thành công";
+    case "cancelled":
+      return "Đơn hàng đã bị hủy";
+    default:
+      return "";
+  }
 }
 
 // POST /api/admin/login
@@ -238,14 +265,26 @@ async function listAllOrders(req, res, next) {
 
 async function updateOrderStatus(req, res, next) {
   try {
-    const { status, timelineEntry } = req.body;
+    const { status, timelineEntry, trackingNumber, trackingProvider, trackingUrl } = req.body;
     const pool = await getPool();
-    await pool.request().input("id", sql.NVarChar, req.params.id).input("status", sql.NVarChar, status)
-      .query("UPDATE Orders SET status=@status WHERE id=@id");
+    const normalizedTrackingNumber = String(trackingNumber || "").trim() || null;
+    const normalizedTrackingProvider = normalizeTrackingProvider(trackingProvider);
+    const normalizedTrackingUrl = buildTrackingUrl(normalizedTrackingProvider, normalizedTrackingNumber, trackingUrl);
+    const normalizedTimelineEntry =
+      String(timelineEntry || "").trim() || getDefaultTimelineEntry(status, normalizedTrackingProvider);
+    await pool.request()
+      .input("id", sql.NVarChar, req.params.id)
+      .input("status", sql.NVarChar, status)
+      .input("trackingNumber", sql.NVarChar, normalizedTrackingNumber)
+      .input("trackingProvider", sql.NVarChar, normalizedTrackingProvider)
+      .input("trackingUrl", sql.NVarChar, normalizedTrackingUrl)
+      .query(
+        "UPDATE Orders SET status=@status, tracking_number=@trackingNumber, tracking_provider=@trackingProvider, tracking_url=@trackingUrl WHERE id=@id"
+      );
 
-    if (timelineEntry) {
+    if (normalizedTimelineEntry) {
       await pool.request().input("orderId", sql.NVarChar, req.params.id)
-        .input("status", sql.NVarChar, timelineEntry)
+        .input("status", sql.NVarChar, normalizedTimelineEntry)
         .query("INSERT INTO OrderTimeline (order_id, status, event_date, done) VALUES (@orderId, @status, GETDATE(), 1)");
     }
     return res.json({ message: "Đã cập nhật trạng thái đơn hàng." });
@@ -262,7 +301,8 @@ async function adminGetOrderById(req, res, next) {
       .query(
         `SELECT o.id, CONVERT(varchar, o.created_at, 23) AS date, o.status,
                 o.shipping_address AS shippingAddress, o.payment_method AS paymentMethod,
-                o.subtotal, o.shipping_fee AS shippingFee, o.total, o.tracking_number AS trackingNumber
+                o.subtotal, o.shipping_fee AS shippingFee, o.total, o.tracking_number AS trackingNumber,
+                o.tracking_provider AS trackingProvider, o.tracking_url AS trackingUrl
          FROM Orders o WHERE o.id = @id`
       );
     if (orderResult.recordset.length === 0)
@@ -278,6 +318,8 @@ async function adminGetOrderById(req, res, next) {
     );
     const enriched = {
       ...order,
+      trackingProvider: normalizeTrackingProvider(order.trackingProvider),
+      trackingUrl: buildTrackingUrl(order.trackingProvider, order.trackingNumber, order.trackingUrl),
       items: itemsResult.recordset.map((i) => ({ id: String(i.id), title: i.title, price: i.price, quantity: i.quantity, image: i.image, planter: i.planter })),
       timeline: timelineResult.recordset.map((t) => ({ status: t.status, date: t.date, done: !!t.done })),
     };

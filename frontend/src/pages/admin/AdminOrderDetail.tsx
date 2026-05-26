@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle, Package, Truck, XCircle, Clock } from "@phospho
 import { adminApi } from "../../services/apiService";
 import type { Order } from "../../types";
 import { toast } from "sonner";
+import { trackingProviderLabels, trackingProviderOptions } from "../../lib/tracking";
 
 const statusCfg: Record<Order["status"], { label: string; color: string; icon: React.ReactNode }> = {
   pending:   { label: "Chờ xác nhận", color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/25", icon: <Clock size={14} weight="fill" /> },
@@ -17,6 +18,14 @@ const statusCfg: Record<Order["status"], { label: string; color: string; icon: R
 
 const STATUS_OPTIONS: Order["status"][] = ["pending", "confirmed", "packing", "shipping", "delivered", "cancelled"];
 
+const defaultTimelineSuggestions: Partial<Record<Order["status"], string>> = {
+  confirmed: "Mặc định: Đơn hàng đã được xác nhận",
+  packing: "Mặc định: Đơn hàng đang được đóng gói",
+  shipping: "Mặc định: Đơn hàng đã được bàn giao cho đơn vị vận chuyển",
+  delivered: "Mặc định: Đơn hàng đã được giao thành công",
+  cancelled: "Mặc định: Đơn hàng đã bị hủy",
+};
+
 export default function AdminOrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -24,24 +33,45 @@ export default function AdminOrderDetail() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<Order["status"]>("pending");
   const [saving, setSaving] = useState(false);
+  const [timelineEntry, setTimelineEntry] = useState("");
+  const [trackingProvider, setTrackingProvider] = useState<NonNullable<Order["trackingProvider"]>>("ghn");
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [trackingUrl, setTrackingUrl] = useState("");
+
+  const loadOrder = (orderId: string) =>
+    adminApi.getOrderDetail(orderId).then((data: Order) => {
+      setOrder(data);
+      setStatus(data.status);
+      setTrackingProvider(data.trackingProvider || "ghn");
+      setTrackingNumber(data.trackingNumber || "");
+      setTrackingUrl(data.trackingUrl || "");
+    });
 
   useEffect(() => {
     if (!id) return;
-    adminApi.getOrderDetail(id)
-      .then((data: Order) => {
-        setOrder(data);
-        setStatus(data.status);
-      })
+    loadOrder(id)
       .catch(() => toast.error("Không tìm thấy đơn hàng"))
       .finally(() => setLoading(false));
   }, [id]);
 
   const handleStatusUpdate = async () => {
     if (!id) return;
+    if (status === "shipping" && !trackingNumber.trim()) {
+      toast.error("Cần nhập mã vận đơn trước khi chuyển sang trạng thái đang giao");
+      return;
+    }
+
     setSaving(true);
     try {
-      await adminApi.updateOrderStatus(id, status);
-      setOrder((prev) => prev ? { ...prev, status } : prev);
+      await adminApi.updateOrderStatus(id, {
+        status,
+        timelineEntry: timelineEntry.trim() || undefined,
+        trackingNumber: trackingNumber.trim() || undefined,
+        trackingProvider: trackingNumber.trim() ? trackingProvider : null,
+        trackingUrl: trackingUrl.trim() || undefined,
+      });
+      await loadOrder(id);
+      setTimelineEntry("");
       toast.success(`Đã cập nhật trạng thái: ${statusCfg[status].label}`);
     } catch {
       toast.error("Cập nhật thất bại");
@@ -149,7 +179,9 @@ export default function AdminOrderDetail() {
             <div className="space-y-2 text-sm text-muted-foreground">
               <div><span className="font-semibold text-foreground">Địa chỉ:</span><p className="mt-0.5">{order.shippingAddress}</p></div>
               <div><span className="font-semibold text-foreground">Thanh toán:</span> {order.paymentMethod}</div>
+              {order.trackingProvider && <div><span className="font-semibold text-foreground">Đơn vị vận chuyển:</span> {trackingProviderLabels[order.trackingProvider]}</div>}
               {order.trackingNumber && <div><span className="font-semibold text-foreground">Mã vận đơn:</span> <span className="font-mono text-primary">{order.trackingNumber}</span></div>}
+              {order.trackingUrl && <div><a href={order.trackingUrl} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">Mở link tra cứu</a></div>}
             </div>
           </div>
 
@@ -164,6 +196,38 @@ export default function AdminOrderDetail() {
                 <option key={s} value={s} className="bg-card text-foreground">{statusCfg[s].label}</option>
               ))}
             </select>
+            <select
+              value={trackingProvider}
+              onChange={(e) => setTrackingProvider(e.target.value as NonNullable<Order["trackingProvider"]>)}
+              className="w-full px-3 py-2.5 rounded-xl border border-border text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 mb-3 bg-card">
+              {trackingProviderOptions.map((provider) => (
+                <option key={provider.value} value={provider.value} className="bg-card text-foreground">{provider.label}</option>
+              ))}
+            </select>
+            <input
+              value={trackingNumber}
+              onChange={(e) => setTrackingNumber(e.target.value)}
+              placeholder="Mã vận đơn"
+              className="w-full px-3 py-2.5 rounded-xl border border-border text-sm bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 mb-3"
+            />
+            <input
+              value={trackingUrl}
+              onChange={(e) => setTrackingUrl(e.target.value)}
+              placeholder="Link tra cứu tùy chỉnh (không bắt buộc)"
+              className="w-full px-3 py-2.5 rounded-xl border border-border text-sm bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 mb-3"
+            />
+            <textarea
+              value={timelineEntry}
+              onChange={(e) => setTimelineEntry(e.target.value)}
+              placeholder="Ghi chú timeline, ví dụ: Đơn đã bàn giao cho đơn vị vận chuyển"
+              rows={3}
+              className="w-full px-3 py-2.5 rounded-xl border border-border text-sm bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 mb-3 resize-none"
+            />
+            {defaultTimelineSuggestions[status] && (
+              <p className="text-xs text-muted-foreground mb-3">
+                {defaultTimelineSuggestions[status]}. Để trống nếu muốn dùng câu mặc định này.
+              </p>
+            )}
             <button
               onClick={handleStatusUpdate}
               disabled={saving}

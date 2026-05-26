@@ -126,6 +126,8 @@ CREATE TABLE Orders (
     shipping_fee     DECIMAL(18, 2) NOT NULL DEFAULT 0,
     total            DECIMAL(18, 2) NOT NULL,
     tracking_number  NVARCHAR(100),
+    tracking_provider NVARCHAR(50),
+    tracking_url     NVARCHAR(1000),
     created_at       DATETIME NOT NULL DEFAULT GETDATE()
 );
 GO

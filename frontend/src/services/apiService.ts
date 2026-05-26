@@ -142,8 +142,16 @@ export const adminApi = {
 
   // Orders
   listOrders: () => api.get("/admin/orders").then((r) => r.data),
-  updateOrderStatus: (id: string, status: string, timelineEntry?: string) =>
-    api.patch(`/admin/orders/${id}/status`, { status, timelineEntry }).then((r) => r.data),
+  updateOrderStatus: (
+    id: string,
+    body: {
+      status: string;
+      timelineEntry?: string;
+      trackingNumber?: string;
+      trackingProvider?: string | null;
+      trackingUrl?: string;
+    }
+  ) => api.patch(`/admin/orders/${id}/status`, body).then((r) => r.data),
   getOrderDetail: (id: string) => api.get(`/admin/orders/${id}`).then((r) => r.data),
 
   // Customers
