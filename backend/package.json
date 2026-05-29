@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "nodemon scripts/start-with-migrations.js",
     "start": "node scripts/start-with-migrations.js",
+    "setup": "node scripts/setup.js",
+    "setup:no-seed": "node scripts/setup.js --no-seed",
     "seed": "node seed.js",
     "migrate": "node scripts/migrate.js",
     "migrate:status": "node scripts/migrate.js --status",

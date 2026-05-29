@@ -5,7 +5,7 @@ const { spawnSync } = require("child_process");
 
 function runMigrations() {
   if (process.env.SKIP_MIGRATIONS === "true") {
-    console.log("Bo qua migrate vi SKIP_MIGRATIONS=true");
+    console.log("[migrate] Skipped (SKIP_MIGRATIONS=true)");
     return;
   }
 

@@ -6,6 +6,7 @@ import {
   getAdminToken,
   getUserToken,
   isAdminApiRequest,
+  isUploadApiRequest,
 } from "./authStorage";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -15,7 +16,14 @@ let hasHandledUnauthorized = false;
 
 // Attach JWT token automatically
 api.interceptors.request.use((config) => {
-  const token = isAdminApiRequest(config.url) ? getAdminToken() : getUserToken();
+  const requestUrl = String(config.url || "");
+  const userToken = getUserToken();
+  const adminToken = getAdminToken();
+  const token = isAdminApiRequest(requestUrl)
+    ? adminToken
+    : isUploadApiRequest(requestUrl)
+      ? userToken || adminToken
+      : userToken;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -35,7 +43,7 @@ api.interceptors.response.use(
 
     if (status === 401 && !isAuthRequest && !hasHandledUnauthorized && typeof window !== "undefined") {
       hasHandledUnauthorized = true;
-      if (isAdminApiRequest(requestUrl)) {
+      if (isAdminApiRequest(requestUrl) || (isUploadApiRequest(requestUrl) && !getUserToken() && getAdminToken())) {
         clearAdminSessionStorage();
       } else {
         clearUserSessionStorage();
@@ -52,6 +60,7 @@ export const orderApi = {
   create: (body: {
     items: { id: string; title: string; price: number; quantity: number; image: string; planter: string }[];
     shippingAddress: string;
+    shippingMethod: string;
     paymentMethod: string;
     subtotal: number;
     shippingFee: number;

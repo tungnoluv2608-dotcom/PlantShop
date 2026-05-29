@@ -137,25 +137,17 @@
   }
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes hero-ken-burns {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
 }
 
-.hero-reveal {
-  opacity: 0;
-  animation: fadeInUp 0.62s ease-out forwards;
+@keyframes hero-text-in {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .hero-reveal {
-    animation: none;
-    opacity: 1;
-  }
+@keyframes hero-text-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }

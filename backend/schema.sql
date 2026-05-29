@@ -1,9 +1,6 @@
 -- PlantWeb Database Schema
 -- SQL Server
 
-USE PlantShopDB;
-GO
-
 -- ── Users ──────────────────────────────────────────────────────
 CREATE TABLE Users (
     id            INT IDENTITY(1,1) PRIMARY KEY,
@@ -32,6 +29,9 @@ CREATE TABLE UserAddresses (
 );
 GO
 
+CREATE INDEX IX_UserAddresses_UserId ON UserAddresses(user_id);
+GO
+
 -- ── Categories ─────────────────────────────────────────────────
 CREATE TABLE Categories (
     id    INT IDENTITY(1,1) PRIMARY KEY,
@@ -58,7 +58,8 @@ CREATE TABLE Products (
     image_url      NVARCHAR(1000),
     category_id    INT               REFERENCES Categories(id),
     bio            NVARCHAR(MAX),
-    in_stock       BIT               NOT NULL DEFAULT 1
+    in_stock       BIT               NOT NULL DEFAULT 1,
+    planter_options NVARCHAR(MAX)
 );
 GO
 
@@ -103,15 +104,15 @@ GO
 -- ── Blog Posts ─────────────────────────────────────────────────
 CREATE TABLE BlogPosts (
     id        INT IDENTITY(1,1) PRIMARY KEY,
-    title     NVARCHAR(500) NOT NULL,
-    image     NVARCHAR(1000),
-    excerpt   NVARCHAR(MAX),
-    content   NVARCHAR(MAX),
-    category  NVARCHAR(255),
+    title     NVARCHAR(500)  NOT NULL,
+    image     NVARCHAR(1000) NOT NULL,
+    excerpt   NVARCHAR(MAX)  NOT NULL,
+    content   NVARCHAR(MAX)  NOT NULL,
+    category  NVARCHAR(255)  NOT NULL,
     read_time NVARCHAR(50),
     tags      NVARCHAR(500),  -- comma-separated
     featured  BIT NOT NULL DEFAULT 0,
-    date      DATE NOT NULL DEFAULT CAST(GETDATE() AS DATE)
+    date      DATE           NOT NULL DEFAULT GETDATE()
 );
 GO
 
@@ -150,6 +151,13 @@ CREATE TABLE OrderTimeline (
     status     NVARCHAR(255) NOT NULL,
     event_date DATETIME      NOT NULL DEFAULT GETDATE(),
     done       BIT           NOT NULL DEFAULT 0
+);
+GO
+
+CREATE TABLE OrderNumberSequences (
+    sequence_year INT      NOT NULL PRIMARY KEY,
+    last_value    INT      NOT NULL DEFAULT 0,
+    updated_at    DATETIME NOT NULL DEFAULT GETDATE()
 );
 GO
 
@@ -194,6 +202,9 @@ CREATE TABLE UserWishlistItems (
 );
 GO
 
+CREATE INDEX IX_UserWishlistItems_UserId ON UserWishlistItems(user_id);
+GO
+
 -- ── Wholesale Inquiries ─────────────────────────────────────
 CREATE TABLE WholesaleInquiries (
     id                 INT IDENTITY(1,1) PRIMARY KEY,
@@ -216,4 +227,29 @@ CREATE TABLE WholesaleInquiries (
     contacted_at       DATETIME       NULL,
     closed_at          DATETIME       NULL
 );
+GO
+
+CREATE INDEX IX_WholesaleInquiries_Status ON WholesaleInquiries(status);
+GO
+
+CREATE INDEX IX_WholesaleInquiries_CreatedAt ON WholesaleInquiries(created_at DESC);
+GO
+
+-- ── Plant Advisor History ────────────────────────────────────
+CREATE TABLE UserPlantAdvisorHistory (
+    id                   INT IDENTITY(1,1) PRIMARY KEY,
+    user_id              INT            NOT NULL REFERENCES Users(id),
+    budget               DECIMAL(18, 2) NOT NULL,
+    light_level          NVARCHAR(20)   NOT NULL,
+    has_pets             BIT            NOT NULL DEFAULT 0,
+    priority             NVARCHAR(50)   NOT NULL,
+    custom_prompt        NVARCHAR(280)  NULL,
+    summary              NVARCHAR(MAX),
+    recommendations_json NVARCHAR(MAX)  NOT NULL,
+    created_at           DATETIME       NOT NULL DEFAULT GETDATE()
+);
+GO
+
+CREATE INDEX IX_UserPlantAdvisorHistory_UserId_CreatedAt
+    ON UserPlantAdvisorHistory(user_id, created_at DESC);
 GO

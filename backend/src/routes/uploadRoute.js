@@ -1,8 +1,15 @@
 const express = require("express");
 const multer = require("multer");
 const { uploadBuffer } = require("../libs/cloudinary");
+const authMiddleware = require("../middlewares/authMiddleware");
+const { createInMemoryRateLimit } = require("../middlewares/rateLimit");
 
 const router = express.Router();
+const uploadRateLimit = createInMemoryRateLimit({
+  windowMs: Number(process.env.UPLOAD_RATE_LIMIT_WINDOW_MS || 10 * 60 * 1000),
+  max: Number(process.env.UPLOAD_RATE_LIMIT_MAX || 20),
+  message: "Bạn upload quá nhanh. Vui lòng thử lại sau ít phút.",
+});
 
 const fileFilter = (_req, file, cb) => {
   const allowed = /jpeg|jpg|png|gif|webp/;
@@ -53,9 +60,9 @@ async function handleMultipleUpload(req, res, next) {
 }
 
 // POST /api/upload       → { url: "https://...", filename: "public_id" }
-router.post("/", upload.single("image"), handleUpload);
+router.post("/", authMiddleware, uploadRateLimit, upload.single("image"), handleUpload);
 
 // POST /api/upload/multiple → { urls: ["https://...", ...] }
-router.post("/multiple", upload.array("images", 10), handleMultipleUpload);
+router.post("/multiple", authMiddleware, uploadRateLimit, upload.array("images", 10), handleMultipleUpload);
 
 module.exports = router;

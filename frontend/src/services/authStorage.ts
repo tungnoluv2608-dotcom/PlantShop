@@ -25,6 +25,10 @@ export function isAdminApiRequest(url?: string) {
   return (url || "").startsWith("/admin");
 }
 
+export function isUploadApiRequest(url?: string) {
+  return (url || "").startsWith("/upload");
+}
+
 export function clearUserSessionStorage() {
   localStorage.removeItem(AUTH_STORAGE_KEY);
   localStorage.removeItem(LEGACY_USER_TOKEN_KEY);

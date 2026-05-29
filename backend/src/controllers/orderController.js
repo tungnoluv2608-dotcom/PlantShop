@@ -2,6 +2,13 @@ const { getPool, sql } = require("../libs/db");
 const crypto = require("crypto");
 const { buildTrackingUrl, normalizeTrackingProvider } = require("../services/trackingService");
 
+const VALID_PAYMENT_METHODS = new Set(["cod", "payos", "vnpay"]);
+const VALID_SHIPPING_METHODS = new Set(["standard", "express", "sameday"]);
+const SHIPPING_STANDARD_FEE = Number(process.env.SHIPPING_STANDARD_FEE || 0);
+const SHIPPING_STANDARD_FREE_THRESHOLD = Number(process.env.SHIPPING_STANDARD_FREE_THRESHOLD || 500000);
+const SHIPPING_EXPRESS_FEE = Number(process.env.SHIPPING_EXPRESS_FEE || 30000);
+const SHIPPING_SAMEDAY_FEE = Number(process.env.SHIPPING_SAMEDAY_FEE || 60000);
+
 function buildSortedQuery(obj) {
   return Object.keys(obj)
     .sort()
@@ -17,7 +24,6 @@ function getClientIp(req) {
     "127.0.0.1"
   );
 
-  // VNPay expects IPv4 format; convert local IPv6 forms to IPv4 fallback.
   const ip = String(raw);
   if (ip === "::1") return "127.0.0.1";
   if (ip.startsWith("::ffff:")) return ip.replace("::ffff:", "");
@@ -49,34 +55,294 @@ function fromVnpTxnRef(txnRef) {
 }
 
 function normalizeOrderItemProductId(rawId) {
-  // Keep numeric product IDs, and also extract numeric part for planter/accessory IDs.
   if (typeof rawId === "number" && Number.isInteger(rawId)) {
-    return { productId: rawId, itemType: "product" };
+    return { productId: rawId, itemType: "product", planterId: null };
   }
 
   if (typeof rawId === "string") {
     const trimmed = rawId.trim();
     if (/^\d+$/.test(trimmed)) {
-      return { productId: Number(trimmed), itemType: "product" };
+      return { productId: Number(trimmed), itemType: "product", planterId: null };
     }
 
-     const productMatch = trimmed.match(/^product-(\d+)(?:-.+)?$/i);
-     if (productMatch) {
-       return { productId: Number(productMatch[1]), itemType: "product" };
-     }
+    const productMatch = trimmed.match(/^product-(\d+)(?:-planter-(\d+)|-none)?(?:-.+)?$/i);
+    if (productMatch) {
+      return {
+        productId: Number(productMatch[1]),
+        itemType: "product",
+        planterId: productMatch[2] ? Number(productMatch[2]) : null,
+      };
+    }
 
     const planterMatch = trimmed.match(/^planter-(\d+)$/i);
     if (planterMatch) {
-      return { productId: Number(planterMatch[1]), itemType: "planter" };
+      return { productId: Number(planterMatch[1]), itemType: "planter", planterId: null };
     }
 
     const accessoryMatch = trimmed.match(/^accessory-(\d+)$/i);
     if (accessoryMatch) {
-      return { productId: Number(accessoryMatch[1]), itemType: "accessory" };
+      return { productId: Number(accessoryMatch[1]), itemType: "accessory", planterId: null };
     }
   }
 
-  return { productId: null, itemType: "unknown" };
+  return { productId: null, itemType: "unknown", planterId: null };
+}
+
+function normalizePaymentMethod(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return VALID_PAYMENT_METHODS.has(normalized) ? normalized : "";
+}
+
+function normalizeShippingMethod(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return VALID_SHIPPING_METHODS.has(normalized) ? normalized : "";
+}
+
+function computeShippingFee(subtotal, shippingMethod) {
+  if (shippingMethod === "express") {
+    return Math.max(0, SHIPPING_EXPRESS_FEE);
+  }
+
+  if (shippingMethod === "sameday") {
+    return Math.max(0, SHIPPING_SAMEDAY_FEE);
+  }
+
+  if (shippingMethod === "standard") {
+    return subtotal >= SHIPPING_STANDARD_FREE_THRESHOLD ? 0 : Math.max(0, SHIPPING_STANDARD_FEE);
+  }
+
+  throw new Error("Unsupported shipping method");
+}
+
+function parseJsonArray(rawValue) {
+  if (!rawValue) return [];
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function buildProductPlanterLabel(planter) {
+  if (!planter) {
+    return "Không (Chỉ cây và chậu nhựa ươm)";
+  }
+
+  const price = Number(planter.price || 0);
+  return `Có (Kèm ${planter.name}${price > 0 ? ` +${price.toLocaleString("vi-VN")}đ` : ""})`;
+}
+
+function formatOrderSequenceValue(value) {
+  return String(value).padStart(5, "0");
+}
+
+function buildOrderId(year, sequenceValue) {
+  return `PSTT-${year}-${formatOrderSequenceValue(sequenceValue)}`;
+}
+
+async function ensureOrderSequenceTable(transaction) {
+  await transaction.request().query(`
+    IF NOT EXISTS (
+      SELECT 1
+      FROM sys.tables
+      WHERE name = 'OrderNumberSequences'
+    )
+    BEGIN
+      CREATE TABLE OrderNumberSequences (
+        sequence_year INT NOT NULL PRIMARY KEY,
+        last_value    INT NOT NULL DEFAULT 0,
+        updated_at    DATETIME NOT NULL DEFAULT GETDATE()
+      );
+    END
+  `);
+}
+
+async function getNextOrderSequenceValue(transaction, year) {
+  await ensureOrderSequenceTable(transaction);
+
+  const result = await transaction.request().input("sequenceYear", sql.Int, year).query(`
+    MERGE OrderNumberSequences WITH (HOLDLOCK) AS target
+    USING (SELECT @sequenceYear AS sequence_year) AS source
+    ON target.sequence_year = source.sequence_year
+    WHEN MATCHED THEN
+      UPDATE SET
+        last_value = target.last_value + 1,
+        updated_at = GETDATE()
+    WHEN NOT MATCHED THEN
+      INSERT (sequence_year, last_value, updated_at)
+      VALUES (source.sequence_year, 1, GETDATE())
+    OUTPUT inserted.last_value AS nextValue;
+  `);
+
+  return Number(result.recordset[0]?.nextValue || 0);
+}
+
+async function loadCatalogMaps(pool, normalizedItems) {
+  const productIds = Array.from(
+    new Set(
+      normalizedItems
+        .filter((item) => item.itemType === "product" && Number.isInteger(item.productId))
+        .map((item) => Number(item.productId))
+    )
+  );
+  const planterIds = Array.from(
+    new Set(
+      normalizedItems
+        .flatMap((item) => {
+          const ids = [];
+          if ((item.itemType === "planter" || item.itemType === "accessory") && Number.isInteger(item.productId)) {
+            ids.push(Number(item.productId));
+          }
+          if (item.itemType === "product" && Number.isInteger(item.planterId)) {
+            ids.push(Number(item.planterId));
+          }
+          return ids;
+        })
+    )
+  );
+
+  const productMap = new Map();
+  const planterMap = new Map();
+
+  if (productIds.length > 0) {
+    const productResult = await pool.request().query(`
+      SELECT id, title, price, image_url AS imageUrl, in_stock AS inStock, planter_options AS planterOptions
+      FROM Products
+      WHERE id IN (${productIds.join(",")})
+    `);
+
+    for (const row of productResult.recordset) {
+      productMap.set(Number(row.id), row);
+    }
+  }
+
+  if (planterIds.length > 0) {
+    const planterResult = await pool.request().query(`
+      SELECT id, name, price, image_url AS imageUrl, in_stock AS inStock, type
+      FROM Planters
+      WHERE id IN (${planterIds.join(",")})
+    `);
+
+    for (const row of planterResult.recordset) {
+      planterMap.set(Number(row.id), row);
+    }
+  }
+
+  return { productMap, planterMap };
+}
+
+function normalizeIncomingItems(items) {
+  return items.map((item, index) => {
+    const parsed = normalizeOrderItemProductId(item?.id);
+    const quantity = Number.parseInt(item?.quantity, 10);
+
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      const error = new Error(`Số lượng sản phẩm ở vị trí ${index + 1} không hợp lệ.`);
+      error.status = 400;
+      throw error;
+    }
+
+    if (!Number.isInteger(parsed.productId) || parsed.productId <= 0) {
+      const error = new Error(`Mã sản phẩm ở vị trí ${index + 1} không hợp lệ.`);
+      error.status = 400;
+      throw error;
+    }
+
+    if (parsed.itemType === "unknown") {
+      const error = new Error(`Không nhận diện được sản phẩm ở vị trí ${index + 1}.`);
+      error.status = 400;
+      throw error;
+    }
+
+    return {
+      cartId: String(item?.id || "").trim(),
+      itemType: parsed.itemType,
+      productId: parsed.productId,
+      planterId: Number.isInteger(parsed.planterId) && parsed.planterId > 0 ? parsed.planterId : null,
+      quantity,
+    };
+  });
+}
+
+function buildCanonicalOrderItems(normalizedItems, productMap, planterMap) {
+  return normalizedItems.map((item, index) => {
+    if (item.itemType === "product") {
+      const product = productMap.get(Number(item.productId));
+      if (!product || !product.inStock) {
+        const error = new Error(`Sản phẩm ở vị trí ${index + 1} không tồn tại hoặc đã hết hàng.`);
+        error.status = 400;
+        throw error;
+      }
+
+      let selectedPlanter = null;
+      if (item.planterId) {
+        selectedPlanter = planterMap.get(Number(item.planterId));
+        const allowedPlanterIds = parseJsonArray(product.planterOptions).map((value) => String(value));
+
+        if (
+          !selectedPlanter ||
+          !selectedPlanter.inStock ||
+          !allowedPlanterIds.includes(String(item.planterId))
+        ) {
+          const error = new Error(`Chậu đi kèm ở vị trí ${index + 1} không hợp lệ hoặc không còn hàng.`);
+          error.status = 400;
+          throw error;
+        }
+      }
+
+      const unitPrice = Number(product.price || 0) + Number(selectedPlanter?.price || 0);
+      return {
+        itemType: "product",
+        productId: Number(product.id),
+        quantity: item.quantity,
+        title: String(product.title || "").trim(),
+        imageUrl: String(product.imageUrl || "").trim(),
+        price: unitPrice,
+        planterName: buildProductPlanterLabel(selectedPlanter),
+      };
+    }
+
+    const planter = planterMap.get(Number(item.productId));
+    if (!planter || !planter.inStock) {
+      const error = new Error(`Mặt hàng ở vị trí ${index + 1} không tồn tại hoặc đã hết hàng.`);
+      error.status = 400;
+      throw error;
+    }
+
+    if (item.itemType === "accessory" && String(planter.type || "").trim().toLowerCase() !== "accessory") {
+      const error = new Error(`Phụ kiện ở vị trí ${index + 1} không hợp lệ.`);
+      error.status = 400;
+      throw error;
+    }
+
+    if (item.itemType === "planter" && String(planter.type || "").trim().toLowerCase() === "accessory") {
+      const error = new Error(`Chậu cây ở vị trí ${index + 1} không hợp lệ.`);
+      error.status = 400;
+      throw error;
+    }
+
+    return {
+      itemType: item.itemType,
+      productId: Number(planter.id),
+      quantity: item.quantity,
+      title: String(planter.name || "").trim(),
+      imageUrl: String(planter.imageUrl || "").trim(),
+      price: Number(planter.price || 0),
+      planterName: String(planter.name || "").trim(),
+    };
+  });
+}
+
+function calculateOrderTotals(canonicalItems, shippingMethod) {
+  const subtotal = canonicalItems.reduce((sum, item) => sum + Number(item.price || 0) * item.quantity, 0);
+  const shippingFee = computeShippingFee(subtotal, shippingMethod);
+  return {
+    subtotal,
+    shippingFee,
+    total: subtotal + shippingFee,
+  };
 }
 
 // GET /api/orders  (my orders)
@@ -117,8 +383,9 @@ async function getOrderById(req, res, next) {
          FROM Orders o WHERE o.id = @id AND o.user_id = @userId`
       );
 
-    if (orderResult.recordset.length === 0)
+    if (orderResult.recordset.length === 0) {
       return res.status(404).json({ message: "Đơn hàng không tồn tại." });
+    }
 
     const orders = await enrichOrders(pool, orderResult.recordset);
     return res.json(orders[0]);
@@ -129,65 +396,80 @@ async function getOrderById(req, res, next) {
 
 // POST /api/orders
 async function createOrder(req, res, next) {
+  let transaction;
+  let rolledBack = false;
+
   try {
-    const {
-      items,
-      shippingAddress,
-      paymentMethod,
-      subtotal,
-      shippingFee,
-      total,
-    } = req.body;
+    const { items, shippingAddress, paymentMethod, shippingMethod } = req.body;
 
-    if (!items || items.length === 0)
+    if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Giỏ hàng trống." });
+    }
 
+    const normalizedPaymentMethod = normalizePaymentMethod(paymentMethod);
+    if (!normalizedPaymentMethod) {
+      return res.status(400).json({ message: "Phương thức thanh toán không hợp lệ." });
+    }
+
+    const normalizedShippingMethod = normalizeShippingMethod(shippingMethod);
+    if (!normalizedShippingMethod) {
+      return res.status(400).json({ message: "Phương thức vận chuyển không hợp lệ." });
+    }
+
+    const normalizedShippingAddress = String(shippingAddress || "").trim();
+    if (!normalizedShippingAddress) {
+      return res.status(400).json({ message: "Địa chỉ giao hàng không được để trống." });
+    }
+
+    const normalizedItems = normalizeIncomingItems(items);
     const pool = await getPool();
+    const { productMap, planterMap } = await loadCatalogMaps(pool, normalizedItems);
+    const canonicalItems = buildCanonicalOrderItems(normalizedItems, productMap, planterMap);
+    const totals = calculateOrderTotals(canonicalItems, normalizedShippingMethod);
 
-    // Generate order ID like PSTT-2026-XXXXX
+    transaction = new sql.Transaction(pool);
+    await transaction.begin();
+
     const year = new Date().getFullYear();
-    const countResult = await pool.request().query(
-      `SELECT COUNT(*) AS cnt FROM Orders WHERE YEAR(created_at) = ${year}`
-    );
-    const seq = String(countResult.recordset[0].cnt + 1).padStart(5, "0");
-    const orderId = `PSTT-${year}-${seq}`;
+    const nextSequenceValue = await getNextOrderSequenceValue(transaction, year);
+    if (!Number.isInteger(nextSequenceValue) || nextSequenceValue <= 0) {
+      throw new Error("Không thể tạo mã đơn hàng mới.");
+    }
 
-    await pool
+    const orderId = buildOrderId(year, nextSequenceValue);
+
+    await transaction
       .request()
       .input("id", sql.NVarChar, orderId)
       .input("userId", sql.Int, req.user.id)
       .input("status", sql.NVarChar, "pending")
-      .input("shippingAddress", sql.NVarChar, shippingAddress)
-      .input("paymentMethod", sql.NVarChar, paymentMethod)
-      .input("subtotal", sql.Decimal(18, 2), subtotal)
-      .input("shippingFee", sql.Decimal(18, 2), shippingFee)
-      .input("total", sql.Decimal(18, 2), total)
+      .input("shippingAddress", sql.NVarChar, normalizedShippingAddress)
+      .input("paymentMethod", sql.NVarChar, normalizedPaymentMethod)
+      .input("subtotal", sql.Decimal(18, 2), totals.subtotal)
+      .input("shippingFee", sql.Decimal(18, 2), totals.shippingFee)
+      .input("total", sql.Decimal(18, 2), totals.total)
       .query(
         `INSERT INTO Orders (id, user_id, status, shipping_address, payment_method, subtotal, shipping_fee, total)
          VALUES (@id, @userId, @status, @shippingAddress, @paymentMethod, @subtotal, @shippingFee, @total)`
       );
 
-    for (const item of items) {
-      const { productId, itemType } = normalizeOrderItemProductId(item.id);
-      const isSyntheticItem = itemType === "planter" || itemType === "accessory" || itemType === "unknown";
-
-      await pool
+    for (const item of canonicalItems) {
+      await transaction
         .request()
         .input("orderId", sql.NVarChar, orderId)
-        .input("productId", sql.Int, productId)
+        .input("productId", sql.Int, item.productId)
         .input("title", sql.NVarChar, item.title)
         .input("price", sql.Decimal(18, 2), item.price)
         .input("quantity", sql.Int, item.quantity)
-        .input("imageUrl", sql.NVarChar, item.image)
-        .input("planterName", sql.NVarChar, isSyntheticItem ? item.title : (item.planter || ""))
+        .input("imageUrl", sql.NVarChar, item.imageUrl || null)
+        .input("planterName", sql.NVarChar, item.planterName || "")
         .query(
           `INSERT INTO OrderItems (order_id, product_id, title, price, quantity, image_url, planter_name)
            VALUES (@orderId, @productId, @title, @price, @quantity, @imageUrl, @planterName)`
         );
     }
 
-    // Initial timeline entry
-    await pool
+    await transaction
       .request()
       .input("orderId", sql.NVarChar, orderId)
       .input("status", sql.NVarChar, "Đặt hàng thành công")
@@ -197,8 +479,23 @@ async function createOrder(req, res, next) {
          VALUES (@orderId, @status, GETDATE(), @done)`
       );
 
-    return res.status(201).json({ orderId, message: "Đặt hàng thành công." });
+    await transaction.commit();
+    return res.status(201).json({
+      orderId,
+      message: "Đặt hàng thành công.",
+      subtotal: totals.subtotal,
+      shippingFee: totals.shippingFee,
+      total: totals.total,
+    });
   } catch (err) {
+    if (transaction && !rolledBack) {
+      try {
+        await transaction.rollback();
+        rolledBack = true;
+      } catch (rollbackError) {
+        console.error("Rollback order transaction failed:", rollbackError.message || rollbackError);
+      }
+    }
     next(err);
   }
 }
@@ -213,12 +510,14 @@ async function cancelOrder(req, res, next) {
       .input("userId", sql.Int, req.user.id)
       .query("SELECT status FROM Orders WHERE id = @id AND user_id = @userId");
 
-    if (orderResult.recordset.length === 0)
+    if (orderResult.recordset.length === 0) {
       return res.status(404).json({ message: "Đơn hàng không tồn tại." });
+    }
 
     const { status } = orderResult.recordset[0];
-    if (!["pending", "confirmed"].includes(status))
+    if (!["pending", "confirmed"].includes(status)) {
       return res.status(400).json({ message: "Không thể hủy đơn hàng ở trạng thái này." });
+    }
 
     await pool
       .request()

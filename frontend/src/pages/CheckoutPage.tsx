@@ -175,6 +175,7 @@ export default function CheckoutPage() {
           planter: i.planter,
         })),
         shippingAddress,
+        shippingMethod,
         paymentMethod,
         subtotal,
         shippingFee,

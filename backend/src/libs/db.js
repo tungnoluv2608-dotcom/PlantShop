@@ -22,8 +22,30 @@ let pool;
 
 async function getPool() {
   if (!pool) {
-    pool = await sql.connect(config);
-    console.log("✅ Connected to SQL Server:", process.env.DB_DATABASE);
+    try {
+      pool = await sql.connect(config);
+    } catch (err) {
+      const db = config.database;
+      const server = config.server;
+      if (err.code === "ELOGIN") {
+        throw new Error(
+          `[db] Login failed for "${config.user}" on ${server}. Check DB_USER and DB_PASSWORD in .env`
+        );
+      }
+      if (err.originalError?.message?.includes("Could not open a connection") || err.code === "ESOCKET") {
+        throw new Error(
+          `[db] Cannot reach SQL Server at "${server}". Is the server running?`
+        );
+      }
+      if (err.originalError?.message?.includes(db) || err.code === "EDBOPEN") {
+        throw new Error(
+          `[db] Database "${db}" not found on ${server}. Create it first:\n` +
+          `     sqlcmd -S ${server} -Q "CREATE DATABASE [${db}]"\n` +
+          `     Or run: npm run setup`
+        );
+      }
+      throw new Error(`[db] Connection failed: ${err.message}`);
+    }
   }
   return pool;
 }

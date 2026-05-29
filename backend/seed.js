@@ -1,13 +1,29 @@
 require("dotenv").config();
 const { getPool, sql } = require("./src/libs/db");
 const bcrypt = require("bcryptjs");
+const { spawnSync } = require("child_process");
+const path = require("path");
+
+function ensureMigrations() {
+  const migratePath = path.resolve(__dirname, "scripts/migrate.js");
+  const result = spawnSync(process.execPath, [migratePath], {
+    stdio: "inherit",
+    env: process.env,
+  });
+  if (result.status !== 0) {
+    console.error("[seed] Migrations failed. Cannot seed without tables.");
+    process.exit(result.status || 1);
+  }
+}
 
 async function seed() {
-  console.log("🌱 Starting seed...");
+  ensureMigrations();
+
+  console.log("[seed] Starting...");
   const pool = await getPool();
 
   // ── 1. Clear existing data in correct order ─────────────────
-  console.log("🧹 Clearing old data...");
+  console.log("[seed] Clearing old data...");
   await pool.request().query(`
     DELETE FROM UserWishlistItems;
     IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'WholesaleInquiries') DELETE FROM WholesaleInquiries;
@@ -47,7 +63,7 @@ async function seed() {
     IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Users') DBCC CHECKIDENT ('Users', RESEED, 0);
     IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'BlogPosts') DBCC CHECKIDENT ('BlogPosts', RESEED, 0);
   `);
-  console.log("🧹 Database cleared and IDENTITY columns reset.");
+  console.log("[seed] Database cleared");
 
   // ── 2. Create users ──────────────────────────────────────────
   const passwordHash = await bcrypt.hash("123456", 10);
@@ -66,7 +82,7 @@ async function seed() {
     .query("INSERT INTO Users (name, email, password_hash, role) OUTPUT INSERTED.id VALUES (@name, @email, @hash, 'customer')");
   const userId = userResult.recordset[0].id;
 
-  console.log("✅ Users seeded (thanhtung@admin.com & thanhtung@user.com)");
+  console.log("[seed] Users created (thanhtung@admin.com & thanhtung@user.com)");
 
   // ── 3. Categories ───────────────────────────────────────────
   const categories = [
@@ -123,7 +139,7 @@ async function seed() {
         .query("INSERT INTO CategorySubcategories (category_id, name) VALUES (@catId, @sub)");
     }
   }
-  console.log("✅ Categories & Subcategories seeded");
+  console.log("[seed] Categories seeded");
 
   // ── 4. Products (> 50 items) ───────────────────────────────
   const products = [
@@ -871,7 +887,7 @@ async function seed() {
         .query("INSERT INTO CareGuides (product_id,title,content,sort_order) VALUES (@pid,@title2,@content,@sort)");
     }
   }
-  console.log(`✅ Seeded ${products.length} Products successfully!`);
+  console.log(`[seed] ${products.length} products seeded`);
 
   // ── 5. Planters & Accessories ───────────────────────────────
   const plantersAndAccessories = [
@@ -914,7 +930,7 @@ async function seed() {
       }
     }
   }
-  console.log("✅ Planters & Accessories seeded successfully");
+  console.log("[seed] Planters & accessories seeded");
 
   // ── 6. Blog Posts ───────────────────────────────────────────
   const blogs = [
@@ -976,13 +992,15 @@ async function seed() {
       .query(`INSERT INTO BlogPosts (title,image,excerpt,content,category,read_time,tags,featured,date)
               VALUES (@title,@image,@excerpt,@content,@category,@readTime,@tags,@featured,@date)`);
   }
-  console.log("✅ Blog posts seeded successfully");
+  console.log("[seed] Blog posts seeded");
 
-  console.log("🎉 Seed completed successfully!");
+  console.log("[seed] Done");
+  await sql.close();
   process.exit(0);
 }
 
-seed().catch((err) => {
-  console.error("❌ Seed error:", err);
+seed().catch(async (err) => {
+  console.error("[seed] Failed:", err.message);
+  await sql.close();
   process.exit(1);
 });

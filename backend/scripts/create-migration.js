@@ -44,13 +44,13 @@ function buildTemplate(name) {
 function main() {
   const rawName = process.argv.slice(2).join(" ").trim();
   if (!rawName) {
-    console.error("Vui long nhap ten migration. Vi du: npm run migrate:new -- add_order_notes");
+    console.error("Please provide a migration name. Example: npm run migrate:new -- add_order_notes");
     process.exit(1);
   }
 
   const slug = slugify(rawName);
   if (!slug) {
-    console.error("Ten migration khong hop le.");
+    console.error("Invalid migration name.");
     process.exit(1);
   }
 
@@ -62,7 +62,7 @@ function main() {
   }
 
   fs.writeFileSync(filePath, buildTemplate(rawName), "utf8");
-  console.log(`Da tao migration: ${filename}`);
+  console.log(`Created migration: ${filename}`);
 }
 
 main();

@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(git -C \"D:/Theris/PlantWeb/.claude/worktrees/agent-a4713d42f4f0582c3\" diff 4f1e946^ 4f1e946 -- \"frontend/src/components/home/HeroBanner.tsx\")",
-      "Bash(git -C \"D:/Theris/PlantWeb/.claude/worktrees/agent-a4713d42f4f0582c3\" diff 4f1e946^ 4f1e946 -- \"frontend/src/index.css\")"
+      "Bash(git -C \"D:/Theris/PlantWeb/.claude/worktrees/agent-a4713d42f4f0582c3\" diff 4f1e946^ 4f1e946 -- \"frontend/src/index.css\")",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(timeout 8)",
+      "Bash(npx playwright *)",
+      "Bash(npx vite *)",
+      "Bash(del \"d:\\\\Theris\\\\PlantWeb\\\\hero-slide1.png\" \"d:\\\\Theris\\\\PlantWeb\\\\hero-slide2.png\" \"d:\\\\Theris\\\\PlantWeb\\\\hero-mobile.png\")"
     ]
   }
 }

@@ -20,13 +20,25 @@ const errorHandler = require("./middlewares/errorHandler");
 const { getPool } = require("./libs/db");
 
 const app = express();
+const defaultCorsOrigins = ["http://localhost:5176", "http://localhost:3000", "http://localhost:5173", "http://localhost:4000"];
+const configuredCorsOrigins = String(process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const allowedCorsOrigins = configuredCorsOrigins.length > 0 ? configuredCorsOrigins : defaultCorsOrigins;
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedCorsOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("Origin không được phép truy cập API."));
+  },
+  credentials: true,
+};
 
 // ── Middleware ────────────────────────────────────────────────
 app.use("/api/webhooks/payos-webhook", express.raw({ type: "application/json" }));
-app.use(cors({
-  origin: ["http://localhost:5176", "http://localhost:3000", "http://localhost:5173"],
-  credentials: true,
-}));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
