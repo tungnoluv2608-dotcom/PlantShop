@@ -3,6 +3,8 @@ import { Leaf, Plant, Users, Trophy, Heart, ArrowRight } from "@phosphor-icons/r
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
 import { teamMembers } from "../data/mockData";
+import { motion } from "framer-motion";
+import { FadeIn, StaggerContainer, StaggerItem } from "../components/motion";
 
 const values = [
   { icon: Leaf, title: "Bền vững", desc: "Chúng tôi cam kết chỉ cung cấp cây cảnh được nhân giống và chăm sóc theo quy trình thân thiện với môi trường, không hóa chất độc hại." },
@@ -30,7 +32,12 @@ export default function AboutPage() {
           <div className="absolute bottom-10 right-10"><Plant size={160} weight="fill" /></div>
           <div className="absolute top-1/2 left-1/3"><Leaf size={80} weight="fill" /></div>
         </div>
-        <div className="relative max-w-4xl mx-auto px-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="relative max-w-4xl mx-auto px-6 text-center"
+        >
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/12 px-5 py-2 text-sm font-semibold backdrop-blur-sm">
             <Leaf size={16} weight="fill" /> Câu chuyện của chúng tôi
           </div>
@@ -41,13 +48,13 @@ export default function AboutPage() {
           <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
             PlanS Thanh Tùng ra đời từ tình yêu cây cảnh và niềm tin rằng mỗi góc nhỏ của cuộc sống đều có thể trở nên tươi đẹp hơn với một mầm xanh.
           </p>
-        </div>
+        </motion.div>
       </section>
 
       {/* Story */}
       <section className="py-20 max-w-5xl mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div>
+          <FadeIn direction="left">
             <h2 className="text-4xl font-black text-foreground mb-6 leading-tight">Hành trình <span className="text-primary">5 năm</span> gieo xanh</h2>
             <p className="text-foreground/70 leading-relaxed mb-4">
               PlanS Thanh Tùng khởi đầu từ năm 2020 với một vườn ươm nhỏ tại Bình Dương. Khi đại dịch khiến mọi người phải ở nhà nhiều hơn, chúng tôi nhận ra nhu cầu về cây xanh trong nhà tăng vọt — và theo đó là một khao khát kết nối với thiên nhiên.
@@ -58,80 +65,92 @@ export default function AboutPage() {
             <p className="text-foreground/70 leading-relaxed">
               Chúng tôi không đơn thuần là shop bán cây. Chúng tôi là người đồng hành trong hành trình tạo dựng không gian xanh của bạn.
             </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="aspect-square rounded-2xl overflow-hidden shadow-lg">
-              <img src="https://images.unsplash.com/photo-1416879598555-081e6ae76d05?w=500&auto=format&fit=crop" alt="Vườn ươm PlanS Thanh Tùng" className="w-full h-full object-cover" />
+          </FadeIn>
+          <FadeIn direction="right" delay={0.15}>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="aspect-square rounded-2xl overflow-hidden shadow-lg">
+                <img src="https://images.unsplash.com/photo-1416879598555-081e6ae76d05?w=500&auto=format&fit=crop" alt="Vườn ươm PlanS Thanh Tùng" className="w-full h-full object-cover" />
+              </div>
+              <div className="aspect-square rounded-2xl overflow-hidden shadow-lg mt-6">
+                <img src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=500&auto=format&fit=crop" alt="Đội ngũ PlanS Thanh Tùng" className="w-full h-full object-cover" />
+              </div>
+              <div className="aspect-square rounded-2xl overflow-hidden shadow-lg -mt-6">
+                <img src="https://images.unsplash.com/photo-1595126744865-c9cb6b09335e?w=500&auto=format&fit=crop" alt="Sản phẩm PlanS Thanh Tùng" className="w-full h-full object-cover" />
+              </div>
+              <div className="aspect-square rounded-2xl overflow-hidden shadow-lg">
+                <img src="https://images.unsplash.com/photo-1600411330366-9ab505c21df3?w=500&auto=format&fit=crop" alt="Cây PlanS Thanh Tùng" className="w-full h-full object-cover" />
+              </div>
             </div>
-            <div className="aspect-square rounded-2xl overflow-hidden shadow-lg mt-6">
-              <img src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=500&auto=format&fit=crop" alt="Đội ngũ PlanS Thanh Tùng" className="w-full h-full object-cover" />
-            </div>
-            <div className="aspect-square rounded-2xl overflow-hidden shadow-lg -mt-6">
-              <img src="https://images.unsplash.com/photo-1595126744865-c9cb6b09335e?w=500&auto=format&fit=crop" alt="Sản phẩm PlanS Thanh Tùng" className="w-full h-full object-cover" />
-            </div>
-            <div className="aspect-square rounded-2xl overflow-hidden shadow-lg">
-              <img src="https://images.unsplash.com/photo-1600411330366-9ab505c21df3?w=500&auto=format&fit=crop" alt="Cây PlanS Thanh Tùng" className="w-full h-full object-cover" />
-            </div>
-          </div>
+          </FadeIn>
         </div>
       </section>
 
       {/* Stats */}
       <section className="bg-[linear-gradient(180deg,rgba(79,127,79,0.96),rgba(88,138,84,0.88))] py-16">
         <div className="max-w-5xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map(({ icon: Icon, value, label }) => (
-              <div key={label} className="text-center text-white">
-                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                  <Icon size={28} weight="fill" />
+              <StaggerItem key={label}>
+                <div className="text-center text-white">
+                  <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <Icon size={28} weight="fill" />
+                  </div>
+                  <p className="text-3xl md:text-4xl font-black mb-1">{value}</p>
+                  <p className="text-white/70 text-sm">{label}</p>
                 </div>
-                <p className="text-3xl md:text-4xl font-black mb-1">{value}</p>
-                <p className="text-white/70 text-sm">{label}</p>
-              </div>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerContainer>
         </div>
       </section>
 
       {/* Values */}
       <section className="py-20 bg-[var(--background)]">
         <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-black text-foreground mb-3">Giá trị cốt lõi</h2>
-            <p className="text-foreground/60 max-w-xl mx-auto">Ba giá trị này định hình mọi quyết định và hành động của chúng tôi mỗi ngày.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <FadeIn>
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-black text-foreground mb-3">Giá trị cốt lõi</h2>
+              <p className="text-foreground/60 max-w-xl mx-auto">Ba giá trị này định hình mọi quyết định và hành động của chúng tôi mỗi ngày.</p>
+            </div>
+          </FadeIn>
+          <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {values.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="bg-card rounded-2xl p-8 shadow-sm border border-secondary hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center mb-5 shadow-md">
-                  <Icon size={28} weight="fill" className="text-white" />
+              <StaggerItem key={title}>
+                <div className="bg-card rounded-2xl p-8 shadow-sm border border-secondary hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                  <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center mb-5 shadow-md">
+                    <Icon size={28} weight="fill" className="text-white" />
+                  </div>
+                  <h3 className="text-xl font-black text-foreground mb-3">{title}</h3>
+                  <p className="text-foreground/60 leading-relaxed text-sm">{desc}</p>
                 </div>
-                <h3 className="text-xl font-black text-foreground mb-3">{title}</h3>
-                <p className="text-foreground/60 leading-relaxed text-sm">{desc}</p>
-              </div>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerContainer>
         </div>
       </section>
 
       {/* Team */}
       <section className="py-20 max-w-5xl mx-auto px-6">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-black text-foreground mb-3">Đội ngũ PlanS Thanh Tùng</h2>
-          <p className="text-foreground/60 max-w-xl mx-auto">Những con người tâm huyết đằng sau từng chậu cây bạn nhận được.</p>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <FadeIn>
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-black text-foreground mb-3">Đội ngũ PlanS Thanh Tùng</h2>
+            <p className="text-foreground/60 max-w-xl mx-auto">Những con người tâm huyết đằng sau từng chậu cây bạn nhận được.</p>
+          </div>
+        </FadeIn>
+        <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {teamMembers.map((member) => (
-            <div key={member.name} className="group text-center">
-              <div className="w-32 h-32 rounded-full overflow-hidden mx-auto mb-4 shadow-lg border-4 border-transparent group-hover:border-secondary transition-all duration-300">
-                <img src={member.image} alt={member.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+            <StaggerItem key={member.name}>
+              <div className="group text-center">
+                <div className="w-32 h-32 rounded-full overflow-hidden mx-auto mb-4 shadow-lg border-4 border-transparent group-hover:border-secondary transition-all duration-300">
+                  <img src={member.image} alt={member.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                </div>
+                <p className="font-bold text-foreground">{member.name}</p>
+                <p className="text-primary text-sm font-semibold mb-2">{member.role}</p>
+                <p className="text-xs text-foreground/50 leading-relaxed">{member.bio}</p>
               </div>
-              <p className="font-bold text-foreground">{member.name}</p>
-              <p className="text-primary text-sm font-semibold mb-2">{member.role}</p>
-              <p className="text-xs text-foreground/50 leading-relaxed">{member.bio}</p>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
       </section>
 
       {/* CTA */}

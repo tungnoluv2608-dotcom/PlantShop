@@ -6,6 +6,7 @@ import { BestSelling } from "../components/home/BestSelling";
 import { HotSale } from "../components/home/HotSale";
 import { TrendingPlants } from "../components/home/TrendingPlants";
 import { Blogs } from "../components/home/Blogs";
+import { FadeIn } from "../components/motion";
 
 export default function HomePage() {
   return (
@@ -16,11 +17,21 @@ export default function HomePage() {
       {/* Main Content */}
       <main>
         <HeroBanner />
-        <Categories />
-        <BestSelling />
-        <HotSale />
-        <TrendingPlants />
-        <Blogs />
+        <FadeIn>
+          <Categories />
+        </FadeIn>
+        <FadeIn delay={0.05}>
+          <BestSelling />
+        </FadeIn>
+        <FadeIn delay={0.05}>
+          <HotSale />
+        </FadeIn>
+        <FadeIn delay={0.05}>
+          <TrendingPlants />
+        </FadeIn>
+        <FadeIn delay={0.05}>
+          <Blogs />
+        </FadeIn>
       </main>
 
       {/* Global Footer */}

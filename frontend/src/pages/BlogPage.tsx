@@ -6,6 +6,9 @@ import { Footer } from "../components/layout/Footer";
 import { productService } from "../services/productService";
 import type { BlogPost, BlogCategory } from "../types";
 import forestPattern from "../assets/forest_pattern.jpg";
+import { motion } from "framer-motion";
+import { FadeIn, StaggerContainer, StaggerItem } from "../components/motion";
+import { BlogCardSkeleton } from "../components/ui/Skeletons";
 
 export default function BlogPage() {
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
@@ -64,10 +67,15 @@ export default function BlogPage() {
         style={{ backgroundImage: `url(${forestPattern})`, backgroundSize: "cover", backgroundPosition: "center" }}
       >
         <div className="absolute inset-0 bg-black/50" />
-        <div className="relative z-10 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="relative z-10 text-center"
+        >
           <h1 className="text-4xl md:text-6xl font-black text-white tracking-widest uppercase mb-2">GÓC XANH PLANS THANH TÙNG</h1>
           <p className="text-white/80 text-sm md:text-base">Kiến thức cây cảnh từ A đến Z</p>
-        </div>
+        </motion.div>
       </div>
 
       <main className="flex-grow max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
@@ -97,54 +105,58 @@ export default function BlogPage() {
         </div>
 
         {loading && (
-          <div className="mb-8 text-center">
-            <span className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin inline-block" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <BlogCardSkeleton count={6} />
           </div>
         )}
 
         {/* Featured Post */}
         {shouldShowFeatured && (
-          <Link to={`/blog/${featured.id}`} className="group block mb-10">
-            <div className="relative h-64 md:h-80 rounded-3xl overflow-hidden shadow-lg">
-              <img src={featured.image} alt={featured.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full mb-3 inline-block">BÀI VIẾT NỔI BẬT</span>
-                <h2 className="text-2xl md:text-3xl font-black text-white leading-tight mb-2 group-hover:text-secondary transition-colors">{featured.title}</h2>
-                <p className="text-white/70 text-sm line-clamp-2 mb-3 max-w-2xl">{featured.excerpt}</p>
-                <div className="flex items-center gap-3 text-white/60 text-xs">
-                  <span>{featured.date}</span>
-                  <span className="flex items-center gap-1"><Clock size={12} /> {featured.readTime}</span>
-                </div>
-              </div>
-            </div>
-          </Link>
-        )}
-
-        {/* Blog Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {paginatedPosts.map((post) => (
-            <Link key={post.id} to={`/blog/${post.id}`} className="group bg-card rounded-2xl overflow-hidden border border-secondary hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="h-48 overflow-hidden">
-                <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              </div>
-              <div className="p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  {post.category && <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full">{post.category}</span>}
-                  <span className="text-xs text-foreground/50 flex items-center gap-1 ml-auto"><Clock size={11} /> {post.readTime}</span>
-                </div>
-                <h3 className="font-bold text-foreground leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">{post.title}</h3>
-                {post.excerpt && <p className="text-sm text-foreground/60 line-clamp-2 mb-4 leading-relaxed">{post.excerpt}</p>}
-                <div className="flex items-center justify-between text-xs text-foreground/50">
-                  <span>{post.date}</span>
-                  <span className="flex items-center gap-1 text-primary font-semibold group-hover:gap-2 transition-all">
-                    Đọc ngay <ArrowRight size={14} weight="bold" />
-                  </span>
+          <FadeIn>
+            <Link to={`/blog/${featured.id}`} className="group block mb-10">
+              <div className="relative h-64 md:h-80 rounded-3xl overflow-hidden shadow-lg">
+                <img src={featured.image} alt={featured.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+                  <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full mb-3 inline-block">BÀI VIẾT NỔI BẬT</span>
+                  <h2 className="text-2xl md:text-3xl font-black text-white leading-tight mb-2 group-hover:text-secondary transition-colors">{featured.title}</h2>
+                  <p className="text-white/70 text-sm line-clamp-2 mb-3 max-w-2xl">{featured.excerpt}</p>
+                  <div className="flex items-center gap-3 text-white/60 text-xs">
+                    <span>{featured.date}</span>
+                    <span className="flex items-center gap-1"><Clock size={12} /> {featured.readTime}</span>
+                  </div>
                 </div>
               </div>
             </Link>
+          </FadeIn>
+        )}
+
+        {/* Blog Grid */}
+        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {paginatedPosts.map((post) => (
+            <StaggerItem key={post.id}>
+              <Link to={`/blog/${post.id}`} className="group bg-card rounded-2xl overflow-hidden border border-secondary hover:shadow-xl hover:-translate-y-1 transition-all duration-300 block h-full">
+                <div className="h-48 overflow-hidden">
+                  <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </div>
+                <div className="p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    {post.category && <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full">{post.category}</span>}
+                    <span className="text-xs text-foreground/50 flex items-center gap-1 ml-auto"><Clock size={11} /> {post.readTime}</span>
+                  </div>
+                  <h3 className="font-bold text-foreground leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">{post.title}</h3>
+                  {post.excerpt && <p className="text-sm text-foreground/60 line-clamp-2 mb-4 leading-relaxed">{post.excerpt}</p>}
+                  <div className="flex items-center justify-between text-xs text-foreground/50">
+                    <span>{post.date}</span>
+                    <span className="flex items-center gap-1 text-primary font-semibold group-hover:gap-2 transition-all">
+                      Đọc ngay <ArrowRight size={14} weight="bold" />
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
 
         {!loading && totalPages > 1 && (
           <div className="mt-10 flex items-center justify-center gap-2 flex-wrap">

@@ -38,11 +38,13 @@ import AdminPlanters from './pages/admin/AdminPlanters'
 import AdminAccessories from './pages/admin/AdminAccessories'
 import { Toaster } from 'sonner'
 import { PlantAdvisorChatbox } from './components/advisor/PlantAdvisorChatbox'
+import { TopProgressBar } from './components/motion'
 
 function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <TopProgressBar />
       <Toaster position="bottom-right" richColors />
       <Routes>
         {/* Public / Shop routes */}

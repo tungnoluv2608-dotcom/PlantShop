@@ -162,6 +162,20 @@ async function ensureOrderSequenceTable(transaction) {
 async function getNextOrderSequenceValue(transaction, year) {
   await ensureOrderSequenceTable(transaction);
 
+  const yearPrefix = `PSTT-${year}-`;
+  const maxResult = await transaction
+    .request()
+    .input("yearPrefix", sql.NVarChar, yearPrefix + "%")
+    .input("prefixLen", sql.Int, yearPrefix.length)
+    .query(`
+      SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(id, @prefixLen + 1, LEN(id) - @prefixLen) AS INT)), 0)
+        AS maxExisting
+      FROM Orders WITH (HOLDLOCK)
+      WHERE id LIKE @yearPrefix
+    `);
+
+  const maxExisting = Number(maxResult.recordset[0]?.maxExisting || 0);
+
   const result = await transaction.request().input("sequenceYear", sql.Int, year).query(`
     MERGE OrderNumberSequences WITH (HOLDLOCK) AS target
     USING (SELECT @sequenceYear AS sequence_year) AS source
@@ -176,7 +190,23 @@ async function getNextOrderSequenceValue(transaction, year) {
     OUTPUT inserted.last_value AS nextValue;
   `);
 
-  return Number(result.recordset[0]?.nextValue || 0);
+  const sequenceValue = Number(result.recordset[0]?.nextValue || 0);
+
+  if (sequenceValue <= maxExisting) {
+    const correctedValue = maxExisting + 1;
+    await transaction
+      .request()
+      .input("sequenceYear", sql.Int, year)
+      .input("correctedValue", sql.Int, correctedValue)
+      .query(`
+        UPDATE OrderNumberSequences
+        SET last_value = @correctedValue, updated_at = GETDATE()
+        WHERE sequence_year = @sequenceYear
+      `);
+    return correctedValue;
+  }
+
+  return sequenceValue;
 }
 
 async function loadCatalogMaps(pool, normalizedItems) {

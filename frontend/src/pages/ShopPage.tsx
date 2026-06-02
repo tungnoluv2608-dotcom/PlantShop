@@ -8,6 +8,9 @@ import { productService } from "../services/productService";
 import type { Product } from "../types";
 import forestPattern from "../assets/forest_pattern.jpg";
 import { api } from "../services/apiService";
+import { StaggerContainer, StaggerItem, FadeIn } from "../components/motion";
+import { ProductCardSkeleton } from "../components/ui/Skeletons";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface Category {
   id: string;
@@ -55,7 +58,7 @@ export default function ShopPage() {
         }, {} as Record<string, boolean>);
         setOpenCategories(initialOpen);
       })
-      .catch(console.error);
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -152,14 +155,19 @@ export default function ShopPage() {
         >
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(36,53,42,0.68),rgba(79,127,79,0.42))]" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,253,247,0.18),transparent_25%)]" />
-          <h1 className="relative z-10 text-white text-5xl md:text-6xl font-black tracking-widest uppercase shadow-sm">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="relative z-10 text-white text-5xl md:text-6xl font-black tracking-widest uppercase shadow-sm"
+          >
             CỬA HÀNG
-          </h1>
+          </motion.h1>
         </div>
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex flex-col md:flex-row gap-8">
-            <div className="w-full md:w-64 shrink-0 flex flex-col gap-6">
+            <FadeIn direction="left" className="w-full md:w-64 shrink-0 flex flex-col gap-6">
               <div className="rounded-2xl border border-border/80 bg-card/92 p-5 shadow-sm">
                 <button
                   onClick={() => handleCategorySelect(undefined)}
@@ -186,21 +194,29 @@ export default function ShopPage() {
                         {group.name}
                       </button>
 
-                      {openCategories[group.name] && group.subcategories.length > 0 && (
-                        <div className="ml-6 flex flex-col gap-3 text-sm text-foreground/70 mt-2">
-                          {group.subcategories.map((sub) => (
-                            <button
-                              key={sub}
-                              onClick={() => handleCategorySelect(sub)}
-                              className={`cursor-pointer hover:text-primary transition-colors text-left ${
-                                selectedCategory === sub ? "text-primary font-semibold" : ""
-                              }`}
-                            >
-                              {sub}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      <AnimatePresence>
+                        {openCategories[group.name] && group.subcategories.length > 0 && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            className="ml-6 flex flex-col gap-3 text-sm text-foreground/70 mt-2 overflow-hidden"
+                          >
+                            {group.subcategories.map((sub) => (
+                              <button
+                                key={sub}
+                                onClick={() => handleCategorySelect(sub)}
+                                className={`cursor-pointer hover:text-primary transition-colors text-left ${
+                                  selectedCategory === sub ? "text-primary font-semibold" : ""
+                                }`}
+                              >
+                                {sub}
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   ))}
                 </div>
@@ -214,30 +230,40 @@ export default function ShopPage() {
                   <span className="font-bold text-foreground">Phân loại giá</span>
                   <CaretDown size={16} className={`transition-transform ${isPriceOpen ? "rotate-180" : ""}`} />
                 </button>
-                {isPriceOpen && (
-                  <div className="mt-4 flex flex-col gap-3 text-sm">
-                    {priceRanges.map((range, index) => (
-                      <label key={index} className="flex items-center gap-3 cursor-pointer group">
-                        <input
-                          type="radio"
-                          name="price"
-                          checked={selectedPriceRange === index}
-                          onChange={() => handlePriceRangeSelect(index)}
-                          className="w-4 h-4 text-primary bg-card border-gray-300 focus:ring-primary cursor-pointer"
-                        />
-                        <span
-                          className={`group-hover:text-primary transition-colors ${
-                            selectedPriceRange === index ? "text-primary font-medium" : "text-foreground/80"
-                          }`}
-                        >
-                          {range.label}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                )}
+                <AnimatePresence>
+                  {isPriceOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-4 flex flex-col gap-3 text-sm">
+                        {priceRanges.map((range, index) => (
+                          <label key={index} className="flex items-center gap-3 cursor-pointer group">
+                            <input
+                              type="radio"
+                              name="price"
+                              checked={selectedPriceRange === index}
+                              onChange={() => handlePriceRangeSelect(index)}
+                              className="w-4 h-4 text-primary bg-card border-gray-300 focus:ring-primary cursor-pointer"
+                            />
+                            <span
+                              className={`group-hover:text-primary transition-colors ${
+                                selectedPriceRange === index ? "text-primary font-medium" : "text-foreground/80"
+                              }`}
+                            >
+                              {range.label}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </div>
+            </FadeIn>
 
             <div id="shop-catalog" className="flex-1 flex flex-col">
               <div className="flex justify-between items-center mb-6">
@@ -261,19 +287,15 @@ export default function ShopPage() {
 
               {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="h-[380px] overflow-hidden rounded-2xl border border-border/80 bg-card animate-pulse">
-                      <div className="aspect-square bg-secondary/30" />
-                      <div className="p-5 space-y-3">
-                        <div className="h-5 bg-secondary/30 rounded w-3/4" />
-                        <div className="h-5 bg-secondary/30 rounded w-1/3" />
-                        <div className="h-10 bg-secondary/30 rounded" />
-                      </div>
-                    </div>
-                  ))}
+                  <ProductCardSkeleton count={6} />
                 </div>
               ) : products.length === 0 ? (
-                <div className="text-center py-20 bg-card rounded-2xl border border-secondary">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-center py-20 bg-card rounded-2xl border border-secondary"
+                >
                   <p className="text-lg font-medium text-foreground/70">Không tìm thấy sản phẩm nào.</p>
                   <button
                     onClick={() => {
@@ -285,22 +307,23 @@ export default function ShopPage() {
                   >
                     Xem tất cả sản phẩm
                   </button>
-                </div>
+                </motion.div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" once={false}>
                     {products.map((product) => (
-                      <ProductCard
-                        key={product.id}
-                        id={product.id}
-                        title={product.title}
-                        price={product.price}
-                        originalPrice={product.originalPrice}
-                        discount={product.discount}
-                        imageUrl={product.imageUrl}
-                      />
+                      <StaggerItem key={product.id}>
+                        <ProductCard
+                          id={product.id}
+                          title={product.title}
+                          price={product.price}
+                          originalPrice={product.originalPrice}
+                          discount={product.discount}
+                          imageUrl={product.imageUrl}
+                        />
+                      </StaggerItem>
                     ))}
-                  </div>
+                  </StaggerContainer>
 
                   {hasMore && (
                     <div className="flex justify-center mt-12 mb-8">

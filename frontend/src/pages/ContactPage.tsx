@@ -4,6 +4,8 @@ import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
 import { toast } from "sonner";
 import forestPattern from "../assets/forest_pattern.jpg";
+import { motion } from "framer-motion";
+import { FadeIn } from "../components/motion";
 
 const subjects = ["Đặt hàng & Vận chuyển", "Đổi trả & Hoàn tiền", "Hỏi về cây cảnh", "Hợp tác & B2B", "Phản hồi dịch vụ", "Khác"];
 
@@ -31,17 +33,22 @@ export default function ContactPage() {
       >
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(36,53,42,0.72),rgba(79,127,79,0.45))]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,253,247,0.18),transparent_25%)]" />
-        <div className="relative z-10 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="relative z-10 text-center"
+        >
           <h1 className="text-4xl md:text-6xl font-black text-white tracking-widest uppercase">LIÊN HỆ</h1>
           <p className="text-white/80 mt-2">Chúng tôi luôn sẵn sàng lắng nghe bạn</p>
-        </div>
+        </motion.div>
       </div>
 
       <main className="flex-grow max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           {/* Contact Info */}
-          <div className="space-y-5">
+          <FadeIn direction="left">
             <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
               <h2 className="text-xl font-bold mb-5 text-foreground">Thông tin liên hệ</h2>
               {[
@@ -80,11 +87,12 @@ export default function ContactPage() {
                 ))}
               </div>
             </div>
-          </div>
+          </FadeIn>
 
           {/* Contact Form */}
-          <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm md:p-8 lg:col-span-2">
-            <h2 className="text-xl font-bold mb-6">Gửi tin nhắn cho chúng tôi</h2>
+          <FadeIn direction="right" delay={0.1} className="lg:col-span-2">
+            <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm md:p-8">
+              <h2 className="text-xl font-bold mb-6">Gửi tin nhắn cho chúng tôi</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -125,19 +133,22 @@ export default function ContactPage() {
                 {sending ? <><span className="animate-spin border-2 border-white border-t-transparent rounded-full w-5 h-5" />Đang gửi...</> : <><PaperPlaneTilt size={20} weight="fill" />Gửi tin nhắn</>}
               </button>
             </form>
-          </div>
+            </div>
+          </FadeIn>
         </div>
 
         {/* Map Placeholder */}
-        <div className="relative mt-8 h-64 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
-          <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(180deg,rgba(237,244,231,0.9),rgba(255,253,247,1))]">
-            <div className="text-center">
-              <MapPin size={48} className="text-primary/30 mx-auto mb-2" />
-              <p className="text-foreground/40 font-medium">Google Maps</p>
-              <p className="text-xs text-foreground/30">123 Nguyễn Huệ, Quận 1, TP.HCM</p>
+        <FadeIn delay={0.15}>
+          <div className="relative mt-8 h-64 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+            <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(180deg,rgba(237,244,231,0.9),rgba(255,253,247,1))]">
+              <div className="text-center">
+                <MapPin size={48} className="text-primary/30 mx-auto mb-2" />
+                <p className="text-foreground/40 font-medium">Google Maps</p>
+                <p className="text-xs text-foreground/30">123 Nguyễn Huệ, Quận 1, TP.HCM</p>
+              </div>
             </div>
           </div>
-        </div>
+        </FadeIn>
       </main>
       <Footer />
     </div>

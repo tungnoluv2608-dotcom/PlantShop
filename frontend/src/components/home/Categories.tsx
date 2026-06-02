@@ -3,6 +3,8 @@ import { ArrowRight } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 import { productService } from "../../services/productService";
 import type { Category } from "../../types";
+import { StaggerContainer, StaggerItem } from "../motion";
+import { CategoryCardSkeleton } from "../ui/Skeletons";
 
 const fallbackCategories: Category[] = [
   { id: "1", name: "Cây trong nhà", image: "https://images.unsplash.com/photo-1545167622-3a6ac756afa4?w=500&auto=format&fit=crop" },
@@ -16,18 +18,18 @@ const fallbackCategories: Category[] = [
 export function Categories() {
   const navigate = useNavigate();
   const [cats, setCats] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     productService.getCategories()
       .then((data) => {
-        if (data && data.length > 0) {
-          setCats(data);
-        } else {
-          setCats(fallbackCategories);
-        }
+        setCats(data && data.length > 0 ? data : fallbackCategories);
       })
       .catch(() => {
         setCats(fallbackCategories);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, []);
 
@@ -44,7 +46,7 @@ export function Categories() {
       <div className="container mx-auto px-6 md:px-12">
         <div className="flex justify-between items-end mb-10">
           <h2 className="text-3xl font-bold tracking-tight text-foreground">Danh mục PlantWeb</h2>
-          <button 
+          <button
             onClick={handleViewAll}
             className="flex items-center gap-1 text-primary/80 font-semibold hover:text-primary transition-colors group cursor-pointer"
           >
@@ -53,27 +55,34 @@ export function Categories() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-6 md:gap-8">
-          {cats.map((cat) => (
-            <div 
-              key={cat.id} 
-              className="flex flex-col items-center group cursor-pointer"
-              onClick={() => handleCategoryClick(cat.name)}
-            >
-              <div className="relative mb-4 h-32 w-32 overflow-hidden rounded-full border-4 border-transparent shadow-[0_22px_40px_-28px_rgba(36,53,42,0.8)] transition-all duration-300 group-hover:border-secondary md:h-40 md:w-40">
-                <img
-                  src={cat.image}
-                  alt={cat.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
-              </div>
-              <span className="text-center text-lg font-semibold uppercase tracking-wider text-foreground transition-colors group-hover:text-primary">
-                {cat.name}
-              </span>
-            </div>
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-6 md:gap-8">
+            <CategoryCardSkeleton count={6} />
+          </div>
+        ) : (
+          <StaggerContainer className="grid grid-cols-2 lg:grid-cols-6 gap-6 md:gap-8">
+            {cats.map((cat) => (
+              <StaggerItem key={cat.id}>
+                <div
+                  className="flex flex-col items-center group cursor-pointer"
+                  onClick={() => handleCategoryClick(cat.name)}
+                >
+                  <div className="relative mb-4 h-32 w-32 overflow-hidden rounded-full border-4 border-transparent shadow-[0_22px_40px_-28px_rgba(36,53,42,0.8)] transition-all duration-300 group-hover:border-secondary md:h-40 md:w-40">
+                    <img
+                      src={cat.image}
+                      alt={cat.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+                  </div>
+                  <span className="text-center text-lg font-semibold uppercase tracking-wider text-foreground transition-colors group-hover:text-primary">
+                    {cat.name}
+                  </span>
+                </div>
+              </StaggerItem>
+            ))}
+          </StaggerContainer>
+        )}
       </div>
     </section>
   );

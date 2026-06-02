@@ -151,3 +151,14 @@
   from { opacity: 1; }
   to { opacity: 0; }
 }
+
+/* NProgress overrides */
+#nprogress .bar {
+  background: var(--primary);
+  height: 3px;
+  box-shadow: 0 0 8px var(--primary), 0 0 2px var(--primary);
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px var(--primary), 0 0 5px var(--primary);
+}

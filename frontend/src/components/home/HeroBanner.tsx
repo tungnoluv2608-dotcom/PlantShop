@@ -54,7 +54,7 @@ export function HeroBanner() {
   const [isReducedMotion, setIsReducedMotion] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const hasMounted = useRef(false);
-  const animationTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const animationTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const navigate = useNavigate();
 
   useEffect(() => {
