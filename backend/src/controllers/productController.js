@@ -4,6 +4,8 @@ const { getPool, sql } = require("../libs/db");
 
 const PRODUCT_ADVISOR_LIMIT = 18;
 const PRODUCT_ADVISOR_HISTORY_LIMIT = 8;
+const PRODUCT_ADVISOR_CHAT_CATALOG_LIMIT = 40;
+const PRODUCT_ADVISOR_CHAT_MESSAGE_LIMIT = 20;
 
 function stripMarkdownFence(text) {
   const raw = String(text || "").trim();
@@ -451,7 +453,6 @@ async function getProductAdvisorRecommendations(req, res, next) {
 
     const preferences = { budget, lightLevel, hasPets, priority, customPrompt };
     const productMap = new Map(shortlist.map((product) => [Number(product.id), product]));
-    const authenticatedUser = getOptionalAuthenticatedUser(req);
 
     const apiKey = String(process.env.OPENROUTER_API_KEY || "").trim();
     if (!apiKey) {
@@ -551,11 +552,149 @@ async function getProductAdvisorRecommendations(req, res, next) {
       });
     }
 
-    if (authenticatedUser?.id && advisorResult.recommendations.length) {
-      await saveAdvisorHistory(pool, Number(authenticatedUser.id), preferences, advisorResult);
+    return res.json(advisorResult);
+  } catch (err) {
+    if (err?.response?.data?.error?.message) {
+      return res.status(502).json({ message: `OpenRouter lỗi: ${err.response.data.error.message}` });
+    }
+    return next(err);
+  }
+}
+
+function normalizeAdvisorChatMessages(messages) {
+  if (!Array.isArray(messages)) return [];
+
+  return messages
+    .map((entry) => ({
+      role: String(entry?.role || "").trim().toLowerCase(),
+      content: truncateText(entry?.content, 1200),
+    }))
+    .filter((entry) => ["user", "assistant"].includes(entry.role) && entry.content)
+    .slice(-PRODUCT_ADVISOR_CHAT_MESSAGE_LIMIT);
+}
+
+function buildAdvisorChatFallbackMessage(recommendations) {
+  if (recommendations.length > 0) {
+    return "Dựa trên nhu cầu của bạn, đây là một vài cây mình gợi ý từ cửa hàng PlantShop:";
+  }
+  return "Mình cần thêm chút thông tin về không gian, ánh sáng hoặc ngân sách để gợi ý chính xác hơn. Bạn mô tả thêm giúp mình nhé!";
+}
+
+// POST /api/products/advisor/chat
+async function chatProductAdvisor(req, res, next) {
+  try {
+    const messages = normalizeAdvisorChatMessages(req.body?.messages);
+    if (!messages.length) {
+      return res.status(400).json({ message: "Vui lòng gửi ít nhất một tin nhắn." });
+    }
+    if (messages[messages.length - 1]?.role !== "user") {
+      return res.status(400).json({ message: "Tin nhắn cuối cùng phải từ người dùng." });
     }
 
-    return res.json(advisorResult);
+    const pool = await getPool();
+    const query = await pool.request().query(
+      `SELECT TOP (${PRODUCT_ADVISOR_CHAT_CATALOG_LIMIT})
+              p.id, p.title, p.price, p.original_price AS originalPrice, p.discount,
+              p.description, p.image_url AS imageUrl, c.name AS category,
+              p.bio, p.in_stock AS inStock, p.planter_options AS planterOptions
+       FROM Products p
+       LEFT JOIN Categories c ON p.category_id = c.id
+       WHERE p.in_stock = 1
+       ORDER BY p.id DESC`
+    );
+
+    const allProducts = await enrichProducts(pool, query.recordset);
+    if (!allProducts.length) {
+      return res.status(404).json({ message: "Hiện chưa có sản phẩm để tư vấn." });
+    }
+
+    const productMap = new Map(allProducts.map((product) => [Number(product.id), product]));
+    const catalog = allProducts.map(summarizeProductForAdvisor);
+
+    const apiKey = String(process.env.OPENROUTER_API_KEY || "").trim();
+    if (!apiKey) {
+      return res.status(400).json({ message: "Chưa cấu hình OPENROUTER_API_KEY trên server." });
+    }
+
+    const model = String(
+      process.env.OPENROUTER_PRODUCT_ADVISOR_MODEL ||
+      process.env.OPENROUTER_MODEL ||
+      "deepseek/deepseek-chat-v3-0324:free"
+    ).trim();
+    const siteUrl = String(process.env.OPENROUTER_SITE_URL || "http://localhost:5173").trim();
+    const appName = String(process.env.OPENROUTER_APP_NAME || "PlantShop").trim();
+
+    const systemPrompt = [
+      "Bạn là trợ lý tư vấn cây cảnh thân thiện của PlantShop tại Việt Nam.",
+      "Giọng điệu như chat messenger: ấm, tự nhiên, không trang trọng quá.",
+      "",
+      "QUY TẮC HỘI THOẠI (bắt buộc khi chưa gợi ý sản phẩm):",
+      "- Mỗi lượt CHỈ hỏi tối đa 1 câu hỏi. Không liệt kê nhiều câu hỏi cùng lúc.",
+      "- Không dùng gạch đầu dòng, bullet, hay danh sách đánh số khi đang hỏi thêm.",
+      "- Giữ message ngắn: tối đa 2-3 câu, khoảng 40-120 từ.",
+      "- Không mở đầu bằng 'Chào bạn' nếu đã chào ở tin trước; đi thẳng vào nội dung.",
+      "- Hỏi lần lượt thông tin còn thiếu theo ưu tiên: (1) ánh sáng/không gian → (2) kinh nghiệm hoặc mức dễ chăm → (3) ngân sách → (4) thú cưng/em bé.",
+      "- Nếu user đã nói 'trồng trong nhà', đừng hỏi lại mục đích chung; hỏi tiếp điều còn thiếu (vd. ánh sáng).",
+      "",
+      "Khi đã đủ thông tin để gợi ý mua hàng, chọn 2 đến 4 sản phẩm CHỈ từ catalog đã cung cấp.",
+      "Lúc gợi ý sản phẩm: message 2-4 câu tóm tắt lý do; recommendations chứa chi tiết từng cây.",
+      "Có thể tư vấn chăm cây chung mà không cần gợi ý sản phẩm.",
+      "Không bịa sản phẩm, giá hoặc thông tin ngoài catalog.",
+      "Nếu nhà có thú cưng, hãy thận trọng và nhắc kiểm tra thêm khi không chắc.",
+      "Chỉ trả về JSON hợp lệ với schema:",
+      "{",
+      '  "message": "string",',
+      '  "recommendations": [',
+      '    { "id": number, "reason": "string", "fitTags": ["string"] }',
+      "  ]",
+      "}",
+      "recommendations có thể là mảng rỗng khi đang hỏi thêm hoặc chỉ tư vấn kiến thức.",
+      "fitTags ngắn gọn, tối đa 4 mục mỗi sản phẩm.",
+      "",
+      "Ví dụ tốt khi user nói 'muốn tìm cây trồng trong nhà':",
+      '{"message":"Cây trong nhà rất hợp để làm xanh không gian! Nhà bạn có nhiều ánh sáng tự nhiên không, hay chủ yếu là phòng ít sáng?","recommendations":[]}',
+      "",
+      "Ví dụ KHÔNG làm (quá dài, hỏi nhiều câu, dùng bullet):",
+      '{"message":"Chào bạn! Cho mình biết: - Ánh sáng? - Loại cây? - Thú cưng? - Ngân sách?","recommendations":[]}',
+      "",
+      "Catalog sản phẩm:",
+      JSON.stringify(catalog, null, 2),
+    ].join("\n");
+
+    const aiResponse = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model,
+        temperature: 0.45,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages.map((entry) => ({
+            role: entry.role,
+            content: entry.content,
+          })),
+        ],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": siteUrl,
+          "X-Title": appName,
+        },
+        timeout: 45000,
+      }
+    );
+
+    const parsed = tryParseJson(aiResponse?.data?.choices?.[0]?.message?.content);
+    const normalized = normalizeAdvisorOutput(parsed, productMap);
+    const recommendations = normalized.recommendations.slice(0, 4);
+    const message = truncateText(
+      parsed?.message || normalized.summary || buildAdvisorChatFallbackMessage(recommendations),
+      1200
+    );
+
+    return res.json({ message, recommendations });
   } catch (err) {
     if (err?.response?.data?.error?.message) {
       return res.status(502).json({ message: `OpenRouter lỗi: ${err.response.data.error.message}` });
@@ -718,5 +857,6 @@ module.exports = {
   getProductById,
   getRelatedProducts,
   getProductAdvisorRecommendations,
+  chatProductAdvisor,
   listProductAdvisorHistory,
 };

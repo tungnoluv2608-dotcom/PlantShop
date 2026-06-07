@@ -1,28 +1,12 @@
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useMutation } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
-import { queryKeys } from "@/lib/query-keys"
-import type { AdvisorRequest, AdvisorResponse, AdvisorHistoryEntry } from "@/types"
-import { useAuthStore } from "@/stores/authStore"
+import type { AdvisorChatMessage, AdvisorChatResponse } from "@/types"
 
-async function runAdvisor(payload: AdvisorRequest): Promise<AdvisorResponse> {
-  const { data } = await apiClient.post<AdvisorResponse>("/products/advisor", payload)
+async function sendAdvisorChat(messages: AdvisorChatMessage[]): Promise<AdvisorChatResponse> {
+  const { data } = await apiClient.post<AdvisorChatResponse>("/products/advisor/chat", { messages })
   return data
 }
 
-async function fetchHistory(): Promise<AdvisorHistoryEntry[]> {
-  const { data } = await apiClient.get<AdvisorHistoryEntry[]>("/products/advisor/history")
-  return data.map((entry) => ({ ...entry, id: String(entry.id) }))
-}
-
-export function useAdvisor() {
-  return useMutation({ mutationFn: runAdvisor })
-}
-
-export function useAdvisorHistory() {
-  const isAuthenticated = useAuthStore((s) => Boolean(s.token))
-  return useQuery({
-    queryKey: queryKeys.advisor.history,
-    queryFn: fetchHistory,
-    enabled: isAuthenticated,
-  })
+export function useAdvisorChat() {
+  return useMutation({ mutationFn: sendAdvisorChat })
 }

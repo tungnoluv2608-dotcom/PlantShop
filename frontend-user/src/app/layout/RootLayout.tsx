@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import { Outlet, ScrollRestoration, useLocation } from "react-router"
 import NProgress from "nprogress"
 import "nprogress/nprogress.css"
+import { AdvisorChatWidget } from "@/features/advisor/components/AdvisorChatWidget"
 import { Navbar } from "./Navbar"
 import { Footer } from "./Footer"
 
@@ -28,6 +29,7 @@ export function RootLayout() {
         <Outlet />
       </main>
       <Footer />
+      <AdvisorChatWidget />
       <ScrollRestoration />
     </div>
   )

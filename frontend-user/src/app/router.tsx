@@ -9,8 +9,7 @@ import { AccessoriesPage } from "@/features/planters/pages/AccessoriesPage"
 import { PlanterDetailPage } from "@/features/planters/pages/PlanterDetailPage"
 import { BlogListPage } from "@/features/blog/pages/BlogListPage"
 import { BlogDetailPage } from "@/features/blog/pages/BlogDetailPage"
-import { AdvisorPage } from "@/features/advisor/pages/AdvisorPage"
-import { AdvisorHistoryPage } from "@/features/advisor/pages/AdvisorHistoryPage"
+
 import { WholesalePage } from "@/features/wholesale/pages/WholesalePage"
 import { CartPage } from "@/features/cart/pages/CartPage"
 import { CheckoutPage } from "@/features/checkout/pages/CheckoutPage"
@@ -38,7 +37,7 @@ export const router = createBrowserRouter([
       { path: "/accessories/:id", element: <PlanterDetailPage type="accessory" /> },
       { path: "/blog", element: <BlogListPage /> },
       { path: "/blog/:id", element: <BlogDetailPage /> },
-      { path: "/advisor", element: <AdvisorPage /> },
+
       { path: "/wholesale", element: <WholesalePage /> },
       { path: "/cart", element: <CartPage /> },
       { path: "/signin", element: <SignInPage /> },
@@ -56,7 +55,7 @@ export const router = createBrowserRouter([
           { path: "/orders/:id", element: <OrderDetailPage /> },
           { path: "/profile", element: <ProfilePage /> },
           { path: "/wishlist", element: <WishlistPage /> },
-          { path: "/advisor/history", element: <AdvisorHistoryPage /> },
+
         ],
       },
 

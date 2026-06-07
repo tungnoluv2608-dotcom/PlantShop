@@ -1,6 +1,7 @@
 import { Link } from "react-router"
 import { ArrowRight, Sparkles, Truck, Leaf } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useAdvisorChatStore } from "@/stores/advisorChatStore"
 import { CategoryShowcase } from "../components/CategoryShowcase"
 import { ProductRail } from "../components/ProductRail"
 
@@ -11,6 +12,8 @@ const FEATURES = [
 ]
 
 export function HomePage() {
+  const openChat = useAdvisorChatStore((s) => s.openChat)
+
   return (
     <>
       {/* Hero */}
@@ -33,8 +36,8 @@ export function HomePage() {
                   Khám phá cửa hàng <ArrowRight className="size-4" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link to="/advisor">Tư vấn cây phù hợp</Link>
+              <Button size="lg" variant="outline" onClick={openChat}>
+                Tư vấn cây phù hợp
               </Button>
             </div>
           </div>

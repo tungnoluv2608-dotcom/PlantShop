@@ -173,16 +173,12 @@ export interface ProductSearchResult {
   category: string
 }
 
-// ── AI advisor ────────────────────────────────────────────────
-export type LightLevel = "low" | "medium" | "bright"
-export type AdvisorPriority = "easy-care" | "decor"
+// ── AI advisor chat ───────────────────────────────────────────
+export type AdvisorChatRole = "user" | "assistant"
 
-export interface AdvisorRequest {
-  budget?: number
-  lightLevel?: LightLevel
-  hasPets?: boolean
-  priority?: AdvisorPriority
-  customPrompt?: string
+export interface AdvisorChatMessage {
+  role: AdvisorChatRole
+  content: string
 }
 
 export interface AdvisorRecommendation {
@@ -191,21 +187,14 @@ export interface AdvisorRecommendation {
   fitTags: string[]
 }
 
-export interface AdvisorResponse {
-  summary: string
+export interface AdvisorChatResponse {
+  message: string
   recommendations: AdvisorRecommendation[]
 }
 
-export interface AdvisorHistoryEntry {
+export interface AdvisorChatEntry extends AdvisorChatMessage {
   id: string
-  budget?: number
-  lightLevel?: LightLevel
-  hasPets?: boolean
-  priority?: AdvisorPriority
-  customPrompt?: string
-  summary: string
-  createdAt: string
-  recommendations: AdvisorRecommendation[]
+  recommendations?: AdvisorRecommendation[]
 }
 
 // ── Order creation ────────────────────────────────────────────

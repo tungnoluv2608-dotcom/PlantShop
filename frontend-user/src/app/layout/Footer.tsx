@@ -1,5 +1,6 @@
 import { Link } from "react-router"
 import { Leaf } from "lucide-react"
+import { useAdvisorChatStore } from "@/stores/advisorChatStore"
 
 const FOOTER_SECTIONS = [
   {
@@ -8,7 +9,7 @@ const FOOTER_SECTIONS = [
       { to: "/shop", label: "Tất cả cây" },
       { to: "/planters", label: "Chậu cây" },
       { to: "/accessories", label: "Phụ kiện" },
-      { to: "/advisor", label: "Tư vấn AI" },
+      { action: "advisor" as const, label: "Tư vấn AI" },
     ],
   },
   {
@@ -22,6 +23,8 @@ const FOOTER_SECTIONS = [
 ]
 
 export function Footer() {
+  const openChat = useAdvisorChatStore((s) => s.openChat)
+
   return (
     <footer className="mt-20 border-t border-border bg-secondary/30">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:grid-cols-2 md:grid-cols-4">
@@ -40,13 +43,23 @@ export function Footer() {
             <h4 className="mb-3 text-sm font-semibold text-foreground">{section.title}</h4>
             <ul className="space-y-2">
               {section.links.map((link) => (
-                <li key={link.to}>
-                  <Link
-                    to={link.to}
-                    className="text-sm text-muted-foreground transition-colors hover:text-primary"
-                  >
-                    {link.label}
-                  </Link>
+                <li key={link.label}>
+                  {"action" in link ? (
+                    <button
+                      type="button"
+                      onClick={openChat}
+                      className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                    >
+                      {link.label}
+                    </button>
+                  ) : (
+                    <Link
+                      to={link.to}
+                      className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

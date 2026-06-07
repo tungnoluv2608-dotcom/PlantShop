@@ -38,7 +38,5 @@ export const queryKeys = {
   addresses: {
     all: ["addresses"] as const,
   },
-  advisor: {
-    history: ["advisor", "history"] as const,
-  },
+
 } as const
