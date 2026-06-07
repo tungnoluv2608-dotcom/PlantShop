@@ -66,7 +66,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Nội dung",
     items: [
       {
-        title: "Blog",
+        title: "Góc xanh",
         to: "/blog",
         icon: Newspaper,
         matchPrefixes: ["/blog"],

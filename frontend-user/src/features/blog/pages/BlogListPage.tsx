@@ -38,7 +38,7 @@ export function BlogListPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8 text-center">
-        <h1 className="font-serif text-4xl font-semibold">Blog chăm cây</h1>
+        <h1 className="font-serif text-4xl font-semibold">Góc xanh</h1>
         <p className="mt-2 text-muted-foreground">Kiến thức và mẹo chăm sóc cây cảnh.</p>
       </div>
 

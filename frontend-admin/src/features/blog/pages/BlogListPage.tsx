@@ -109,8 +109,8 @@ export function BlogListPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Blog"
-        description="Quản lý bài viết và nội dung blog."
+        title="Góc xanh"
+        description="Quản lý bài viết và nội dung Góc xanh."
         actions={
           <Button asChild>
             <Link to="/blog/new">
