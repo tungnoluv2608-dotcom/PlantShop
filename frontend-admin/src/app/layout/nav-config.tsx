@@ -1,0 +1,77 @@
+import {
+  LayoutDashboard,
+  Package,
+  FolderTree,
+  Flower2,
+  Wrench,
+  ShoppingCart,
+  Users,
+  Star,
+  Newspaper,
+  Building2,
+  type LucideIcon,
+} from "lucide-react"
+
+export interface NavItem {
+  title: string
+  to: string
+  icon: LucideIcon
+  /** Extra path prefixes that should also mark this item active. */
+  matchPrefixes?: string[]
+}
+
+export interface NavGroup {
+  label: string
+  items: NavItem[]
+}
+
+export const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Tổng quan",
+    items: [{ title: "Bảng điều khiển", to: "/", icon: LayoutDashboard }],
+  },
+  {
+    label: "Bán hàng",
+    items: [
+      {
+        title: "Đơn hàng",
+        to: "/orders",
+        icon: ShoppingCart,
+        matchPrefixes: ["/orders"],
+      },
+      { title: "Khách hàng", to: "/customers", icon: Users },
+      {
+        title: "Mua sỉ / B2B",
+        to: "/wholesale",
+        icon: Building2,
+        matchPrefixes: ["/wholesale"],
+      },
+    ],
+  },
+  {
+    label: "Danh mục",
+    items: [
+      {
+        title: "Sản phẩm",
+        to: "/products",
+        icon: Package,
+        matchPrefixes: ["/products"],
+      },
+      { title: "Danh mục", to: "/categories", icon: FolderTree },
+      { title: "Chậu cây", to: "/planters", icon: Flower2 },
+      { title: "Phụ kiện", to: "/accessories", icon: Wrench },
+    ],
+  },
+  {
+    label: "Nội dung",
+    items: [
+      {
+        title: "Blog",
+        to: "/blog",
+        icon: Newspaper,
+        matchPrefixes: ["/blog"],
+      },
+      { title: "Đánh giá", to: "/reviews", icon: Star },
+    ],
+  },
+]

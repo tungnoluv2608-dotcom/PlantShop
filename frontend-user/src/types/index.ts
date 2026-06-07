@@ -1,0 +1,240 @@
+/**
+ * API data shapes — mirrors backend contract in backend/API_DOCS_FRONTEND_AI.md §5.
+ * Do not invent fields. Ids are normalized to string in frontend state.
+ */
+
+export interface User {
+  id: string
+  name: string
+  email: string
+  role?: "customer" | "admin"
+}
+
+export interface CareGuide {
+  title: string
+  content: string
+}
+
+export interface Product {
+  id: string
+  title: string
+  price: number
+  originalPrice?: number | null
+  discount?: string | null
+  description: string
+  imageUrl: string
+  images: string[]
+  category: string
+  bio?: string | null
+  inStock?: boolean
+  careGuide?: CareGuide[]
+  planterOptions?: Array<string | number>
+  isFavorite?: boolean
+  favoriteCreatedAt?: string
+}
+
+export type PlanterType = "planter" | "accessory"
+
+export interface Planter {
+  id: string
+  name: string
+  material: string
+  accessoryBrand?: string
+  usageTags?: string[]
+  price: number
+  imageUrl: string
+  sizes: string[]
+  inStock: boolean
+  type: PlanterType
+}
+
+export interface Category {
+  id: string
+  name: string
+  image: string
+  subcategories: string[]
+}
+
+export interface BlogPost {
+  id: string
+  title: string
+  image: string
+  excerpt: string
+  content: string
+  category: string
+  readTime: string
+  tags: string[]
+  featured: boolean
+  date: string
+}
+
+export interface BlogCategory {
+  name: string
+  total: number
+}
+
+export interface Review {
+  id: string
+  productId: string
+  userName: string
+  avatar: string
+  rating: number
+  title: string
+  content: string
+  helpful: number
+  verified: boolean
+  date: string
+  images: string[]
+  tags: string[]
+}
+
+export interface ShippingAddress {
+  id: string
+  label: string
+  fullName: string
+  phone: string
+  province: string
+  district: string
+  ward?: string
+  address: string
+  isDefault: boolean
+}
+
+export interface OrderItem {
+  id: string
+  title: string
+  price: number
+  quantity: number
+  image: string
+  planter: string
+}
+
+export interface OrderTimeline {
+  status: string
+  date: string
+  done: boolean
+}
+
+export type OrderStatus =
+  | "pending"
+  | "confirmed"
+  | "packing"
+  | "shipping"
+  | "delivered"
+  | "cancelled"
+  | "returning"
+
+export type TrackingProvider = "ghn" | "ghtk" | "viettelpost" | "other"
+
+export interface Order {
+  id: string
+  date: string
+  status: OrderStatus
+  items: OrderItem[]
+  shippingAddress: string
+  paymentMethod: string
+  subtotal: number
+  shippingFee: number
+  total: number
+  trackingNumber?: string | null
+  trackingProvider?: TrackingProvider | null
+  trackingUrl?: string | null
+  timeline: OrderTimeline[]
+}
+
+// ── Catalog query/response ────────────────────────────────────
+export type ProductSort =
+  | "default"
+  | "sale"
+  | "trending"
+  | "best-selling"
+  | "price-asc"
+  | "price-desc"
+
+export interface ProductFilters {
+  category?: string
+  search?: string
+  minPrice?: number
+  maxPrice?: number
+  page?: number
+  pageSize?: number
+  sort?: ProductSort
+  saleOnly?: boolean
+}
+
+export interface ProductListResponse {
+  products: Product[]
+  total: number
+}
+
+export interface ProductSearchResult {
+  id: string
+  title: string
+  category: string
+}
+
+// ── AI advisor ────────────────────────────────────────────────
+export type LightLevel = "low" | "medium" | "bright"
+export type AdvisorPriority = "easy-care" | "decor"
+
+export interface AdvisorRequest {
+  budget?: number
+  lightLevel?: LightLevel
+  hasPets?: boolean
+  priority?: AdvisorPriority
+  customPrompt?: string
+}
+
+export interface AdvisorRecommendation {
+  product: Product
+  reason: string
+  fitTags: string[]
+}
+
+export interface AdvisorResponse {
+  summary: string
+  recommendations: AdvisorRecommendation[]
+}
+
+export interface AdvisorHistoryEntry {
+  id: string
+  budget?: number
+  lightLevel?: LightLevel
+  hasPets?: boolean
+  priority?: AdvisorPriority
+  customPrompt?: string
+  summary: string
+  createdAt: string
+  recommendations: AdvisorRecommendation[]
+}
+
+// ── Order creation ────────────────────────────────────────────
+export type ShippingMethod = "standard" | "express" | "sameday"
+export type PaymentMethod = "cod" | "payos" | "vnpay"
+
+export interface CreateOrderItem {
+  id: string
+  quantity: number
+}
+
+export interface CreateOrderRequest {
+  items: CreateOrderItem[]
+  shippingAddress: string
+  shippingMethod: ShippingMethod
+  paymentMethod: PaymentMethod
+}
+
+export interface CreateOrderResponse {
+  orderId: string
+  message: string
+  subtotal: number
+  shippingFee: number
+  total: number
+}
+
+export interface PaymentVerifyResult {
+  success: boolean
+  orderId: string
+  status?: string
+  message?: string
+}

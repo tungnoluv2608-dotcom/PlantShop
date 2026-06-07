@@ -1,0 +1,225 @@
+// PlantWeb Database Schema - dbdiagram.io
+// Generated from backend/schema.sql + migrations
+
+Table Users {
+  id int [pk, increment]
+  name nvarchar(255) [not null]
+  email nvarchar(255) [not null, unique]
+  password_hash nvarchar(500) [not null]
+  role nvarchar(50) [not null, default: 'customer', note: 'customer | admin']
+  created_at datetime [not null, default: `GETDATE()`]
+}
+
+Table UserAddresses {
+  id int [pk, increment]
+  user_id int [not null, ref: > Users.id]
+  label nvarchar(100) [not null]
+  full_name nvarchar(255) [not null]
+  phone nvarchar(50) [not null]
+  province nvarchar(255) [not null]
+  district nvarchar(255) [not null]
+  ward nvarchar(255)
+  address_line nvarchar(max) [not null]
+  is_default bit [not null, default: 0]
+  created_at datetime [not null, default: `GETDATE()`]
+  updated_at datetime [not null, default: `GETDATE()`]
+
+  indexes {
+    user_id [name: 'IX_UserAddresses_UserId']
+  }
+}
+
+Table Categories {
+  id int [pk, increment]
+  name nvarchar(255) [not null]
+  image nvarchar(1000)
+}
+
+Table CategorySubcategories {
+  id int [pk, increment]
+  category_id int [not null, ref: > Categories.id]
+  name nvarchar(255) [not null]
+}
+
+Table Products {
+  id int [pk, increment]
+  title nvarchar(500) [not null]
+  price decimal(18,2) [not null]
+  original_price decimal(18,2)
+  discount nvarchar(50)
+  description nvarchar(max)
+  image_url nvarchar(1000)
+  category_id int [ref: > Categories.id]
+  bio nvarchar(max) [note: 'Care/description info']
+  in_stock bit [not null, default: 1]
+  planter_options nvarchar(max) [note: 'JSON array of planter IDs']
+}
+
+Table ProductImages {
+  id int [pk, increment]
+  product_id int [not null, ref: > Products.id]
+  url nvarchar(1000) [not null]
+  sort_order int [not null, default: 0]
+}
+
+Table CareGuides {
+  id int [pk, increment]
+  product_id int [not null, ref: > Products.id]
+  title nvarchar(500) [not null]
+  content nvarchar(max) [not null]
+  sort_order int [not null, default: 0]
+}
+
+Table Planters {
+  id int [pk, increment]
+  name nvarchar(500) [not null]
+  material nvarchar(255) [not null]
+  accessory_brand nvarchar(255)
+  accessory_uses nvarchar(max) [note: 'JSON array']
+  price decimal(18,2) [not null]
+  image_url nvarchar(1000)
+  in_stock bit [not null, default: 1]
+  type nvarchar(50) [not null, default: 'planter', note: 'planter | accessory']
+}
+
+Table PlanterSizes {
+  id int [pk, increment]
+  planter_id int [not null, ref: > Planters.id]
+  size_label nvarchar(100) [not null]
+}
+
+Table Orders {
+  id nvarchar(50) [pk, note: 'Format: PSTT-{year}-{5digits}']
+  user_id int [not null, ref: > Users.id]
+  status nvarchar(50) [not null, default: 'pending', note: 'pending | confirmed | packing | shipping | delivered | cancelled | returning']
+  shipping_address nvarchar(max)
+  payment_method nvarchar(100) [note: 'cod | payos | vnpay']
+  subtotal decimal(18,2) [not null]
+  shipping_fee decimal(18,2) [not null, default: 0]
+  total decimal(18,2) [not null]
+  tracking_number nvarchar(100)
+  tracking_provider nvarchar(50) [note: 'ghn | ghtk | viettelpost | other']
+  tracking_url nvarchar(1000)
+  created_at datetime [not null, default: `GETDATE()`]
+}
+
+Table OrderItems {
+  id int [pk, increment]
+  order_id nvarchar(50) [not null, ref: > Orders.id]
+  product_id int [ref: > Products.id, note: 'Nullable for accessory/planter items']
+  title nvarchar(500) [not null]
+  price decimal(18,2) [not null]
+  quantity int [not null, default: 1]
+  image_url nvarchar(1000)
+  planter_name nvarchar(255)
+}
+
+Table OrderTimeline {
+  id int [pk, increment]
+  order_id nvarchar(50) [not null, ref: > Orders.id]
+  status nvarchar(255) [not null]
+  event_date datetime [not null, default: `GETDATE()`]
+  done bit [not null, default: 0]
+}
+
+Table OrderNumberSequences {
+  sequence_year int [pk]
+  last_value int [not null, default: 0]
+  updated_at datetime [not null, default: `GETDATE()`]
+}
+
+Table Reviews {
+  id int [pk, increment]
+  product_id int [not null, ref: > Products.id]
+  user_id int [ref: > Users.id, note: 'Nullable for guest reviews']
+  user_name nvarchar(255) [not null]
+  avatar nvarchar(1000)
+  rating int [not null, note: 'CHECK: 1-5']
+  title nvarchar(500)
+  content nvarchar(max)
+  helpful int [not null, default: 0]
+  verified bit [not null, default: 0, note: 'Verified purchase']
+  visible bit [not null, default: 1]
+  created_at datetime [not null, default: `GETDATE()`]
+}
+
+Table ReviewImages {
+  id int [pk, increment]
+  review_id int [not null, ref: > Reviews.id]
+  url nvarchar(1000) [not null]
+}
+
+Table ReviewTags {
+  id int [pk, increment]
+  review_id int [not null, ref: > Reviews.id]
+  tag nvarchar(255) [not null]
+}
+
+Table UserWishlistItems {
+  id int [pk, increment]
+  user_id int [not null, ref: > Users.id]
+  product_id int [not null, ref: > Products.id]
+  created_at datetime [not null, default: `GETDATE()`]
+
+  indexes {
+    (user_id, product_id) [unique, name: 'UQ_UserWishlistItems_User_Product']
+    user_id [name: 'IX_UserWishlistItems_UserId']
+  }
+}
+
+Table WholesaleInquiries {
+  id int [pk, increment]
+  company_name nvarchar(255) [not null]
+  contact_name nvarchar(255) [not null]
+  phone nvarchar(50) [not null]
+  email nvarchar(255) [not null]
+  estimated_quantity nvarchar(100)
+  space_type nvarchar(255)
+  project_location nvarchar(255)
+  budget_range nvarchar(255)
+  timeline nvarchar(255)
+  note nvarchar(max)
+  status nvarchar(50) [not null, default: 'new', note: 'new | contacted | qualified | quoted | won | lost | archived']
+  source nvarchar(100) [not null, default: 'website_wholesale']
+  assigned_to nvarchar(255)
+  admin_note nvarchar(max)
+  created_at datetime [not null, default: `GETDATE()`]
+  updated_at datetime [not null, default: `GETDATE()`]
+  contacted_at datetime
+  closed_at datetime
+
+  indexes {
+    status [name: 'IX_WholesaleInquiries_Status']
+    created_at [name: 'IX_WholesaleInquiries_CreatedAt']
+  }
+}
+
+Table UserPlantAdvisorHistory {
+  id int [pk, increment]
+  user_id int [not null, ref: > Users.id]
+  budget decimal(18,2) [not null]
+  light_level nvarchar(20) [not null, note: 'low | medium | bright']
+  has_pets bit [not null, default: 0]
+  priority nvarchar(50) [not null, note: 'easy-care | decor']
+  custom_prompt nvarchar(280)
+  summary nvarchar(max)
+  recommendations_json nvarchar(max) [not null, note: 'JSON array']
+  created_at datetime [not null, default: `GETDATE()`]
+
+  indexes {
+    (user_id, created_at) [name: 'IX_UserPlantAdvisorHistory_UserId_CreatedAt']
+  }
+}
+
+Table BlogPosts {
+  id int [pk, increment]
+  title nvarchar(500) [not null]
+  image nvarchar(1000) [not null]
+  excerpt nvarchar(max) [not null]
+  content nvarchar(max) [not null]
+  category nvarchar(255) [not null]
+  read_time nvarchar(50) [note: 'Format: X phút']
+  tags nvarchar(500) [note: 'Comma-separated']
+  featured bit [not null, default: 0]
+  date date [not null, default: `GETDATE()`]
+}
