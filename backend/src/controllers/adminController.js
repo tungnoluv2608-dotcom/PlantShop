@@ -254,12 +254,24 @@ async function listAllOrders(req, res, next) {
     const result = await pool.request().query(
       `SELECT o.id, CONVERT(varchar, o.created_at, 23) AS date, o.status,
               u.name AS customerName, u.email AS customerEmail,
+              (SELECT TOP 1 ua.phone
+               FROM UserAddresses ua
+               WHERE ua.user_id = u.id
+               ORDER BY ua.is_default DESC, ua.id ASC) AS customerPhone,
               o.shipping_address AS shippingAddress,
+              o.recipient_name AS recipientName, o.recipient_phone AS recipientPhone,
+              o.shipping_method AS shippingMethod,
+              o.tracking_number AS trackingNumber, o.tracking_provider AS trackingProvider,
               o.total, o.payment_method AS paymentMethod,
               ISNULL((SELECT SUM(oi.quantity) FROM OrderItems oi WHERE oi.order_id = o.id), 0) AS itemCount
        FROM Orders o JOIN Users u ON o.user_id = u.id ORDER BY o.created_at DESC`
     );
-    return res.json(result.recordset);
+    return res.json(
+      result.recordset.map((row) => ({
+        ...row,
+        trackingProvider: normalizeTrackingProvider(row.trackingProvider),
+      }))
+    );
   } catch (err) { next(err); }
 }
 
@@ -291,6 +303,23 @@ async function updateOrderStatus(req, res, next) {
   } catch (err) { next(err); }
 }
 
+async function updateOrderNote(req, res, next) {
+  try {
+    const internalNote = String(req.body.internalNote ?? "").trim().slice(0, 1000) || null;
+    const pool = await getPool();
+    const result = await pool.request()
+      .input("id", sql.NVarChar, req.params.id)
+      .input("internalNote", sql.NVarChar, internalNote)
+      .query("UPDATE Orders SET internal_note = @internalNote WHERE id = @id");
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ message: "Đơn hàng không tồn tại." });
+    }
+
+    return res.json({ message: "Đã lưu ghi chú nội bộ." });
+  } catch (err) { next(err); }
+}
+
 // GET /api/admin/orders/:id  (admin, no user_id check)
 async function adminGetOrderById(req, res, next) {
   try {
@@ -302,8 +331,19 @@ async function adminGetOrderById(req, res, next) {
         `SELECT o.id, CONVERT(varchar, o.created_at, 23) AS date, o.status,
                 o.shipping_address AS shippingAddress, o.payment_method AS paymentMethod,
                 o.subtotal, o.shipping_fee AS shippingFee, o.total, o.tracking_number AS trackingNumber,
-                o.tracking_provider AS trackingProvider, o.tracking_url AS trackingUrl
-         FROM Orders o WHERE o.id = @id`
+                o.tracking_provider AS trackingProvider, o.tracking_url AS trackingUrl,
+                o.shipping_method AS shippingMethod,
+                o.recipient_name AS recipientName, o.recipient_phone AS recipientPhone,
+                o.province, o.district, o.ward, o.address_line AS addressLine,
+                o.internal_note AS internalNote, o.weight_grams AS weightGrams,
+                u.name AS customerName, u.email AS customerEmail,
+                (SELECT TOP 1 ua.phone
+                 FROM UserAddresses ua
+                 WHERE ua.user_id = u.id
+                 ORDER BY ua.is_default DESC, ua.id ASC) AS customerPhone
+         FROM Orders o
+         JOIN Users u ON o.user_id = u.id
+         WHERE o.id = @id`
       );
     if (orderResult.recordset.length === 0)
       return res.status(404).json({ message: "Đơn hàng không tồn tại." });
@@ -806,7 +846,7 @@ async function generateBlogDraft(req, res, next) {
 module.exports = {
   adminLogin, getStats,
   listProducts, createProduct, updateProduct, deleteProduct,
-  listAllOrders, updateOrderStatus, adminGetOrderById,
+  listAllOrders, updateOrderStatus, updateOrderNote, adminGetOrderById,
   listCustomers,
   listCategories, createCategory, updateCategory, deleteCategory,
   listAllReviews, updateReview, deleteReview,

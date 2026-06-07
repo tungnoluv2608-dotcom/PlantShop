@@ -1,0 +1,47 @@
+{
+  "name": "create_relation",
+  "description": "Create a typed edge between two memory nodes. Supports relation types: relates_to, depends_on, implements, references, similar_to, contains. Edges have weights (0-1) that decay over time via e^(-λt). Duplicate edges update weight instead of creating new ones.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "source_id": {
+        "type": "string",
+        "description": "ID of the source memory node."
+      },
+      "target_id": {
+        "type": "string",
+        "description": "ID of the target memory node."
+      },
+      "relation": {
+        "type": "string",
+        "enum": [
+          "relates_to",
+          "depends_on",
+          "implements",
+          "references",
+          "similar_to",
+          "contains"
+        ],
+        "description": "Relationship type between nodes."
+      },
+      "weight": {
+        "type": "number",
+        "description": "Edge weight 0-1. Higher = stronger relationship. Default: 1.0."
+      },
+      "metadata": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        },
+        "description": "Optional key-value metadata for the edge."
+      }
+    },
+    "required": [
+      "source_id",
+      "target_id",
+      "relation"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

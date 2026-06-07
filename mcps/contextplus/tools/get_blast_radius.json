@@ -1,0 +1,22 @@
+{
+  "name": "get_blast_radius",
+  "description": "Before deleting or modifying code, check the BLAST RADIUS. Traces every file and line where a specific symbol (function, class, variable) is imported or used. Prevents orphaned code. Also warns if usage count is low (candidate for inlining).",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol_name": {
+        "type": "string",
+        "description": "The function, class, or variable name to trace across the codebase."
+      },
+      "file_context": {
+        "type": "string",
+        "description": "The file where the symbol is defined. Excludes the definition line from results."
+      }
+    },
+    "required": [
+      "symbol_name"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

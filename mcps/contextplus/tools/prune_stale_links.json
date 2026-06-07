@@ -1,0 +1,15 @@
+{
+  "name": "prune_stale_links",
+  "description": "Remove stale memory graph edges whose weight has decayed below threshold via e^(-λt) formula. Also removes orphan nodes with no edges, low access count, and >7 days since last access. Keeps the graph lean.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "threshold": {
+        "type": "number",
+        "description": "Minimum decayed weight to keep an edge. Default: 0.15. Lower = keep more edges."
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

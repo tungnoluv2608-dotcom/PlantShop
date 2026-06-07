@@ -1,0 +1,15 @@
+{
+  "name": "run_static_analysis",
+  "description": "Run the project's native linter/compiler to find unused variables, dead code, type errors, and syntax issues. Delegates detection to deterministic tools instead of LLM guessing. Supports TypeScript, Python, Rust, Go.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "target_path": {
+        "type": "string",
+        "description": "Specific file or folder to lint (relative to root). Omit for full project."
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

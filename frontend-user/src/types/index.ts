@@ -211,6 +211,12 @@ export interface CreateOrderRequest {
   shippingAddress: string
   shippingMethod: ShippingMethod
   paymentMethod: PaymentMethod
+  recipientName?: string
+  recipientPhone?: string
+  province?: string
+  district?: string
+  ward?: string
+  addressLine?: string
 }
 
 export interface CreateOrderResponse {

@@ -73,6 +73,12 @@ export function CheckoutPage() {
         shippingAddress: formatAddressLine(selectedAddress),
         shippingMethod,
         paymentMethod,
+        recipientName: selectedAddress.fullName,
+        recipientPhone: selectedAddress.phone,
+        province: selectedAddress.province,
+        district: selectedAddress.district,
+        ward: selectedAddress.ward,
+        addressLine: selectedAddress.address,
       })
 
       if (paymentMethod === "cod") {

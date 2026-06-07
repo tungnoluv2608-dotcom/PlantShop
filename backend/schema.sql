@@ -129,6 +129,15 @@ CREATE TABLE Orders (
     tracking_number  NVARCHAR(100),
     tracking_provider NVARCHAR(50),
     tracking_url     NVARCHAR(1000),
+    shipping_method  NVARCHAR(50),
+    recipient_name   NVARCHAR(255),
+    recipient_phone  NVARCHAR(50),
+    province         NVARCHAR(255),
+    district         NVARCHAR(255),
+    ward             NVARCHAR(255),
+    address_line     NVARCHAR(500),
+    internal_note    NVARCHAR(1000),
+    weight_grams     INT,
     created_at       DATETIME NOT NULL DEFAULT GETDATE()
 );
 GO

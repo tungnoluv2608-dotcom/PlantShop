@@ -144,6 +144,7 @@ export type OrderStatus =
   | "returning"
 
 export type TrackingProvider = "ghn" | "ghtk" | "viettelpost" | "other"
+export type ShippingMethod = "standard" | "express" | "sameday"
 
 export interface AdminOrderRow {
   id: string
@@ -151,7 +152,13 @@ export interface AdminOrderRow {
   status: OrderStatus
   customerName: string
   customerEmail: string
+  customerPhone?: string | null
   shippingAddress: string
+  recipientName?: string | null
+  recipientPhone?: string | null
+  shippingMethod?: ShippingMethod | null
+  trackingNumber?: string | null
+  trackingProvider?: TrackingProvider | null
   total: number
   paymentMethod: string
   itemCount: number
@@ -184,8 +191,24 @@ export interface AdminOrderDetail {
   trackingNumber?: string | null
   trackingProvider?: TrackingProvider | null
   trackingUrl?: string | null
+  shippingMethod?: ShippingMethod | null
+  recipientName?: string | null
+  recipientPhone?: string | null
+  province?: string | null
+  district?: string | null
+  ward?: string | null
+  addressLine?: string | null
+  internalNote?: string | null
+  weightGrams?: number | null
+  customerName?: string | null
+  customerEmail?: string | null
+  customerPhone?: string | null
   items: OrderItem[]
   timeline: OrderTimeline[]
+}
+
+export interface OrderNotePayload {
+  internalNote: string
 }
 
 export interface OrderStatusPayload {

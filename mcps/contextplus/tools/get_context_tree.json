@@ -1,0 +1,27 @@
+{
+  "name": "get_context_tree",
+  "description": "Get the structural tree of the project with file headers, function names, classes, enums, and line ranges. Automatically reads 2-line headers for file purpose. Dynamic token-aware pruning: Level 2 (deep symbols) -> Level 1 (headers only) -> Level 0 (file names only) based on project size.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "target_path": {
+        "type": "string",
+        "description": "Specific directory or file to analyze (relative to project root). Defaults to root."
+      },
+      "depth_limit": {
+        "type": "number",
+        "description": "How many folder levels deep to scan. Use 1-2 for large projects."
+      },
+      "include_symbols": {
+        "type": "boolean",
+        "description": "Include function/class/enum names in the tree. Defaults to true."
+      },
+      "max_tokens": {
+        "type": "number",
+        "description": "Maximum tokens for output. Auto-prunes if exceeded. Default: 20000."
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

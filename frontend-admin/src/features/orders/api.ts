@@ -5,6 +5,7 @@ import type {
   AdminOrderRow,
   AdminOrderDetail,
   OrderStatusPayload,
+  OrderNotePayload,
   MessageResponse,
 } from "@/types"
 
@@ -44,4 +45,31 @@ export function useUpdateOrderStatus() {
       qc.invalidateQueries({ queryKey: queryKeys.orders.detail(id) })
     },
   })
+}
+
+export function useUpdateOrderNote() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: OrderNotePayload }) => {
+      const { data } = await apiClient.patch<MessageResponse>(
+        `/admin/orders/${id}/note`,
+        payload
+      )
+      return data
+    },
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: queryKeys.orders.detail(id) })
+    },
+  })
+}
+
+export async function fetchAdminOrderDetails(ids: string[]): Promise<AdminOrderDetail[]> {
+  const uniqueIds = [...new Set(ids)]
+  const results = await Promise.all(
+    uniqueIds.map(async (id) => {
+      const { data } = await apiClient.get<AdminOrderDetail>(`/admin/orders/${id}`)
+      return data
+    })
+  )
+  return results
 }

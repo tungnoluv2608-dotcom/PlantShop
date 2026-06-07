@@ -1,0 +1,19 @@
+{
+  "name": "semantic_navigate",
+  "description": "Browse the codebase by MEANING, not directory structure. Uses spectral clustering on Ollama embeddings to group semantically related files into labeled clusters. Inspired by Gabriella Gonzalez's semantic navigator. Requires Ollama running with an embedding model and a chat model for labeling.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "max_depth": {
+        "type": "number",
+        "description": "Maximum nesting depth of clusters. Default: 3."
+      },
+      "max_clusters": {
+        "type": "number",
+        "description": "Maximum sub-clusters per level. Default: 20."
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

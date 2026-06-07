@@ -1,0 +1,41 @@
+{
+  "name": "upsert_memory_node",
+  "description": "Create or update a memory node in the linking graph. Nodes represent concepts, files, symbols, or notes with auto-generated embeddings. If a node with the same label and type exists, it updates content and increments access count. Returns the node ID for use in create_relation.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "type": {
+        "type": "string",
+        "enum": [
+          "concept",
+          "file",
+          "symbol",
+          "note"
+        ],
+        "description": "Node type: concept (abstract ideas), file (source files), symbol (functions/classes), note (free-form)."
+      },
+      "label": {
+        "type": "string",
+        "description": "Short identifier for the node. Used for deduplication with type."
+      },
+      "content": {
+        "type": "string",
+        "description": "Detailed content for the node. Used for embedding generation."
+      },
+      "metadata": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        },
+        "description": "Optional key-value metadata pairs."
+      }
+    },
+    "required": [
+      "type",
+      "label",
+      "content"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

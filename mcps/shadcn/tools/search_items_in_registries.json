@@ -1,0 +1,34 @@
+{
+  "name": "search_items_in_registries",
+  "description": "Search for components in registries using fuzzy matching (requires components.json). After finding an item, use get_item_examples_from_registries to see usage examples.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "registries": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of registry names to search (e.g., ['@shadcn', '@acme'])"
+      },
+      "query": {
+        "type": "string",
+        "description": "Search query string for fuzzy matching against item names and descriptions"
+      },
+      "limit": {
+        "type": "number",
+        "description": "Maximum number of items to return"
+      },
+      "offset": {
+        "type": "number",
+        "description": "Number of items to skip for pagination"
+      }
+    },
+    "required": [
+      "registries",
+      "query"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

@@ -2,7 +2,7 @@ import { useEffect } from "react"
 import { useParams, Link } from "react-router"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeft, Loader2, ExternalLink, CheckCircle2, Circle } from "lucide-react"
+import { ArrowLeft, ExternalLink, Loader2, CheckCircle2, Circle, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 
 import { PageHeader } from "@/components/common/PageHeader"
@@ -10,9 +10,11 @@ import { QueryBoundary } from "@/components/common/QueryBoundary"
 import { OrderStatusBadge } from "@/components/common/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Select,
   SelectContent,
@@ -32,6 +34,8 @@ import { getApiErrorMessage } from "@/lib/api-client"
 import { formatVND, formatDateTime } from "@/lib/format"
 import { ORDER_STATUS } from "@/components/common/StatusBadge"
 import type { OrderStatusPayload } from "@/types"
+import { OrderPrintActions } from "../components/OrderPrintActions"
+import { getShippingMethodLabel, resolveRecipient } from "../order-display"
 import {
   orderStatusSchema,
   ORDER_STATUSES,
@@ -39,12 +43,28 @@ import {
   PROVIDER_LABELS,
   type OrderStatusFormValues,
 } from "../schema"
-import { useAdminOrder, useUpdateOrderStatus } from "../api"
+import { useAdminOrder, useUpdateOrderStatus, useUpdateOrderNote } from "../api"
+
+function getWorkflowHint(status: string, hasTracking: boolean): string | null {
+  switch (status) {
+    case "confirmed":
+      return "Bước tiếp theo: in phiếu soạn hàng, đóng gói và chuyển sang Đang đóng gói."
+    case "packing":
+      return "Bước tiếp theo: tạo vận đơn với đơn vị VC, in nhãn giao hàng và nhập mã vận đơn."
+    case "shipping":
+      return hasTracking
+        ? "Đơn đang được vận chuyển. Theo dõi qua link vận đơn."
+        : "Nên bổ sung mã vận đơn để khách theo dõi được lộ trình."
+    default:
+      return null
+  }
+}
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const orderQuery = useAdminOrder(id)
   const updateStatus = useUpdateOrderStatus()
+  const updateNote = useUpdateOrderNote()
   const order = orderQuery.data
 
   const form = useForm<OrderStatusFormValues>({
@@ -58,6 +78,10 @@ export function OrderDetailPage() {
     },
   })
 
+  const noteForm = useForm<{ internalNote: string }>({
+    defaultValues: { internalNote: "" },
+  })
+
   useEffect(() => {
     if (order) {
       form.reset({
@@ -67,11 +91,18 @@ export function OrderDetailPage() {
         trackingProvider: order.trackingProvider ?? "ghn",
         trackingUrl: order.trackingUrl ?? "",
       })
+      noteForm.reset({ internalNote: order.internalNote ?? "" })
     }
-  }, [order, form])
+  }, [order, form, noteForm])
 
   const onSubmit = (values: OrderStatusFormValues) => {
     if (!id) return
+
+    if (values.status === "shipping" && !values.trackingNumber.trim()) {
+      toast.error("Vui lòng nhập mã vận đơn trước khi chuyển sang Đang giao.")
+      return
+    }
+
     const payload: OrderStatusPayload = { status: values.status }
     if (values.timelineEntry.trim()) payload.timelineEntry = values.timelineEntry.trim()
     if (values.trackingNumber.trim()) payload.trackingNumber = values.trackingNumber.trim()
@@ -87,18 +118,37 @@ export function OrderDetailPage() {
     )
   }
 
+  const onSaveNote = noteForm.handleSubmit((values) => {
+    if (!id) return
+    updateNote.mutate(
+      { id, payload: { internalNote: values.internalNote } },
+      {
+        onSuccess: (res) => toast.success(res.message),
+        onError: (err) => toast.error(getApiErrorMessage(err)),
+      }
+    )
+  })
+
+  const recipient = order ? resolveRecipient(order) : null
+  const workflowHint = order
+    ? getWorkflowHint(order.status, Boolean(order.trackingNumber?.trim()))
+    : null
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="outline" size="icon" asChild>
-          <Link to="/orders">
-            <ArrowLeft className="size-4" />
-          </Link>
-        </Button>
-        <PageHeader
-          title={`Đơn hàng ${id}`}
-          description={order ? formatDateTime(order.date) : undefined}
-        />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="icon" asChild>
+            <Link to="/orders">
+              <ArrowLeft className="size-4" />
+            </Link>
+          </Button>
+          <PageHeader
+            title={`Đơn hàng ${id}`}
+            description={order ? formatDateTime(order.date) : undefined}
+          />
+        </div>
+        {order && <OrderPrintActions orderIds={[order.id]} orders={[order]} />}
       </div>
 
       <QueryBoundary
@@ -116,6 +166,13 @@ export function OrderDetailPage() {
         {order && (
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
+              {workflowHint && (
+                <Alert>
+                  <AlertTriangle className="size-4" />
+                  <AlertDescription>{workflowHint}</AlertDescription>
+                </Alert>
+              )}
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Sản phẩm</CardTitle>
@@ -198,14 +255,37 @@ export function OrderDetailPage() {
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <div>
+                    <p className="text-muted-foreground">Người nhận</p>
+                    <p className="font-medium">
+                      {recipient?.name} · {recipient?.phone}
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-muted-foreground">Địa chỉ nhận</p>
-                    <p className="font-medium">{order.shippingAddress}</p>
+                    <p className="font-medium">{recipient?.address}</p>
                   </div>
                   <Separator />
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Hình thức giao</span>
+                    <span className="font-medium">
+                      {getShippingMethodLabel(order.shippingMethod)}
+                    </span>
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Thanh toán</span>
                     <span className="font-medium uppercase">{order.paymentMethod}</span>
                   </div>
+                  {order.trackingNumber && (
+                    <div>
+                      <p className="text-muted-foreground">Mã vận đơn</p>
+                      <p className="font-mono font-medium">{order.trackingNumber}</p>
+                      {order.trackingProvider && (
+                        <p className="text-xs text-muted-foreground">
+                          {PROVIDER_LABELS[order.trackingProvider]}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   {order.trackingUrl && (
                     <Button variant="outline" size="sm" className="w-full" asChild>
                       <a href={order.trackingUrl} target="_blank" rel="noreferrer">
@@ -213,6 +293,25 @@ export function OrderDetailPage() {
                       </a>
                     </Button>
                   )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Ghi chú nội bộ</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={onSaveNote} className="space-y-3">
+                    <Textarea
+                      placeholder="vd: Cây dễ vỡ, giao giờ hành chính..."
+                      rows={4}
+                      {...noteForm.register("internalNote")}
+                    />
+                    <Button type="submit" variant="outline" className="w-full" disabled={updateNote.isPending}>
+                      {updateNote.isPending && <Loader2 className="size-4 animate-spin" />}
+                      Lưu ghi chú
+                    </Button>
+                  </form>
                 </CardContent>
               </Card>
 

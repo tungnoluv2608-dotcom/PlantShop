@@ -1,0 +1,50 @@
+{
+  "name": "semantic_code_search",
+  "description": "Search the codebase by MEANING, not just exact variable names. Uses Ollama embeddings over file headers and symbol names. Example: searching 'user authentication' finds files about login, sessions, JWT even if those exact words aren't used, with matched definition lines.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Natural language description of what you're looking for. Example: 'how are transactions signed'"
+      },
+      "top_k": {
+        "type": "number",
+        "description": "Number of matches to return. Default: 5."
+      },
+      "semantic_weight": {
+        "type": "number",
+        "description": "Weight for embedding similarity in hybrid ranking. Default: 0.72."
+      },
+      "keyword_weight": {
+        "type": "number",
+        "description": "Weight for keyword overlap in hybrid ranking. Default: 0.28."
+      },
+      "min_semantic_score": {
+        "type": "number",
+        "description": "Minimum semantic score filter. Accepts 0-1 or 0-100."
+      },
+      "min_keyword_score": {
+        "type": "number",
+        "description": "Minimum keyword score filter. Accepts 0-1 or 0-100."
+      },
+      "min_combined_score": {
+        "type": "number",
+        "description": "Minimum final score filter. Accepts 0-1 or 0-100."
+      },
+      "require_keyword_match": {
+        "type": "boolean",
+        "description": "When true, only return files with keyword overlap."
+      },
+      "require_semantic_match": {
+        "type": "boolean",
+        "description": "When true, only return files with positive semantic similarity."
+      }
+    },
+    "required": [
+      "query"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

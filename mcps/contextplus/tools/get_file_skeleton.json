@@ -1,0 +1,18 @@
+{
+  "name": "get_file_skeleton",
+  "description": "Get detailed function signatures, class methods, and type definitions of a specific file WITHOUT reading the full body. Shows the API surface: function names, parameters, return types, and line ranges. Perfect for understanding how to use code without loading it all.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "file_path": {
+        "type": "string",
+        "description": "Path to the file to inspect (relative to project root)."
+      }
+    },
+    "required": [
+      "file_path"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

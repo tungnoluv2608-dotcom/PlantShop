@@ -98,6 +98,32 @@ function normalizeShippingMethod(value) {
   return VALID_SHIPPING_METHODS.has(normalized) ? normalized : "";
 }
 
+function normalizeOptionalText(value, maxLength) {
+  const normalized = String(value || "").trim();
+  if (!normalized) return null;
+  return normalized.slice(0, maxLength);
+}
+
+function buildShippingRecipientFields(body, fallbackShippingAddress) {
+  const addressLine = normalizeOptionalText(body.addressLine, 500);
+  const ward = normalizeOptionalText(body.ward, 255);
+  const district = normalizeOptionalText(body.district, 255);
+  const province = normalizeOptionalText(body.province, 255);
+  const composedAddress =
+    [addressLine, ward, district, province].filter(Boolean).join(", ") ||
+    String(fallbackShippingAddress || "").trim();
+
+  return {
+    recipientName: normalizeOptionalText(body.recipientName, 255),
+    recipientPhone: normalizeOptionalText(body.recipientPhone, 50),
+    province,
+    district,
+    ward,
+    addressLine: addressLine || composedAddress || null,
+    shippingAddress: composedAddress,
+  };
+}
+
 function computeShippingFee(subtotal, shippingMethod) {
   if (shippingMethod === "express") {
     return Math.max(0, SHIPPING_EXPRESS_FEE);
@@ -446,7 +472,8 @@ async function createOrder(req, res, next) {
       return res.status(400).json({ message: "Phương thức vận chuyển không hợp lệ." });
     }
 
-    const normalizedShippingAddress = String(shippingAddress || "").trim();
+    const shippingRecipient = buildShippingRecipientFields(req.body, shippingAddress);
+    const normalizedShippingAddress = shippingRecipient.shippingAddress;
     if (!normalizedShippingAddress) {
       return res.status(400).json({ message: "Địa chỉ giao hàng không được để trống." });
     }
@@ -478,9 +505,22 @@ async function createOrder(req, res, next) {
       .input("subtotal", sql.Decimal(18, 2), totals.subtotal)
       .input("shippingFee", sql.Decimal(18, 2), totals.shippingFee)
       .input("total", sql.Decimal(18, 2), totals.total)
+      .input("shippingMethod", sql.NVarChar, normalizedShippingMethod)
+      .input("recipientName", sql.NVarChar, shippingRecipient.recipientName)
+      .input("recipientPhone", sql.NVarChar, shippingRecipient.recipientPhone)
+      .input("province", sql.NVarChar, shippingRecipient.province)
+      .input("district", sql.NVarChar, shippingRecipient.district)
+      .input("ward", sql.NVarChar, shippingRecipient.ward)
+      .input("addressLine", sql.NVarChar, shippingRecipient.addressLine)
       .query(
-        `INSERT INTO Orders (id, user_id, status, shipping_address, payment_method, subtotal, shipping_fee, total)
-         VALUES (@id, @userId, @status, @shippingAddress, @paymentMethod, @subtotal, @shippingFee, @total)`
+        `INSERT INTO Orders (
+           id, user_id, status, shipping_address, payment_method, subtotal, shipping_fee, total,
+           shipping_method, recipient_name, recipient_phone, province, district, ward, address_line
+         )
+         VALUES (
+           @id, @userId, @status, @shippingAddress, @paymentMethod, @subtotal, @shippingFee, @total,
+           @shippingMethod, @recipientName, @recipientPhone, @province, @district, @ward, @addressLine
+         )`
       );
 
     for (const item of canonicalItems) {

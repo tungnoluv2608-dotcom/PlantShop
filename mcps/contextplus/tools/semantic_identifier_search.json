@@ -1,0 +1,41 @@
+{
+  "name": "semantic_identifier_search",
+  "description": "Search semantic intent at identifier level (functions, methods, classes, variables) with definition lines and ranked call sites. Uses embeddings over symbol signatures and source context, then returns line-numbered definition/call chains.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Natural language intent to match identifiers and usages."
+      },
+      "top_k": {
+        "type": "number",
+        "description": "How many identifiers to return. Default: 5."
+      },
+      "top_calls_per_identifier": {
+        "type": "number",
+        "description": "How many ranked call sites per identifier. Default: 10."
+      },
+      "include_kinds": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Optional kinds filter, e.g. [\"function\", \"method\", \"variable\"]."
+      },
+      "semantic_weight": {
+        "type": "number",
+        "description": "Weight for semantic similarity score. Default: 0.78."
+      },
+      "keyword_weight": {
+        "type": "number",
+        "description": "Weight for keyword overlap score. Default: 0.22."
+      }
+    },
+    "required": [
+      "query"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

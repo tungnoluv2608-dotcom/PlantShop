@@ -1,0 +1,18 @@
+{
+  "name": "undo_change",
+  "description": "Restore files to their state before a specific AI change. Uses the shadow restore point system. Does NOT affect git history. Call list_restore_points first to find the point ID.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "point_id": {
+        "type": "string",
+        "description": "The restore point ID (format: rp-timestamp-hash). Get from list_restore_points."
+      }
+    },
+    "required": [
+      "point_id"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

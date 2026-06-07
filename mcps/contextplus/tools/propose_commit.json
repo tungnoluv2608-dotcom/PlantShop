@@ -1,0 +1,23 @@
+{
+  "name": "propose_commit",
+  "description": "The ONLY way to write code. Validates the code against strict rules before saving: 2-line header comments, no inline comments, max nesting depth, max file length. Creates a shadow restore point before writing. REJECTS code that violates formatting rules.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "file_path": {
+        "type": "string",
+        "description": "Where to save the file (relative to project root)."
+      },
+      "new_content": {
+        "type": "string",
+        "description": "The complete file content to save."
+      }
+    },
+    "required": [
+      "file_path",
+      "new_content"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

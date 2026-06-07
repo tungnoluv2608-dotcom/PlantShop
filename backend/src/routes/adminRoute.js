@@ -4,7 +4,7 @@ const adminMiddleware = require("../middlewares/adminMiddleware");
 const {
   adminLogin, getStats,
   listProducts, createProduct, updateProduct, deleteProduct,
-  listAllOrders, updateOrderStatus, adminGetOrderById,
+  listAllOrders, updateOrderStatus, updateOrderNote, adminGetOrderById,
   listCustomers,
   listCategories, createCategory, updateCategory, deleteCategory,
   listAllReviews, updateReview, deleteReview,
@@ -36,6 +36,7 @@ router.delete("/products/:id", deleteProduct);
 router.get("/orders", listAllOrders);
 router.get("/orders/:id", adminGetOrderById);
 router.patch("/orders/:id/status", updateOrderStatus);
+router.patch("/orders/:id/note", updateOrderNote);
 
 // Customers
 router.get("/customers", listCustomers);
