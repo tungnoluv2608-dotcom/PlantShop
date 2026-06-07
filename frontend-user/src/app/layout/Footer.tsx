@@ -28,7 +28,7 @@ export function Footer() {
         <div className="space-y-3">
           <Link to="/" className="flex items-center gap-2 font-serif text-xl font-semibold">
             <Leaf className="size-6 text-primary" />
-            PlantWeb
+            PlantShop
           </Link>
           <p className="text-sm text-muted-foreground">
             Cây cảnh, chậu trồng và phụ kiện chăm cây cho không gian sống xanh.
@@ -55,12 +55,12 @@ export function Footer() {
 
         <div>
           <h4 className="mb-3 text-sm font-semibold text-foreground">Liên hệ</h4>
-          <p className="text-sm text-muted-foreground">support@plantweb.vn</p>
+          <p className="text-sm text-muted-foreground">support@plantshop.vn</p>
           <p className="text-sm text-muted-foreground">Hotline: 1900 1234</p>
         </div>
       </div>
       <div className="border-t border-border py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} PlantWeb. Trồng cây, gieo xanh.
+        © {new Date().getFullYear()} PlantShop. Trồng cây, gieo xanh.
       </div>
     </footer>
   )

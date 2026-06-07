@@ -43,7 +43,7 @@ export function SignUpPage() {
   return (
     <AuthShell
       title="Tạo tài khoản"
-      description="Tham gia PlantWeb để mua sắm và nhận tư vấn"
+      description="Tham gia PlantShop để mua sắm và nhận tư vấn"
       footer={
         <>
           Đã có tài khoản?{" "}

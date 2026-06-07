@@ -59,7 +59,7 @@ export function LoginPage() {
           <span className="flex size-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
             <Leaf className="size-5" />
           </span>
-          PlantWeb Admin
+          PlantShop Admin
         </div>
         <div className="space-y-3">
           <h2 className="text-3xl font-semibold leading-tight">
@@ -71,7 +71,7 @@ export function LoginPage() {
           </p>
         </div>
         <p className="text-sm text-sidebar-foreground/50">
-          © {new Date().getFullYear()} PlantWeb. Internal use only.
+          © {new Date().getFullYear()} PlantShop. Internal use only.
         </p>
       </div>
 
@@ -83,7 +83,7 @@ export function LoginPage() {
               <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Leaf className="size-5" />
               </span>
-              <span className="text-lg font-semibold">PlantWeb Admin</span>
+              <span className="text-lg font-semibold">PlantShop Admin</span>
             </div>
             <h1 className="text-2xl font-semibold">Đăng nhập</h1>
             <p className="text-sm text-muted-foreground">

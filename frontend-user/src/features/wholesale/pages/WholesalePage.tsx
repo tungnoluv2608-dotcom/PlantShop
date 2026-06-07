@@ -64,7 +64,7 @@ export function WholesalePage() {
         <CheckCircle2 className="size-14 text-primary" />
         <h1 className="text-2xl font-semibold">Đã gửi yêu cầu báo giá</h1>
         <p className="text-muted-foreground">
-          Cảm ơn bạn! Đội ngũ PlantWeb sẽ liên hệ trong thời gian sớm nhất.
+          Cảm ơn bạn! Đội ngũ PlantShop sẽ liên hệ trong thời gian sớm nhất.
         </p>
         <Button onClick={() => submitWholesale.reset()}>Gửi yêu cầu khác</Button>
       </div>

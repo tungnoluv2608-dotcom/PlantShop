@@ -14,7 +14,7 @@ export function AuthShell({ title, description, children, footer }: AuthShellPro
     <div className="mx-auto flex max-w-md flex-col gap-6 px-4 py-16">
       <Link to="/" className="flex items-center justify-center gap-2 font-serif text-2xl font-semibold">
         <Leaf className="size-7 text-primary" />
-        PlantWeb
+        PlantShop
       </Link>
       <Card>
         <CardHeader className="text-center">

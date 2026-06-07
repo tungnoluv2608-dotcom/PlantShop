@@ -52,7 +52,7 @@ export function Navbar() {
           <SheetContent side="left" className="w-72">
             <SheetHeader>
               <SheetTitle className="flex items-center gap-2">
-                <Leaf className="size-5 text-primary" /> PlantWeb
+                <Leaf className="size-5 text-primary" /> PlantShop
               </SheetTitle>
             </SheetHeader>
             <nav className="mt-6 flex flex-col gap-1 px-2">
@@ -76,7 +76,7 @@ export function Navbar() {
 
         <Link to="/" className="flex items-center gap-2 font-serif text-xl font-semibold">
           <Leaf className="size-6 text-primary" />
-          <span>PlantWeb</span>
+          <span>PlantShop</span>
         </Link>
 
         <nav className="ml-4 hidden items-center gap-1 md:flex">

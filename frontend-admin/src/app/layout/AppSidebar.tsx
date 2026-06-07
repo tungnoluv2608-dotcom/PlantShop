@@ -47,7 +47,7 @@ export function AppSidebar() {
             <Leaf className="size-5" />
           </span>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-semibold leading-tight">PlantWeb</span>
+            <span className="text-sm font-semibold leading-tight">PlantShop</span>
             <span className="text-xs text-sidebar-foreground/60">Admin Panel</span>
           </div>
         </div>

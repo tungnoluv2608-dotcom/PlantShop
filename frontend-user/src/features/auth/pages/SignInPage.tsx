@@ -45,7 +45,7 @@ export function SignInPage() {
   return (
     <AuthShell
       title="Đăng nhập"
-      description="Chào mừng trở lại với PlantWeb"
+      description="Chào mừng trở lại với PlantShop"
       footer={
         <>
           Chưa có tài khoản?{" "}
