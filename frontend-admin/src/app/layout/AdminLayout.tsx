@@ -31,6 +31,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   reviews: "Đánh giá",
   blog: "Góc xanh",
   wholesale: "Mua sỉ / B2B",
+  "print-settings": "Cài đặt in ấn",
   new: "Tạo mới",
   edit: "Chỉnh sửa",
 }

@@ -16,6 +16,11 @@ const {
   getWholesaleInquiryById,
   updateWholesaleInquiry,
 } = require("../controllers/wholesaleController");
+const {
+  getPrintSettings,
+  updatePrintSettings,
+  resetPrintSettings,
+} = require("../controllers/printSettingsController");
 
 // Public admin login
 router.post("/login", adminLogin);
@@ -31,6 +36,11 @@ router.get("/products", listProducts);
 router.post("/products", createProduct);
 router.put("/products/:id", updateProduct);
 router.delete("/products/:id", deleteProduct);
+
+// Print settings
+router.get("/print-settings", getPrintSettings);
+router.patch("/print-settings", updatePrintSettings);
+router.post("/print-settings/reset", resetPrintSettings);
 
 // Orders
 router.get("/orders", listAllOrders);

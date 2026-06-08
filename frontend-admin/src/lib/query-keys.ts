@@ -32,4 +32,6 @@ export const queryKeys = {
       ["admin", "wholesale", { status: status ?? "", q: q ?? "" }] as const,
     detail: (id: string) => ["admin", "wholesale", "detail", id] as const,
   },
+
+  printSettings: ["admin", "print-settings"] as const,
 } as const

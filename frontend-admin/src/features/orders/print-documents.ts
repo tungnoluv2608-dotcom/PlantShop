@@ -1,8 +1,5 @@
-import JsBarcode from "jsbarcode"
-
 import { formatVND, formatDateTime } from "@/lib/format"
-import type { AdminOrderDetail } from "@/types"
-import { SHOP_CONFIG } from "./shop-config"
+import type { AdminOrderDetail, ShopPrintConfig } from "@/types"
 import {
   formatCodLine,
   getShippingMethodLabel,
@@ -18,17 +15,29 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;")
 }
 
-function buildBarcodeSvg(orderId: string): string {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
-  JsBarcode(svg, orderId, {
-    format: "CODE128",
-    width: 1.6,
-    height: 52,
-    displayValue: true,
-    fontSize: 14,
-    margin: 0,
-  })
-  return svg.outerHTML
+function resolvePrintNote(order: AdminOrderDetail, settings: ShopPrintConfig): string | null {
+  const orderNote = String(order.internalNote || "").trim()
+  const defaultNote = String(settings.defaultNote || "").trim()
+  return orderNote || defaultNote || null
+}
+
+function buildShopHeader(settings: ShopPrintConfig): string {
+  const logo = settings.logoUrl?.trim()
+  return `
+    <div class="label-header">
+      <div class="shop-brand">
+        ${
+          logo
+            ? `<img src="${escapeHtml(logo)}" alt="${escapeHtml(settings.shopName)}" class="shop-logo" />`
+            : ""
+        }
+        <div>
+          <div class="shop-name">${escapeHtml(settings.shopName)}</div>
+          <div class="shop-meta">${escapeHtml(settings.shopPhone)}</div>
+        </div>
+      </div>
+    </div>
+  `
 }
 
 const PRINT_BASE_STYLES = `
@@ -42,22 +51,30 @@ const PRINT_BASE_STYLES = `
   }
 `
 
-function buildShippingLabelPage(order: AdminOrderDetail): string {
+function buildShippingLabelPage(order: AdminOrderDetail, settings: ShopPrintConfig): string {
   const recipient = resolveRecipient(order)
   const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0)
-  const barcode = buildBarcodeSvg(order.id)
+  const trackingNumber = String(order.trackingNumber || "").trim()
+  const trackingDisplay = trackingNumber || "_______________________"
+  const printNote = resolvePrintNote(order, settings)
 
   return `
     <section class="label-page page">
       <div class="label">
-        <div class="label-header">
-          <div>
-            <div class="shop-name">${escapeHtml(SHOP_CONFIG.name)}</div>
-            <div class="shop-meta">${escapeHtml(SHOP_CONFIG.phone)}</div>
-          </div>
-          <div class="order-id">${escapeHtml(order.id)}</div>
+        ${buildShopHeader(settings)}
+        <div class="order-id-block">
+          <div class="section-title">MÃ ĐƠN HÀNG</div>
+          <div class="order-id-large">${escapeHtml(order.id)}</div>
         </div>
-        <div class="barcode-wrap">${barcode}</div>
+        <div class="tracking-box ${trackingNumber ? "has-tracking" : "empty-tracking"}">
+          <div class="section-title">MÃ VẬN ĐƠN (điền sau khi tạo trên GHN/GHTK)</div>
+          <div class="tracking-value">${escapeHtml(trackingDisplay)}</div>
+          ${
+            order.trackingProvider && trackingNumber
+              ? `<div class="tracking-provider">${escapeHtml(order.trackingProvider.toUpperCase())}</div>`
+              : ""
+          }
+        </div>
         <div class="section">
           <div class="section-title">NGƯỜI NHẬN</div>
           <div class="recipient-name">${escapeHtml(recipient.name)} · ${escapeHtml(recipient.phone)}</div>
@@ -70,27 +87,23 @@ function buildShippingLabelPage(order: AdminOrderDetail): string {
           <div><span class="muted">Thanh toán</span><br/><strong>${escapeHtml(order.paymentMethod.toUpperCase())}</strong></div>
         </div>
         ${
-          order.trackingNumber
-            ? `<div class="tracking">Mã VC: <strong>${escapeHtml(order.trackingNumber)}</strong></div>`
-            : ""
-        }
-        ${
-          order.internalNote
-            ? `<div class="note">Ghi chú: ${escapeHtml(order.internalNote)}</div>`
+          printNote
+            ? `<div class="note">Ghi chú: ${escapeHtml(printNote)}</div>`
             : ""
         }
         <div class="sender">
           <span class="muted">Người gửi</span><br/>
-          ${escapeHtml(SHOP_CONFIG.name)} · ${escapeHtml(SHOP_CONFIG.phone)}<br/>
-          ${escapeHtml(SHOP_CONFIG.address)}
+          ${escapeHtml(settings.shopName)} · ${escapeHtml(settings.shopPhone)}<br/>
+          ${escapeHtml(settings.shopAddress)}
         </div>
       </div>
     </section>
   `
 }
 
-function buildPackingSlipPage(order: AdminOrderDetail): string {
+function buildPackingSlipPage(order: AdminOrderDetail, settings: ShopPrintConfig): string {
   const recipient = resolveRecipient(order)
+  const printNote = resolvePrintNote(order, settings)
   const itemRows = order.items
     .map(
       (item) => `
@@ -111,9 +124,16 @@ function buildPackingSlipPage(order: AdminOrderDetail): string {
     <section class="slip-page page">
       <div class="slip">
         <div class="slip-header">
-          <div>
-            <div class="shop-name">${escapeHtml(SHOP_CONFIG.name)}</div>
-            <div class="muted">Phiếu soạn hàng</div>
+          <div class="shop-brand">
+            ${
+              settings.logoUrl
+                ? `<img src="${escapeHtml(settings.logoUrl)}" alt="${escapeHtml(settings.shopName)}" class="shop-logo" />`
+                : ""
+            }
+            <div>
+              <div class="shop-name">${escapeHtml(settings.shopName)}</div>
+              <div class="muted">Phiếu soạn hàng</div>
+            </div>
           </div>
           <div class="slip-meta">
             <div><strong>${escapeHtml(order.id)}</strong></div>
@@ -133,8 +153,8 @@ function buildPackingSlipPage(order: AdminOrderDetail): string {
           </div>
         </div>
         ${
-          order.internalNote
-            ? `<div class="note-box"><strong>Ghi chú nội bộ:</strong> ${escapeHtml(order.internalNote)}</div>`
+          printNote
+            ? `<div class="note-box"><strong>Ghi chú:</strong> ${escapeHtml(printNote)}</div>`
             : ""
         }
         <table>
@@ -153,6 +173,7 @@ function buildPackingSlipPage(order: AdminOrderDetail): string {
           <div><span>Phí ship</span><span>${escapeHtml(formatVND(order.shippingFee))}</span></div>
           <div class="grand"><span>Tổng</span><span>${escapeHtml(formatVND(order.total))}</span></div>
         </div>
+        <div class="sender-line muted">${escapeHtml(settings.shopName)} · ${escapeHtml(settings.shopPhone)} · ${escapeHtml(settings.shopAddress)}</div>
         <div class="checklist">
           <label><span class="box"></span> Đã kiểm tra số lượng</label>
           <label><span class="box"></span> Đã đóng gói cẩn thận</label>
@@ -172,18 +193,23 @@ const LABEL_STYLES = `
     padding: 8mm;
     display: flex;
     flex-direction: column;
-    gap: 6mm;
+    gap: 5mm;
   }
-  .label-header { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .shop-brand { display: flex; align-items: center; gap: 8px; }
+  .shop-logo { width: 36px; height: 36px; object-fit: contain; }
   .shop-name { font-size: 18px; font-weight: 700; }
   .shop-meta, .muted { color: #555; font-size: 12px; }
-  .order-id { font-family: monospace; font-size: 12px; font-weight: 700; text-align: right; }
-  .barcode-wrap svg { width: 100%; height: auto; }
-  .section-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #555; margin-bottom: 4px; }
+  .section-title { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #555; margin-bottom: 4px; }
+  .order-id-block { border: 1px solid #222; padding: 8px; text-align: center; }
+  .order-id-large { font-family: monospace; font-size: 20px; font-weight: 700; letter-spacing: 0.04em; }
+  .tracking-box { border: 2px dashed #666; padding: 10px; text-align: center; }
+  .tracking-box.has-tracking { border-style: solid; border-color: #222; }
+  .tracking-value { font-family: monospace; font-size: 18px; font-weight: 700; margin-top: 4px; }
+  .tracking-provider { font-size: 11px; color: #555; margin-top: 4px; }
   .recipient-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
   .recipient-address { font-size: 14px; line-height: 1.45; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; }
-  .tracking, .note { font-size: 13px; padding: 8px; background: #f5f5f5; border-radius: 6px; }
+  .note { font-size: 13px; padding: 8px; background: #f5f5f5; border-radius: 6px; }
   .sender { margin-top: auto; font-size: 12px; line-height: 1.45; border-top: 1px dashed #bbb; padding-top: 8px; }
 `
 
@@ -191,6 +217,8 @@ const SLIP_STYLES = `
   .slip-page { padding: 12mm; }
   .slip { max-width: 190mm; margin: 0 auto; }
   .slip-header, .info-grid { display: flex; justify-content: space-between; gap: 16px; }
+  .shop-brand { display: flex; align-items: center; gap: 10px; }
+  .shop-logo { width: 42px; height: 42px; object-fit: contain; }
   .info-grid { margin: 12px 0; font-size: 13px; line-height: 1.5; }
   .slip-meta { text-align: right; }
   table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
@@ -204,6 +232,7 @@ const SLIP_STYLES = `
   .totals div { display: flex; justify-content: space-between; padding: 4px 0; }
   .grand { font-size: 16px; font-weight: 700; border-top: 1px solid #222; margin-top: 4px; padding-top: 8px; }
   .note-box { background: #fff8e1; border: 1px solid #f0d98c; padding: 8px 10px; border-radius: 6px; font-size: 13px; margin-bottom: 8px; }
+  .sender-line { margin-top: 12px; font-size: 12px; }
   .checklist { margin-top: 18px; display: flex; gap: 18px; font-size: 13px; }
   .box { display: inline-block; width: 14px; height: 14px; border: 1px solid #222; margin-right: 6px; vertical-align: middle; }
 `
@@ -258,14 +287,21 @@ function printHtmlDocument(title: string, bodyHtml: string, extraStyles: string)
   }, 150)
 }
 
-export function printShippingLabels(orders: AdminOrderDetail[]) {
+export function printShippingLabels(
+  orders: AdminOrderDetail[],
+  settings: ShopPrintConfig
+) {
   if (orders.length === 0) return
-  const html = orders.map(buildShippingLabelPage).join("")
+  const html = orders.map((order) => buildShippingLabelPage(order, settings)).join("")
   printHtmlDocument(`Nhãn giao hàng (${orders.length})`, html, LABEL_STYLES)
 }
 
-export function printPackingSlips(orders: AdminOrderDetail[]) {
+export function printPackingSlips(orders: AdminOrderDetail[], settings: ShopPrintConfig) {
   if (orders.length === 0) return
-  const html = orders.map(buildPackingSlipPage).join("")
+  const html = orders.map((order) => buildPackingSlipPage(order, settings)).join("")
   printHtmlDocument(`Phiếu soạn hàng (${orders.length})`, html, SLIP_STYLES)
+}
+
+export function countOrdersWithoutTracking(orders: AdminOrderDetail[]): number {
+  return orders.filter((order) => !String(order.trackingNumber || "").trim()).length
 }

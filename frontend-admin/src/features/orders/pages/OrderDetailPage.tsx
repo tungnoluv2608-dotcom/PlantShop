@@ -1,52 +1,39 @@
 import { useEffect } from "react"
 import { useParams, Link } from "react-router"
 import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeft, ExternalLink, Loader2, CheckCircle2, Circle, AlertTriangle } from "lucide-react"
+import {
+  ArrowLeft,
+  ExternalLink,
+  Loader2,
+  CheckCircle2,
+  Circle,
+  AlertTriangle,
+  Check,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { PageHeader } from "@/components/common/PageHeader"
+import { CopyButton } from "@/components/common/CopyButton"
 import { QueryBoundary } from "@/components/common/QueryBoundary"
 import { OrderStatusBadge } from "@/components/common/StatusBadge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
 import { getApiErrorMessage } from "@/lib/api-client"
 import { formatVND, formatDateTime } from "@/lib/format"
-import { ORDER_STATUS } from "@/components/common/StatusBadge"
-import type { OrderStatusPayload } from "@/types"
 import { OrderPrintActions } from "../components/OrderPrintActions"
+import { OrderStatusActions } from "../components/OrderStatusActions"
 import { getShippingMethodLabel, resolveRecipient } from "../order-display"
-import {
-  orderStatusSchema,
-  ORDER_STATUSES,
-  TRACKING_PROVIDERS,
-  PROVIDER_LABELS,
-  type OrderStatusFormValues,
-} from "../schema"
-import { useAdminOrder, useUpdateOrderStatus, useUpdateOrderNote } from "../api"
+import { PROVIDER_LABELS } from "../schema"
+import { useAdminOrder, useConfirmOrder, useUpdateOrderNote } from "../api"
 
 function getWorkflowHint(status: string, hasTracking: boolean): string | null {
   switch (status) {
+    case "pending":
+      return "Đơn mới — xác nhận để bắt đầu soạn hàng và in phiếu."
     case "confirmed":
       return "Bước tiếp theo: in phiếu soạn hàng, đóng gói và chuyển sang Đang đóng gói."
     case "packing":
@@ -63,20 +50,10 @@ function getWorkflowHint(status: string, hasTracking: boolean): string | null {
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const orderQuery = useAdminOrder(id)
-  const updateStatus = useUpdateOrderStatus()
   const updateNote = useUpdateOrderNote()
+  const confirmOrder = useConfirmOrder()
   const order = orderQuery.data
-
-  const form = useForm<OrderStatusFormValues>({
-    resolver: zodResolver(orderStatusSchema),
-    defaultValues: {
-      status: "confirmed",
-      timelineEntry: "",
-      trackingNumber: "",
-      trackingProvider: "ghn",
-      trackingUrl: "",
-    },
-  })
+  const isPending = order?.status === "pending"
 
   const noteForm = useForm<{ internalNote: string }>({
     defaultValues: { internalNote: "" },
@@ -84,38 +61,16 @@ export function OrderDetailPage() {
 
   useEffect(() => {
     if (order) {
-      form.reset({
-        status: order.status,
-        timelineEntry: "",
-        trackingNumber: order.trackingNumber ?? "",
-        trackingProvider: order.trackingProvider ?? "ghn",
-        trackingUrl: order.trackingUrl ?? "",
-      })
       noteForm.reset({ internalNote: order.internalNote ?? "" })
     }
-  }, [order, form, noteForm])
+  }, [order, noteForm])
 
-  const onSubmit = (values: OrderStatusFormValues) => {
+  const handleConfirmOrder = () => {
     if (!id) return
-
-    if (values.status === "shipping" && !values.trackingNumber.trim()) {
-      toast.error("Vui lòng nhập mã vận đơn trước khi chuyển sang Đang giao.")
-      return
-    }
-
-    const payload: OrderStatusPayload = { status: values.status }
-    if (values.timelineEntry.trim()) payload.timelineEntry = values.timelineEntry.trim()
-    if (values.trackingNumber.trim()) payload.trackingNumber = values.trackingNumber.trim()
-    if (values.trackingNumber.trim()) payload.trackingProvider = values.trackingProvider
-    if (values.trackingUrl.trim()) payload.trackingUrl = values.trackingUrl.trim()
-
-    updateStatus.mutate(
-      { id, payload },
-      {
-        onSuccess: (res) => toast.success(res.message),
-        onError: (err) => toast.error(getApiErrorMessage(err)),
-      }
-    )
+    confirmOrder.mutate(id, {
+      onSuccess: (res) => toast.success(res.message),
+      onError: (err) => toast.error(getApiErrorMessage(err)),
+    })
   }
 
   const onSaveNote = noteForm.handleSubmit((values) => {
@@ -167,9 +122,25 @@ export function OrderDetailPage() {
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
               {workflowHint && (
-                <Alert>
+                <Alert variant={isPending ? "destructive" : "default"}>
                   <AlertTriangle className="size-4" />
-                  <AlertDescription>{workflowHint}</AlertDescription>
+                  <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <span>{workflowHint}</span>
+                    {isPending && (
+                      <Button
+                        size="sm"
+                        disabled={confirmOrder.isPending}
+                        onClick={handleConfirmOrder}
+                      >
+                        {confirmOrder.isPending ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Check className="size-4" />
+                        )}
+                        Xác nhận đơn
+                      </Button>
+                    )}
+                  </AlertDescription>
                 </Alert>
               )}
 
@@ -251,14 +222,35 @@ export function OrderDetailPage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Giao hàng</CardTitle>
+                  <CardTitle>Khách hàng & giao hàng</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <div>
+                    <p className="text-muted-foreground">Mã đơn</p>
+                    <div className="flex items-center gap-1">
+                      <p className="font-mono font-medium">{order.id}</p>
+                      <CopyButton value={order.id} label="Đã sao chép mã đơn" />
+                    </div>
+                  </div>
+                  {order.customerEmail && (
+                    <div>
+                      <p className="text-muted-foreground">Email khách</p>
+                      <div className="flex items-center gap-1">
+                        <p className="font-medium">{order.customerEmail}</p>
+                        <CopyButton value={order.customerEmail} label="Đã sao chép email" />
+                      </div>
+                    </div>
+                  )}
+                  <div>
                     <p className="text-muted-foreground">Người nhận</p>
-                    <p className="font-medium">
-                      {recipient?.name} · {recipient?.phone}
-                    </p>
+                    <div className="flex items-start gap-1">
+                      <p className="font-medium">
+                        {recipient?.name} · {recipient?.phone}
+                      </p>
+                      {recipient?.phone && recipient.phone !== "—" && (
+                        <CopyButton value={recipient.phone} label="Đã sao chép SĐT" />
+                      )}
+                    </div>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Địa chỉ nhận</p>
@@ -278,7 +270,13 @@ export function OrderDetailPage() {
                   {order.trackingNumber && (
                     <div>
                       <p className="text-muted-foreground">Mã vận đơn</p>
-                      <p className="font-mono font-medium">{order.trackingNumber}</p>
+                      <div className="flex items-center gap-1">
+                        <p className="font-mono font-medium">{order.trackingNumber}</p>
+                        <CopyButton
+                          value={order.trackingNumber}
+                          label="Đã sao chép mã vận đơn"
+                        />
+                      </div>
                       {order.trackingProvider && (
                         <p className="text-xs text-muted-foreground">
                           {PROVIDER_LABELS[order.trackingProvider]}
@@ -315,108 +313,16 @@ export function OrderDetailPage() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cập nhật trạng thái</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="status"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Trạng thái</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="w-full">
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {ORDER_STATUSES.map((status) => (
-                                  <SelectItem key={status} value={status}>
-                                    {ORDER_STATUS[status]?.label ?? status}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="timelineEntry"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Ghi chú dòng thời gian</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Để trống = tự tạo" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="trackingProvider"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Đơn vị vận chuyển</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="w-full">
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {TRACKING_PROVIDERS.map((p) => (
-                                  <SelectItem key={p} value={p}>
-                                    {PROVIDER_LABELS[p]}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="trackingNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Mã vận đơn</FormLabel>
-                            <FormControl>
-                              <Input placeholder="vd: GHN123456" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="trackingUrl"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Link theo dõi</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Để trống = tự tạo" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button type="submit" className="w-full" disabled={updateStatus.isPending}>
-                        {updateStatus.isPending && <Loader2 className="size-4 animate-spin" />}
-                        Cập nhật
-                      </Button>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
+              {!isPending && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Xử lý đơn</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <OrderStatusActions order={order} />
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         )}

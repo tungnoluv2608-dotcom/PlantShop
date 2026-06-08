@@ -293,6 +293,26 @@ export interface DashboardStats {
   totalRevenue: number
 }
 
+export interface ShopPrintConfig {
+  shopName: string
+  shopPhone: string
+  shopAddress: string
+  defaultNote?: string | null
+  logoUrl?: string | null
+}
+
+export interface PrintSettings extends ShopPrintConfig {
+  updatedAt?: string | null
+}
+
+export interface PrintSettingsPayload {
+  shopName: string
+  shopPhone: string
+  shopAddress: string
+  defaultNote?: string
+  logoUrl?: string
+}
+
 export interface UploadResult {
   url: string
 }

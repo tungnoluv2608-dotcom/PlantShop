@@ -15,6 +15,7 @@ import {
   Users,
   Banknote,
   ArrowUpRight,
+  AlertTriangle,
   type LucideIcon,
 } from "lucide-react"
 
@@ -22,6 +23,7 @@ import { PageHeader } from "@/components/common/PageHeader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   ChartContainer,
   ChartTooltip,
@@ -96,6 +98,10 @@ export function DashboardPage() {
     () => (orders ?? []).slice(0, 6),
     [orders]
   )
+  const pendingCount = useMemo(
+    () => (orders ?? []).filter((order) => order.status === "pending").length,
+    [orders]
+  )
 
   return (
     <div className="space-y-6">
@@ -103,6 +109,19 @@ export function DashboardPage() {
         title="Bảng điều khiển"
         description="Tổng quan hoạt động kinh doanh của PlantShop."
       />
+
+      {!ordersLoading && pendingCount > 0 && (
+        <Alert>
+          <AlertTriangle className="size-4" />
+          <AlertTitle>{pendingCount} đơn chờ xử lý</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>Có đơn mới cần xác nhận trước khi soạn hàng và giao.</span>
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/orders?status=pending">Xem đơn chờ xử lý</Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statsLoading || !stats ? (

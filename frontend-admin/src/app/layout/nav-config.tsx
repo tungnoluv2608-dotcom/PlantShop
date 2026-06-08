@@ -9,6 +9,7 @@ import {
   Star,
   Newspaper,
   Building2,
+  Printer,
   type LucideIcon,
 } from "lucide-react"
 
@@ -45,6 +46,12 @@ export const NAV_GROUPS: NavGroup[] = [
         to: "/wholesale",
         icon: Building2,
         matchPrefixes: ["/wholesale"],
+      },
+      {
+        title: "Cài đặt in ấn",
+        to: "/print-settings",
+        icon: Printer,
+        matchPrefixes: ["/print-settings"],
       },
     ],
   },

@@ -1,5 +1,14 @@
-export const SHOP_CONFIG = {
-  name: "PlantShop",
-  phone: "1900 0000",
-  address: "123 Đường Xanh, Quận 1, TP. Hồ Chí Minh",
-} as const
+import type { ShopPrintConfig } from "@/types"
+
+/** Fallback when print settings API is unavailable. */
+export function getFallbackPrintSettings(): ShopPrintConfig {
+  return {
+    shopName: import.meta.env.VITE_SHOP_NAME ?? "PlantShop",
+    shopPhone: import.meta.env.VITE_SHOP_PHONE ?? "0900 000 000",
+    shopAddress:
+      import.meta.env.VITE_SHOP_ADDRESS ??
+      "Cập nhật địa chỉ shop trong Cài đặt in ấn",
+    defaultNote: null,
+    logoUrl: null,
+  }
+}

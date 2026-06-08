@@ -73,3 +73,50 @@ export async function fetchAdminOrderDetails(ids: string[]): Promise<AdminOrderD
   )
   return results
 }
+
+export async function confirmOrders(ids: string[]): Promise<{ confirmed: number; failed: number }> {
+  const uniqueIds = [...new Set(ids)]
+  let confirmed = 0
+  let failed = 0
+
+  await Promise.all(
+    uniqueIds.map(async (id) => {
+      try {
+        await apiClient.patch<MessageResponse>(`/admin/orders/${id}/status`, {
+          status: "confirmed",
+        })
+        confirmed += 1
+      } catch {
+        failed += 1
+      }
+    })
+  )
+
+  return { confirmed, failed }
+}
+
+export function useBulkConfirmOrders() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: confirmOrders,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.orders.all })
+    },
+  })
+}
+
+export function useConfirmOrder() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await apiClient.patch<MessageResponse>(`/admin/orders/${id}/status`, {
+        status: "confirmed",
+      })
+      return data
+    },
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: queryKeys.orders.all })
+      qc.invalidateQueries({ queryKey: queryKeys.orders.detail(id) })
+    },
+  })
+}
