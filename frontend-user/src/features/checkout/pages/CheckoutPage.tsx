@@ -67,6 +67,7 @@ export function CheckoutPage() {
           shippingMethod,
           province: selectedAddress.province,
           district: selectedAddress.district,
+          ward: selectedAddress.ward,
         }
       : null,
   )
@@ -85,6 +86,7 @@ export function CheckoutPage() {
         shippingMethod: method,
         province: address.province,
         district: address.district,
+        ward: address.ward,
       })
       setAppliedVoucher(result)
     } catch (err) {
@@ -99,7 +101,7 @@ export function CheckoutPage() {
     if (!appliedVoucher?.code || !selectedAddress) return
     void refreshAppliedVoucher(shippingMethod, appliedVoucher.code, selectedAddress)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shippingMethod, items, selectedAddress?.id, selectedAddress?.province, selectedAddress?.district])
+  }, [shippingMethod, items, selectedAddress?.id, selectedAddress?.province, selectedAddress?.district, selectedAddress?.ward])
 
   useEffect(() => {
     const quote = shippingQuoteQuery.data
@@ -123,6 +125,7 @@ export function CheckoutPage() {
       shippingMethod,
       province: selectedAddress?.province ?? "",
       district: selectedAddress?.district,
+      ward: selectedAddress?.ward,
     })
       .then((result) => {
         setAppliedVoucher(result)
@@ -471,6 +474,7 @@ export function CheckoutPage() {
         shippingMethod={shippingMethod}
         province={selectedAddress?.province ?? ""}
         district={selectedAddress?.district}
+        ward={selectedAddress?.ward}
         appliedCode={appliedVoucher?.code}
         onApplied={setAppliedVoucher}
       />

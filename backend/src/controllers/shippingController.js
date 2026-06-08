@@ -16,6 +16,7 @@ async function quoteShipping(req, res, next) {
     const shippingMethod = normalizeShippingMethod(req.body?.shippingMethod) || "standard";
     const province = req.body?.province;
     const district = req.body?.district;
+    const ward = req.body?.ward;
     const items = req.body?.items;
 
     let subtotal = Number(req.body?.subtotal ?? 0);
@@ -40,6 +41,7 @@ async function quoteShipping(req, res, next) {
       shippingMethod,
       province: String(province).trim(),
       district: district ? String(district).trim() : null,
+      ward: ward ? String(ward).trim() : null,
     });
 
     return res.json(quote);

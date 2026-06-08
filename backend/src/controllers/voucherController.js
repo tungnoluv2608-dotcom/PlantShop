@@ -218,6 +218,7 @@ async function listAvailableVouchers(req, res, next) {
     const shippingMethod = normalizeShippingMethod(req.body?.shippingMethod);
     const province = String(req.body?.province || "").trim();
     const district = String(req.body?.district || "").trim() || null;
+    const ward = String(req.body?.ward || "").trim() || null;
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Giỏ hàng trống." });
@@ -248,6 +249,7 @@ async function listAvailableVouchers(req, res, next) {
         shippingMethod,
         province,
         district,
+        ward,
       });
       entries.push(mapAvailableVoucherEntry(voucher, evaluation, claimedIds));
     }
@@ -355,6 +357,7 @@ async function validateVoucher(req, res, next) {
     const shippingMethod = normalizeShippingMethod(req.body?.shippingMethod);
     const province = String(req.body?.province || "").trim();
     const district = String(req.body?.district || "").trim() || null;
+    const ward = String(req.body?.ward || "").trim() || null;
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Giỏ hàng trống." });
@@ -380,6 +383,7 @@ async function validateVoucher(req, res, next) {
       shippingMethod,
       province,
       district,
+      ward,
     });
 
     return res.json({

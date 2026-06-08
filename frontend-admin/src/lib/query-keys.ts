@@ -44,4 +44,10 @@ export const queryKeys = {
   shippingZones: {
     all: ["admin", "shipping-zones"] as const,
   },
+
+  locations: {
+    provinces: ["locations", "provinces"] as const,
+    wards: (provinceCode: number | null) =>
+      ["locations", "wards", provinceCode] as const,
+  },
 } as const

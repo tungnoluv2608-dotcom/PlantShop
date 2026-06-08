@@ -8,8 +8,8 @@ export interface AddressPayload {
   fullName: string
   phone: string
   province: string
-  district: string
-  ward?: string
+  district?: string
+  ward: string
   address: string
   isDefault: boolean
 }

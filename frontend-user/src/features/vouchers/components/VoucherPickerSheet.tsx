@@ -34,6 +34,7 @@ interface VoucherPickerSheetProps {
   shippingMethod: ShippingMethod
   province: string
   district?: string | null
+  ward?: string | null
   appliedCode?: string | null
   onApplied: (result: ValidateVoucherResponse) => void
 }
@@ -133,6 +134,7 @@ export function VoucherPickerSheet({
   shippingMethod,
   province,
   district,
+  ward,
   appliedCode,
   onApplied,
 }: VoucherPickerSheetProps) {
@@ -143,7 +145,7 @@ export function VoucherPickerSheet({
 
   const availableQuery = useAvailableVouchers(
     open && items.length > 0 && province
-      ? { items, shippingMethod, province, district }
+      ? { items, shippingMethod, province, district, ward }
       : null,
   )
 
@@ -175,6 +177,7 @@ export function VoucherPickerSheet({
         shippingMethod,
         province,
         district,
+        ward,
       })
       onApplied(result)
       setSelectedCode(result.code)

@@ -24,15 +24,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { getApiErrorMessage } from "@/lib/api-client"
-import { VIETNAM_PROVINCES, getDistricts } from "@/data/vietnamLocations"
+import { ShippingZoneLocationFields } from "@/features/locations/components/ShippingZoneLocationFields"
 import type { ShippingZone, ShippingZonePayload } from "@/types"
 import { shippingZoneSchema, type ShippingZoneFormValues } from "../schema"
 import { useCreateShippingZone, useUpdateShippingZone } from "../api"
@@ -86,9 +79,6 @@ export function ShippingZoneFormDialog({
     defaultValues: EMPTY,
   })
 
-  const selectedProvince = form.watch("province")
-  const districts = selectedProvince ? getDistricts(selectedProvince) : []
-
   useEffect(() => {
     if (!open) return
     if (zone) {
@@ -131,7 +121,8 @@ export function ShippingZoneFormDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Sửa vùng vận chuyển" : "Thêm vùng vận chuyển"}</DialogTitle>
           <DialogDescription>
-            Ưu tiên cao hơn sẽ được áp dụng trước. Để trống tỉnh/thành = vùng mặc định toàn quốc.
+            Ưu tiên cao hơn sẽ được áp dụng trước. Dữ liệu địa chỉ từ provinces.open-api.vn (2025).
+            Để trống tỉnh/thành = vùng mặc định toàn quốc.
           </DialogDescription>
         </DialogHeader>
 
@@ -151,70 +142,12 @@ export function ShippingZoneFormDialog({
               )}
             />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="province"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tỉnh/thành</FormLabel>
-                    <Select
-                      value={field.value || "__none__"}
-                      onValueChange={(value) => {
-                        const next = value === "__none__" ? "" : value
-                        field.onChange(next)
-                        form.setValue("district", "")
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Toàn quốc (mặc định)" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="__none__">Toàn quốc (mặc định)</SelectItem>
-                        {VIETNAM_PROVINCES.map((province) => (
-                          <SelectItem key={province.name} value={province.name}>
-                            {province.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="district"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quận/huyện</FormLabel>
-                    <Select
-                      value={field.value || "__none__"}
-                      onValueChange={(value) => field.onChange(value === "__none__" ? "" : value)}
-                      disabled={!selectedProvince}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Toàn tỉnh/thành" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="__none__">Toàn tỉnh/thành</SelectItem>
-                        {districts.map((district) => (
-                          <SelectItem key={district.name} value={district.name}>
-                            {district.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <ShippingZoneLocationFields
+              key={zone?.id ?? (open ? "create" : "closed")}
+              control={form.control}
+              setValue={form.setValue}
+              initialProvince={zone?.province ?? ""}
+            />
 
             <div className="grid gap-4 sm:grid-cols-3">
               <FormField

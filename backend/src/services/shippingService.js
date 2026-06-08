@@ -44,7 +44,8 @@ function normalizeLocationText(value) {
 }
 
 function normalizeProvince(province) {
-  const normalized = normalizeLocationText(province);
+  let normalized = normalizeLocationText(province);
+  normalized = normalized.replace(/^(thanh pho|tinh)\s+/, "");
   return PROVINCE_ALIASES[normalized] || normalized;
 }
 
@@ -90,19 +91,23 @@ function buildFallbackZone() {
   };
 }
 
-function matchZoneFromList(zones, province, district) {
+function matchZoneFromList(zones, province, district, ward) {
   const normProvince = normalizeProvince(province);
-  const normDistrict = normalizeDistrict(district);
+  const localityCandidates = [district, ward]
+    .map((value) => normalizeDistrict(value))
+    .filter(Boolean);
 
-  if (normProvince && normDistrict) {
-    const districtMatch = zones.find(
-      (zone) =>
-        zone.province &&
-        normalizeProvince(zone.province) === normProvince &&
-        zone.district &&
-        normalizeDistrict(zone.district) === normDistrict
-    );
-    if (districtMatch) return districtMatch;
+  if (normProvince && localityCandidates.length > 0) {
+    for (const locality of localityCandidates) {
+      const districtMatch = zones.find(
+        (zone) =>
+          zone.province &&
+          normalizeProvince(zone.province) === normProvince &&
+          zone.district &&
+          normalizeDistrict(zone.district) === locality
+      );
+      if (districtMatch) return districtMatch;
+    }
   }
 
   if (normProvince) {
@@ -148,9 +153,9 @@ async function loadAllShippingZones(pool) {
   return result.recordset.map(mapZoneRow);
 }
 
-async function resolveShippingZone(pool, { province, district } = {}) {
+async function resolveShippingZone(pool, { province, district, ward } = {}) {
   const zones = await loadActiveShippingZones(pool);
-  const matched = matchZoneFromList(zones, province, district);
+  const matched = matchZoneFromList(zones, province, district, ward);
   return matched || buildFallbackZone();
 }
 
@@ -172,14 +177,14 @@ function buildShippingUnavailableError(message) {
 
 async function computeShippingFee(
   pool,
-  { subtotal = 0, shippingMethod, province, district, throwOnUnavailable = true } = {}
+  { subtotal = 0, shippingMethod, province, district, ward, throwOnUnavailable = true } = {}
 ) {
   const normalizedMethod = normalizeShippingMethod(shippingMethod);
   if (!normalizedMethod) {
     throw buildShippingUnavailableError("Phương thức vận chuyển không hợp lệ.");
   }
 
-  const zone = await resolveShippingZone(pool, { province, district });
+  const zone = await resolveShippingZone(pool, { province, district, ward });
 
   if (normalizedMethod === "sameday" && !zone.allowsSameday) {
     if (!throwOnUnavailable) {
@@ -237,6 +242,7 @@ async function getShippingQuote(pool, input = {}) {
   const zone = await resolveShippingZone(pool, {
     province: input.province,
     district: input.district,
+    ward: input.ward,
   });
 
   const methods = ["standard", "express", "sameday"].map((method) => {
@@ -318,7 +324,7 @@ function normalizeZonePayload(body, { partial = false } = {}) {
 
   if (district && !province) {
     throw buildShippingUnavailableError(
-      "Cần chọn tỉnh/thành trước khi chỉ định quận/huyện."
+      "Cần chọn tỉnh/thành trước khi chỉ định phường/xã."
     );
   }
 

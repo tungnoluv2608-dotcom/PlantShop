@@ -226,6 +226,7 @@ async function buildIneligiblePreview(
     shippingMethod,
     province: address.province,
     district: address.district,
+    ward: address.ward,
     throwOnUnavailable: false,
   });
   return {
@@ -248,6 +249,7 @@ async function evaluateVoucherEligibility({
   shippingMethod,
   province,
   district,
+  ward,
   usage,
 }) {
   const scheduleReason = checkVoucherSchedule(voucher);
@@ -258,7 +260,7 @@ async function evaluateVoucherEligibility({
     )
   );
 
-  const address = { province, district };
+  const address = { province, district, ward };
 
   if (scheduleReason) {
     return {
@@ -321,6 +323,7 @@ async function evaluateVoucherEligibility({
     shippingMethod,
     province,
     district,
+    ward,
     throwOnUnavailable: false,
   });
 
@@ -451,6 +454,7 @@ async function validateVoucherForOrder({
   shippingMethod,
   province,
   district,
+  ward,
   lock = false,
 }) {
   const normalizedCode = normalizeVoucherCode(code);
@@ -500,6 +504,7 @@ async function validateVoucherForOrder({
     shippingMethod,
     province,
     district,
+    ward,
   });
   let shippingFee = computedShippingFee;
   if (discountType === "freeship") {
@@ -539,6 +544,7 @@ async function calculateOrderTotalsWithVoucher(
       shippingMethod,
       province: address.province,
       district: address.district,
+      ward: address.ward,
     });
     return {
       subtotal,

@@ -4,9 +4,9 @@ export const addressSchema = z.object({
   label: z.string().min(1, "Vui lòng nhập nhãn địa chỉ"),
   fullName: z.string().min(2, "Vui lòng nhập họ tên"),
   phone: z.string().min(8, "Số điện thoại không hợp lệ"),
-  province: z.string().min(1, "Vui lòng nhập tỉnh/thành"),
-  district: z.string().min(1, "Vui lòng nhập quận/huyện"),
-  ward: z.string().optional(),
+  province: z.string().min(1, "Vui lòng chọn tỉnh/thành"),
+  district: z.string().optional(),
+  ward: z.string().min(1, "Vui lòng chọn phường/xã"),
   address: z.string().min(1, "Vui lòng nhập địa chỉ chi tiết"),
   isDefault: z.boolean(),
 })

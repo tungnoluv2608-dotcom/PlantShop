@@ -39,17 +39,35 @@ export const queryKeys = {
     all: ["addresses"] as const,
   },
 
+  locations: {
+    provinces: ["locations", "provinces"] as const,
+    wards: (provinceCode: number | null) =>
+      ["locations", "wards", provinceCode] as const,
+  },
+
   vouchers: {
     promotions: ["vouchers", "promotions"] as const,
     wallet: ["vouchers", "wallet"] as const,
     available: (
-      payload: { items: unknown[]; shippingMethod: string; province?: string; district?: string | null } | null,
+      payload: {
+        items: unknown[]
+        shippingMethod: string
+        province?: string
+        district?: string | null
+        ward?: string | null
+      } | null,
     ) => ["vouchers", "available", payload] as const,
   },
 
   shipping: {
     quote: (
-      payload: { items: unknown[]; shippingMethod: string; province?: string; district?: string | null } | null,
+      payload: {
+        items: unknown[]
+        shippingMethod: string
+        province?: string
+        district?: string | null
+        ward?: string | null
+      } | null,
     ) => ["shipping", "quote", payload] as const,
   },
 } as const

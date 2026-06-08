@@ -478,6 +478,7 @@ async function createOrder(req, res, next) {
         shippingMethod: normalizedShippingMethod,
         province: shippingRecipient.province,
         district: shippingRecipient.district,
+        ward: shippingRecipient.ward,
         lock: true,
       });
     }
@@ -490,6 +491,7 @@ async function createOrder(req, res, next) {
       {
         province: shippingRecipient.province,
         district: shippingRecipient.district,
+        ward: shippingRecipient.ward,
       }
     );
 

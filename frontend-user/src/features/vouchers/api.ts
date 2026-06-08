@@ -22,6 +22,7 @@ export async function fetchAvailableVouchers(payload: {
   shippingMethod: ShippingMethod
   province: string
   district?: string | null
+  ward?: string | null
 }): Promise<AvailableVouchersResponse> {
   const { data } = await apiClient.post<AvailableVouchersResponse>("/vouchers/available", payload)
   return data
@@ -61,6 +62,7 @@ export function useAvailableVouchers(
     shippingMethod: ShippingMethod
     province: string
     district?: string | null
+    ward?: string | null
   } | null,
 ) {
   return useQuery({

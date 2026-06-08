@@ -8,6 +8,7 @@ export interface ShippingQuoteRequest {
   shippingMethod: ShippingMethod
   province: string
   district?: string | null
+  ward?: string | null
 }
 
 export async function fetchShippingQuote(

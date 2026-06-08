@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { getApiErrorMessage } from "@/lib/api-client"
+import { VietnamLocationFields } from "@/features/locations/components/VietnamLocationFields"
 import { addressSchema, type AddressFormValues } from "../schema"
 import { useCreateAddress, useUpdateAddress } from "../api"
 
@@ -61,7 +62,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
               fullName: editing.fullName,
               phone: editing.phone,
               province: editing.province,
-              district: editing.district,
+              district: editing.district ?? "",
               ward: editing.ward ?? "",
               address: editing.address,
               isDefault: editing.isDefault,
@@ -72,12 +73,18 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
   }, [open, editing, form])
 
   const onSubmit = async (values: AddressFormValues) => {
+    const payload = {
+      ...values,
+      district: values.district?.trim() || "",
+      ward: values.ward.trim(),
+    }
+
     try {
       if (editing) {
-        await updateAddress.mutateAsync({ id: editing.id, payload: values })
+        await updateAddress.mutateAsync({ id: editing.id, payload })
         toast.success("Đã cập nhật địa chỉ")
       } else {
-        await createAddress.mutateAsync(values)
+        await createAddress.mutateAsync(payload)
         toast.success("Đã thêm địa chỉ")
       }
       onOpenChange(false)
@@ -86,13 +93,14 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
     }
   }
 
-  const fields: { name: keyof AddressFormValues; label: string; placeholder?: string }[] = [
+  const textFields: {
+    name: keyof AddressFormValues
+    label: string
+    placeholder?: string
+  }[] = [
     { name: "label", label: "Nhãn", placeholder: "Nhà riêng / Công ty" },
     { name: "fullName", label: "Họ tên người nhận" },
     { name: "phone", label: "Số điện thoại" },
-    { name: "province", label: "Tỉnh / Thành phố" },
-    { name: "district", label: "Quận / Huyện" },
-    { name: "ward", label: "Phường / Xã" },
     { name: "address", label: "Địa chỉ chi tiết", placeholder: "Số nhà, tên đường" },
   ]
 
@@ -101,11 +109,13 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? "Sửa địa chỉ" : "Thêm địa chỉ"}</DialogTitle>
-          <DialogDescription>Địa chỉ giao hàng của bạn.</DialogDescription>
+          <DialogDescription>
+            Chọn tỉnh/thành và phường/xã theo dữ liệu hành chính mới (2025).
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {fields.map((f) => (
+            {textFields.slice(0, 3).map((f) => (
               <FormField
                 key={f.name}
                 control={form.control}
@@ -121,6 +131,34 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                 )}
               />
             ))}
+
+            <VietnamLocationFields
+              key={editing?.id ?? (open ? "create" : "closed")}
+              control={form.control}
+              setValue={form.setValue}
+              provinceName="province"
+              wardName="ward"
+              districtName="district"
+              initialProvince={editing?.province ?? ""}
+            />
+
+            {textFields.slice(3).map((f) => (
+              <FormField
+                key={f.name}
+                control={form.control}
+                name={f.name}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{f.label}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={f.placeholder} {...field} value={field.value as string} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+
             <FormField
               control={form.control}
               name="isDefault"

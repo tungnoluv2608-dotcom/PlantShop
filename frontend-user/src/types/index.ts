@@ -240,6 +240,7 @@ export interface ValidateVoucherRequest {
   shippingMethod: ShippingMethod
   province: string
   district?: string | null
+  ward?: string | null
 }
 
 export interface ShippingQuoteMethod {

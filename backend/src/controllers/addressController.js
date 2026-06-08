@@ -52,8 +52,12 @@ function validateAddressPayload(body) {
   const address = String(body.address || "").trim();
   const isDefault = !!body.isDefault;
 
-  if (!label || !fullName || !phone || !province || !district || !address) {
+  if (!label || !fullName || !phone || !province || !address) {
     return { error: "Thiếu thông tin địa chỉ bắt buộc." };
+  }
+
+  if (!ward && !district) {
+    return { error: "Vui lòng chọn phường/xã." };
   }
 
   return {
