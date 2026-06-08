@@ -1,6 +1,11 @@
 const { getPool, sql } = require("../libs/db");
 const crypto = require("crypto");
 const { buildTrackingUrl, normalizeTrackingProvider } = require("../services/trackingService");
+const {
+  validateVoucherForOrder,
+  calculateOrderTotalsWithVoucher,
+  normalizeVoucherCode,
+} = require("../services/voucherService");
 
 const VALID_PAYMENT_METHODS = new Set(["cod", "payos", "vnpay"]);
 const VALID_SHIPPING_METHODS = new Set(["standard", "express", "sameday"]);
@@ -264,7 +269,8 @@ async function loadCatalogMaps(pool, normalizedItems) {
 
   if (productIds.length > 0) {
     const productResult = await pool.request().query(`
-      SELECT id, title, price, image_url AS imageUrl, in_stock AS inStock, planter_options AS planterOptions
+      SELECT id, title, price, image_url AS imageUrl, in_stock AS inStock,
+             planter_options AS planterOptions, category_id AS categoryId
       FROM Products
       WHERE id IN (${productIds.join(",")})
     `);
@@ -352,6 +358,7 @@ function buildCanonicalOrderItems(normalizedItems, productMap, planterMap) {
       return {
         itemType: "product",
         productId: Number(product.id),
+        categoryId: product.categoryId != null ? Number(product.categoryId) : null,
         quantity: item.quantity,
         title: String(product.title || "").trim(),
         imageUrl: String(product.imageUrl || "").trim(),
@@ -382,6 +389,7 @@ function buildCanonicalOrderItems(normalizedItems, productMap, planterMap) {
     return {
       itemType: item.itemType,
       productId: Number(planter.id),
+      categoryId: null,
       quantity: item.quantity,
       title: String(planter.name || "").trim(),
       imageUrl: String(planter.imageUrl || "").trim(),
@@ -391,15 +399,14 @@ function buildCanonicalOrderItems(normalizedItems, productMap, planterMap) {
   });
 }
 
-function calculateOrderTotals(canonicalItems, shippingMethod) {
-  const subtotal = canonicalItems.reduce((sum, item) => sum + Number(item.price || 0) * item.quantity, 0);
-  const shippingFee = computeShippingFee(subtotal, shippingMethod);
-  return {
-    subtotal,
-    shippingFee,
-    total: subtotal + shippingFee,
-  };
-}
+const ORDER_SELECT_FIELDS = `
+  o.id, CONVERT(varchar, o.created_at, 23) AS date, o.status,
+  o.shipping_address AS shippingAddress, o.payment_method AS paymentMethod,
+  o.subtotal, o.shipping_fee AS shippingFee, o.discount_amount AS discountAmount,
+  o.voucher_code AS voucherCode, o.total,
+  o.tracking_number AS trackingNumber,
+  o.tracking_provider AS trackingProvider, o.tracking_url AS trackingUrl
+`;
 
 // GET /api/orders  (my orders)
 async function getMyOrders(req, res, next) {
@@ -409,10 +416,7 @@ async function getMyOrders(req, res, next) {
       .request()
       .input("userId", sql.Int, req.user.id)
       .query(
-        `SELECT o.id, CONVERT(varchar, o.created_at, 23) AS date, o.status,
-                o.shipping_address AS shippingAddress, o.payment_method AS paymentMethod,
-                o.subtotal, o.shipping_fee AS shippingFee, o.total, o.tracking_number AS trackingNumber,
-                o.tracking_provider AS trackingProvider, o.tracking_url AS trackingUrl
+        `SELECT ${ORDER_SELECT_FIELDS}
          FROM Orders o WHERE o.user_id = @userId ORDER BY o.created_at DESC`
       );
 
@@ -432,10 +436,7 @@ async function getOrderById(req, res, next) {
       .input("id", sql.NVarChar, req.params.id)
       .input("userId", sql.Int, req.user.id)
       .query(
-        `SELECT o.id, CONVERT(varchar, o.created_at, 23) AS date, o.status,
-                o.shipping_address AS shippingAddress, o.payment_method AS paymentMethod,
-                o.subtotal, o.shipping_fee AS shippingFee, o.total, o.tracking_number AS trackingNumber,
-                o.tracking_provider AS trackingProvider, o.tracking_url AS trackingUrl
+        `SELECT ${ORDER_SELECT_FIELDS}
          FROM Orders o WHERE o.id = @id AND o.user_id = @userId`
       );
 
@@ -456,7 +457,7 @@ async function createOrder(req, res, next) {
   let rolledBack = false;
 
   try {
-    const { items, shippingAddress, paymentMethod, shippingMethod } = req.body;
+    const { items, shippingAddress, paymentMethod, shippingMethod, voucherCode } = req.body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Giỏ hàng trống." });
@@ -482,10 +483,29 @@ async function createOrder(req, res, next) {
     const pool = await getPool();
     const { productMap, planterMap } = await loadCatalogMaps(pool, normalizedItems);
     const canonicalItems = buildCanonicalOrderItems(normalizedItems, productMap, planterMap);
-    const totals = calculateOrderTotals(canonicalItems, normalizedShippingMethod);
 
     transaction = new sql.Transaction(pool);
     await transaction.begin();
+
+    let voucherResult = null;
+    const normalizedVoucherCode = normalizeVoucherCode(voucherCode);
+    if (normalizedVoucherCode) {
+      voucherResult = await validateVoucherForOrder({
+        request: transaction.request(),
+        pool,
+        code: normalizedVoucherCode,
+        userId: req.user.id,
+        canonicalItems,
+        shippingMethod: normalizedShippingMethod,
+        lock: true,
+      });
+    }
+
+    const totals = calculateOrderTotalsWithVoucher(
+      canonicalItems,
+      normalizedShippingMethod,
+      voucherResult
+    );
 
     const year = new Date().getFullYear();
     const nextSequenceValue = await getNextOrderSequenceValue(transaction, year);
@@ -504,6 +524,9 @@ async function createOrder(req, res, next) {
       .input("paymentMethod", sql.NVarChar, normalizedPaymentMethod)
       .input("subtotal", sql.Decimal(18, 2), totals.subtotal)
       .input("shippingFee", sql.Decimal(18, 2), totals.shippingFee)
+      .input("discountAmount", sql.Decimal(18, 2), totals.discountAmount)
+      .input("voucherId", sql.Int, totals.voucher?.id ?? null)
+      .input("voucherCode", sql.NVarChar, totals.voucherCode)
       .input("total", sql.Decimal(18, 2), totals.total)
       .input("shippingMethod", sql.NVarChar, normalizedShippingMethod)
       .input("recipientName", sql.NVarChar, shippingRecipient.recipientName)
@@ -514,14 +537,29 @@ async function createOrder(req, res, next) {
       .input("addressLine", sql.NVarChar, shippingRecipient.addressLine)
       .query(
         `INSERT INTO Orders (
-           id, user_id, status, shipping_address, payment_method, subtotal, shipping_fee, total,
+           id, user_id, status, shipping_address, payment_method,
+           subtotal, shipping_fee, discount_amount, voucher_id, voucher_code, total,
            shipping_method, recipient_name, recipient_phone, province, district, ward, address_line
          )
          VALUES (
-           @id, @userId, @status, @shippingAddress, @paymentMethod, @subtotal, @shippingFee, @total,
+           @id, @userId, @status, @shippingAddress, @paymentMethod,
+           @subtotal, @shippingFee, @discountAmount, @voucherId, @voucherCode, @total,
            @shippingMethod, @recipientName, @recipientPhone, @province, @district, @ward, @addressLine
          )`
       );
+
+    if (totals.voucher) {
+      await transaction
+        .request()
+        .input("voucherId", sql.Int, totals.voucher.id)
+        .input("userId", sql.Int, req.user.id)
+        .input("orderId", sql.NVarChar, orderId)
+        .input("discountAmount", sql.Decimal(18, 2), totals.discountAmount)
+        .query(
+          `INSERT INTO VoucherRedemptions (voucher_id, user_id, order_id, discount_amount)
+           VALUES (@voucherId, @userId, @orderId, @discountAmount)`
+        );
+    }
 
     for (const item of canonicalItems) {
       await transaction
@@ -555,9 +593,22 @@ async function createOrder(req, res, next) {
       message: "Đặt hàng thành công.",
       subtotal: totals.subtotal,
       shippingFee: totals.shippingFee,
+      discountAmount: totals.discountAmount,
+      voucherCode: totals.voucherCode,
       total: totals.total,
     });
   } catch (err) {
+    if (err.status) {
+      if (transaction && !rolledBack) {
+        try {
+          await transaction.rollback();
+          rolledBack = true;
+        } catch (rollbackError) {
+          console.error("Rollback order transaction failed:", rollbackError.message || rollbackError);
+        }
+      }
+      return res.status(err.status).json({ message: err.message });
+    }
     if (transaction && !rolledBack) {
       try {
         await transaction.rollback();
@@ -593,6 +644,11 @@ async function cancelOrder(req, res, next) {
       .request()
       .input("id", sql.NVarChar, req.params.id)
       .query("UPDATE Orders SET status = 'cancelled' WHERE id = @id");
+
+    await pool
+      .request()
+      .input("orderId", sql.NVarChar, req.params.id)
+      .query("DELETE FROM VoucherRedemptions WHERE order_id = @orderId");
 
     await pool
       .request()
@@ -835,4 +891,8 @@ module.exports = {
   cancelOrder,
   createVnpayPaymentUrl,
   verifyVnpayReturn,
+  normalizeIncomingItems,
+  loadCatalogMaps,
+  buildCanonicalOrderItems,
+  normalizeShippingMethod,
 };

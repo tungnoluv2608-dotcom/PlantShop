@@ -7,7 +7,6 @@ import { EmptyState } from "@/components/common/EmptyState"
 import { formatVND } from "@/lib/format"
 import { useCartStore } from "@/stores/cartStore"
 import { useAuthStore } from "@/stores/authStore"
-
 export function CartPage() {
   const navigate = useNavigate()
   const items = useCartStore((s) => s.items)
@@ -42,6 +41,7 @@ export function CartPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <h1 className="mb-6 text-3xl font-semibold">Giỏ hàng</h1>
+
       <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
         <div className="space-y-4">
           {items.map((item) => (
@@ -107,6 +107,7 @@ export function CartPage() {
               <span className="text-muted-foreground">Tạm tính</span>
               <span>{formatVND(subtotal)}</span>
             </div>
+
             <p className="text-xs text-muted-foreground">
               Phí vận chuyển và tổng cuối được tính ở bước thanh toán.
             </p>

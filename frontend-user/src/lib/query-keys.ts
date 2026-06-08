@@ -39,4 +39,10 @@ export const queryKeys = {
     all: ["addresses"] as const,
   },
 
+  vouchers: {
+    promotions: ["vouchers", "promotions"] as const,
+    wallet: ["vouchers", "wallet"] as const,
+    available: (payload: { items: unknown[]; shippingMethod: string } | null) =>
+      ["vouchers", "available", payload] as const,
+  },
 } as const

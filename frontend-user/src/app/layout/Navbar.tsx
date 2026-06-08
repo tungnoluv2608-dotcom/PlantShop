@@ -21,6 +21,7 @@ const NAV_LINKS = [
   { to: "/shop", label: "Cửa hàng" },
   { to: "/planters", label: "Chậu cây" },
   { to: "/accessories", label: "Phụ kiện" },
+  { to: "/vouchers", label: "Ưu đãi" },
   { to: "/blog", label: "Blog" },
   { to: "/wholesale", label: "Mua sỉ" },
 ]
@@ -140,6 +141,9 @@ export function Navbar() {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/profile?tab=orders">Đơn hàng</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/vouchers">Kho voucher</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={clearSession}>Đăng xuất</DropdownMenuItem>

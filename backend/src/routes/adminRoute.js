@@ -21,6 +21,14 @@ const {
   updatePrintSettings,
   resetPrintSettings,
 } = require("../controllers/printSettingsController");
+const {
+  adminListVouchers,
+  adminGetVoucherById,
+  adminCreateVoucher,
+  adminUpdateVoucher,
+  adminDeleteVoucher,
+  adminListVoucherRedemptions,
+} = require("../controllers/voucherController");
 
 // Public admin login
 router.post("/login", adminLogin);
@@ -72,6 +80,16 @@ router.get("/planters", adminListPlanters);
 router.post("/planters", createPlanter);
 router.put("/planters/:id", updatePlanter);
 router.delete("/planters/:id", deletePlanter);
+
+// Vouchers - literal routes first
+router.get("/vouchers/:id/redemptions", adminListVoucherRedemptions);
+
+// Vouchers
+router.get("/vouchers", adminListVouchers);
+router.get("/vouchers/:id", adminGetVoucherById);
+router.post("/vouchers", adminCreateVoucher);
+router.put("/vouchers/:id", adminUpdateVoucher);
+router.delete("/vouchers/:id", adminDeleteVoucher);
 
 // Blog - literal routes first, then param routes
 router.post("/blog/ai-draft", generateBlogDraft);

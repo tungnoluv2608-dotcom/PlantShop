@@ -34,4 +34,10 @@ export const queryKeys = {
   },
 
   printSettings: ["admin", "print-settings"] as const,
+
+  vouchers: {
+    all: ["admin", "vouchers"] as const,
+    detail: (id: string) => ["admin", "vouchers", id] as const,
+    redemptions: (id: string) => ["admin", "vouchers", id, "redemptions"] as const,
+  },
 } as const

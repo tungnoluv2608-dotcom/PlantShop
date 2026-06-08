@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { useAdvisorChatStore } from "@/stores/advisorChatStore"
 import { CategoryShowcase } from "../components/CategoryShowcase"
 import { ProductRail } from "../components/ProductRail"
+import { VoucherPromoBanner } from "@/features/vouchers/components/VoucherPromoBanner"
 
 const FEATURES = [
   { icon: Leaf, title: "Cây khỏe, tươi mới", desc: "Tuyển chọn kỹ từ vườn ươm" },
@@ -68,6 +69,10 @@ export function HomePage() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-6">
+        <VoucherPromoBanner />
       </section>
 
       <CategoryShowcase />

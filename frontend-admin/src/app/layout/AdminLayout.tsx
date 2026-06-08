@@ -27,6 +27,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   planters: "Chậu cây",
   accessories: "Phụ kiện",
   orders: "Đơn hàng",
+  vouchers: "Voucher",
   customers: "Khách hàng",
   reviews: "Đánh giá",
   blog: "Góc xanh",

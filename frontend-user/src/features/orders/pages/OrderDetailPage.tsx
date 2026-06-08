@@ -122,6 +122,16 @@ export function OrderDetailPage() {
                 <span className="text-muted-foreground">Tạm tính</span>
                 <span>{formatVND(order.subtotal)}</span>
               </div>
+              {order.voucherCode && (
+                <div className="flex justify-between text-emerald-600">
+                  <span>Voucher ({order.voucherCode})</span>
+                  <span>
+                    {order.discountAmount && order.discountAmount > 0
+                      ? `-${formatVND(order.discountAmount)}`
+                      : "Đã áp dụng"}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Phí vận chuyển</span>
                 <span>{formatVND(order.shippingFee)}</span>

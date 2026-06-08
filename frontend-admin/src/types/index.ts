@@ -187,6 +187,8 @@ export interface AdminOrderDetail {
   paymentMethod: string
   subtotal: number
   shippingFee: number
+  discountAmount?: number
+  voucherCode?: string | null
   total: number
   trackingNumber?: string | null
   trackingProvider?: TrackingProvider | null
@@ -319,4 +321,70 @@ export interface UploadResult {
 
 export interface MessageResponse {
   message: string
+}
+
+export type VoucherDiscountType = "percent" | "fixed" | "freeship"
+export type VoucherAppliesTo = "all" | "category" | "product"
+
+export interface VoucherScope {
+  scopeType: "category" | "product"
+  scopeId: number
+}
+
+export interface Voucher {
+  id: number | string
+  code: string
+  name: string
+  description?: string | null
+  discountType: VoucherDiscountType
+  discountValue: number
+  maxDiscount?: number | null
+  minOrderValue: number
+  usageLimit?: number | null
+  usagePerUser: number
+  startsAt: string
+  expiresAt: string
+  isActive: boolean
+  appliesTo: VoucherAppliesTo
+  scopes?: VoucherScope[]
+  usedCount?: number
+  createdAt?: string
+}
+
+export interface VoucherPayload {
+  code: string
+  name: string
+  description?: string | null
+  discountType: VoucherDiscountType
+  discountValue: number
+  maxDiscount?: number | null
+  minOrderValue: number
+  usageLimit?: number | null
+  usagePerUser: number
+  startsAt: string
+  expiresAt: string
+  isActive: boolean
+  appliesTo: VoucherAppliesTo
+  scopes: VoucherScope[]
+}
+
+export interface VoucherRedemption {
+  id: number | string
+  orderId?: string | null
+  discountAmount: number
+  redeemedAt: string
+  customerName: string
+  customerEmail: string
+  orderStatus?: string | null
+  orderTotal?: number | null
+}
+
+export interface VoucherRedemptionsReport {
+  voucher: Pick<Voucher, "id" | "code" | "name">
+  scopes: VoucherScope[]
+  summary: {
+    totalUsed: number
+    totalDiscount: number
+  }
+  redemptions: VoucherRedemption[]
 }

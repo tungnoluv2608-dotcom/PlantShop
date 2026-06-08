@@ -135,6 +135,8 @@ export interface Order {
   paymentMethod: string
   subtotal: number
   shippingFee: number
+  discountAmount?: number
+  voucherCode?: string | null
   total: number
   trackingNumber?: string | null
   trackingProvider?: TrackingProvider | null
@@ -211,6 +213,7 @@ export interface CreateOrderRequest {
   shippingAddress: string
   shippingMethod: ShippingMethod
   paymentMethod: PaymentMethod
+  voucherCode?: string
   recipientName?: string
   recipientPhone?: string
   province?: string
@@ -224,7 +227,86 @@ export interface CreateOrderResponse {
   message: string
   subtotal: number
   shippingFee: number
+  discountAmount?: number
+  voucherCode?: string | null
   total: number
+}
+
+export type VoucherDiscountType = "percent" | "fixed" | "freeship"
+
+export interface ValidateVoucherRequest {
+  code: string
+  items: CreateOrderItem[]
+  shippingMethod: ShippingMethod
+}
+
+export interface ValidateVoucherResponse {
+  valid: boolean
+  message: string
+  code: string
+  voucherName: string
+  discountType: VoucherDiscountType
+  subtotal: number
+  eligibleSubtotal: number
+  discountAmount: number
+  shippingFee: number
+  total: number
+}
+
+export interface VoucherPromotion {
+  id: number | string
+  code: string
+  name: string
+  description?: string | null
+  discountType: VoucherDiscountType
+  discountLabel: string
+  minOrderValue: number
+  expiresAt: string
+  isClaimed: boolean
+  canUse?: boolean
+  claimStatus?: WalletVoucherStatus | null
+  statusMessage?: string | null
+}
+
+export type WalletVoucherStatus = "active" | "expired" | "inactive" | "depleted" | "used"
+
+export interface WalletVoucher {
+  id: number | string
+  code: string
+  name: string
+  description?: string | null
+  discountType: VoucherDiscountType
+  discountLabel: string
+  minOrderValue: number
+  expiresAt: string
+  claimedAt: string
+  status: WalletVoucherStatus
+  statusMessage?: string | null
+}
+
+export interface AvailableVoucher {
+  id: number | string
+  code: string
+  name: string
+  description?: string | null
+  discountType: VoucherDiscountType
+  discountLabel: string
+  minOrderValue: number
+  appliesTo: string
+  expiresAt: string
+  isClaimed: boolean
+  eligible: boolean
+  reason?: string | null
+  discountAmount: number
+  shippingFee: number
+  total: number
+  savings: number
+  recommended: boolean
+}
+
+export interface AvailableVouchersResponse {
+  vouchers: AvailableVoucher[]
+  recommended: AvailableVoucher | null
 }
 
 export interface PaymentVerifyResult {

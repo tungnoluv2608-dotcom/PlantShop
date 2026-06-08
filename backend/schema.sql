@@ -116,6 +116,35 @@ CREATE TABLE BlogPosts (
 );
 GO
 
+-- ── Vouchers ───────────────────────────────────────────────────
+CREATE TABLE Vouchers (
+    id              INT IDENTITY(1,1) PRIMARY KEY,
+    code            NVARCHAR(50)  NOT NULL UNIQUE,
+    name            NVARCHAR(255) NOT NULL,
+    description     NVARCHAR(500) NULL,
+    discount_type   NVARCHAR(20)  NOT NULL,
+    discount_value  DECIMAL(18,2) NOT NULL,
+    max_discount    DECIMAL(18,2) NULL,
+    min_order_value DECIMAL(18,2) NOT NULL DEFAULT 0,
+    usage_limit     INT NULL,
+    usage_per_user  INT NOT NULL DEFAULT 1,
+    starts_at       DATETIME      NOT NULL,
+    expires_at      DATETIME      NOT NULL,
+    is_active       BIT           NOT NULL DEFAULT 1,
+    applies_to      NVARCHAR(20)  NOT NULL DEFAULT 'all',
+    created_at      DATETIME      NOT NULL DEFAULT GETDATE(),
+    updated_at      DATETIME      NOT NULL DEFAULT GETDATE()
+);
+GO
+
+CREATE TABLE VoucherScopes (
+    id          INT IDENTITY(1,1) PRIMARY KEY,
+    voucher_id  INT NOT NULL REFERENCES Vouchers(id) ON DELETE CASCADE,
+    scope_type  NVARCHAR(20) NOT NULL,
+    scope_id    INT NOT NULL
+);
+GO
+
 -- ── Orders ─────────────────────────────────────────────────────
 CREATE TABLE Orders (
     id               NVARCHAR(50)  NOT NULL PRIMARY KEY,  -- e.g. PSTT-2026-00001
@@ -125,6 +154,9 @@ CREATE TABLE Orders (
     payment_method   NVARCHAR(100),
     subtotal         DECIMAL(18, 2) NOT NULL,
     shipping_fee     DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    discount_amount  DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    voucher_id       INT           REFERENCES Vouchers(id),
+    voucher_code     NVARCHAR(50),
     total            DECIMAL(18, 2) NOT NULL,
     tracking_number  NVARCHAR(100),
     tracking_provider NVARCHAR(50),
@@ -161,6 +193,28 @@ CREATE TABLE OrderTimeline (
     event_date DATETIME      NOT NULL DEFAULT GETDATE(),
     done       BIT           NOT NULL DEFAULT 0
 );
+GO
+
+CREATE TABLE VoucherRedemptions (
+    id              INT IDENTITY(1,1) PRIMARY KEY,
+    voucher_id      INT NOT NULL REFERENCES Vouchers(id),
+    user_id         INT NOT NULL REFERENCES Users(id),
+    order_id        NVARCHAR(50) NULL REFERENCES Orders(id),
+    discount_amount DECIMAL(18,2) NOT NULL,
+    redeemed_at     DATETIME NOT NULL DEFAULT GETDATE()
+);
+GO
+
+CREATE TABLE UserVoucherClaims (
+    id         INT IDENTITY(1,1) PRIMARY KEY,
+    user_id    INT NOT NULL REFERENCES Users(id) ON DELETE CASCADE,
+    voucher_id INT NOT NULL REFERENCES Vouchers(id) ON DELETE CASCADE,
+    claimed_at DATETIME NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT UQ_UserVoucherClaims_User_Voucher UNIQUE (user_id, voucher_id)
+);
+GO
+
+CREATE INDEX IX_UserVoucherClaims_UserId ON UserVoucherClaims(user_id);
 GO
 
 CREATE TABLE OrderNumberSequences (

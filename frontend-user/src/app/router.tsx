@@ -17,6 +17,7 @@ import { OrderSuccessPage } from "@/features/orders/pages/OrderSuccessPage"
 import { OrderDetailPage } from "@/features/orders/pages/OrderDetailPage"
 import { ProfilePage } from "@/features/profile/pages/ProfilePage"
 import { WishlistPage } from "@/features/wishlist/pages/WishlistPage"
+import { VouchersPage } from "@/features/vouchers/pages/VouchersPage"
 import { SignInPage } from "@/features/auth/pages/SignInPage"
 import { SignUpPage } from "@/features/auth/pages/SignUpPage"
 import { VnpayReturnPage } from "@/features/payment/pages/VnpayReturnPage"
@@ -39,6 +40,7 @@ export const router = createBrowserRouter([
       { path: "/blog/:id", element: <BlogDetailPage /> },
 
       { path: "/wholesale", element: <WholesalePage /> },
+      { path: "/vouchers", element: <VouchersPage /> },
       { path: "/cart", element: <CartPage /> },
       { path: "/signin", element: <SignInPage /> },
       { path: "/signup", element: <SignUpPage /> },

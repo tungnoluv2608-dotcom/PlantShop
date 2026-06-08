@@ -330,7 +330,8 @@ async function adminGetOrderById(req, res, next) {
       .query(
         `SELECT o.id, CONVERT(varchar, o.created_at, 23) AS date, o.status,
                 o.shipping_address AS shippingAddress, o.payment_method AS paymentMethod,
-                o.subtotal, o.shipping_fee AS shippingFee, o.total, o.tracking_number AS trackingNumber,
+                o.subtotal, o.shipping_fee AS shippingFee, o.discount_amount AS discountAmount,
+                o.voucher_code AS voucherCode, o.total, o.tracking_number AS trackingNumber,
                 o.tracking_provider AS trackingProvider, o.tracking_url AS trackingUrl,
                 o.shipping_method AS shippingMethod,
                 o.recipient_name AS recipientName, o.recipient_phone AS recipientPhone,

@@ -1,5 +1,6 @@
 import { Link, useSearchParams } from "react-router"
-import { Package, LogOut } from "lucide-react"
+import { LogOut, Package, TicketPercent } from "lucide-react"
+import { VouchersTab } from "@/features/vouchers/components/VouchersTab"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -80,6 +81,7 @@ export function ProfilePage() {
           <TabsTrigger value="account">Tài khoản</TabsTrigger>
           <TabsTrigger value="orders">Đơn hàng</TabsTrigger>
           <TabsTrigger value="addresses">Địa chỉ</TabsTrigger>
+          <TabsTrigger value="vouchers">Kho voucher</TabsTrigger>
         </TabsList>
 
         <TabsContent value="account" className="mt-6">
@@ -96,6 +98,18 @@ export function ProfilePage() {
                 <span className="text-sm text-muted-foreground">Email</span>
                 <span className="font-medium">{user?.email}</span>
               </div>
+              <div className="flex flex-wrap gap-2 border-t pt-4">
+                <Button variant="outline" onClick={() => setParams({ tab: "orders" })}>
+                  <Package className="size-4" />
+                  Đơn hàng
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link to="/vouchers">
+                    <TicketPercent className="size-4" />
+                    Kho voucher
+                  </Link>
+                </Button>
+              </div>
               <Button variant="outline" onClick={clearSession}>
                 <LogOut className="size-4" /> Đăng xuất
               </Button>
@@ -109,6 +123,10 @@ export function ProfilePage() {
 
         <TabsContent value="addresses" className="mt-6">
           <AddressManager />
+        </TabsContent>
+
+        <TabsContent value="vouchers" className="mt-6">
+          <VouchersTab />
         </TabsContent>
       </Tabs>
     </div>
