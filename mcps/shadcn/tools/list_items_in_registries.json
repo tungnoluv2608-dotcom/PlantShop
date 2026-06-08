@@ -9,20 +9,24 @@
         "items": {
           "type": "string"
         },
-        "description": "Array of registry names to search (e.g., ['@shadcn', '@acme'])"
+        "description": "Array of registry names to list (e.g., ['@shadcn', '@acme']). Omit to list from every registry configured in components.json."
+      },
+      "types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Filter by item type. One of: lib, block, component, ui, hook, page, file, theme, style, item, base, font."
       },
       "limit": {
         "type": "number",
-        "description": "Maximum number of items to return"
+        "description": "Maximum number of items to return (defaults to 100; use 0 for no limit)"
       },
       "offset": {
         "type": "number",
         "description": "Number of items to skip for pagination"
       }
     },
-    "required": [
-      "registries"
-    ],
     "additionalProperties": false,
     "$schema": "http://json-schema.org/draft-07/schema#"
   }

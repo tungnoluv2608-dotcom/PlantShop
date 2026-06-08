@@ -7,13 +7,17 @@ import { Button } from "@/components/ui/button"
 import { Price } from "@/components/common/Price"
 import { useCartStore } from "@/stores/cartStore"
 import { encodeCartId } from "@/lib/cart-id"
+import { getMaxOrderQuantity, isInStock } from "@/lib/stock"
 
 export function PlanterCard({ planter }: { planter: Planter }) {
   const addItem = useCartStore((s) => s.addItem)
   const basePath = planter.type === "accessory" ? "/accessories" : "/planters"
+  const maxQuantity = getMaxOrderQuantity(planter.stockQuantity, planter.inStock)
+  const available = isInStock(planter.stockQuantity, planter.inStock)
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault()
+    if (!available) return
     addItem({
       id: encodeCartId(
         planter.type === "accessory"
@@ -24,6 +28,7 @@ export function PlanterCard({ planter }: { planter: Planter }) {
       price: planter.price,
       image: planter.imageUrl,
       planter: "Không",
+      maxQuantity,
     })
     toast.success("Đã thêm vào giỏ hàng", { description: planter.name })
   }
@@ -40,7 +45,7 @@ export function PlanterCard({ planter }: { planter: Planter }) {
           loading="lazy"
           className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        {!planter.inStock && (
+        {!available && (
           <Badge variant="secondary" className="absolute right-3 top-3">
             Hết hàng
           </Badge>
@@ -53,7 +58,13 @@ export function PlanterCard({ planter }: { planter: Planter }) {
         <h3 className="line-clamp-2 font-medium leading-snug">{planter.name}</h3>
         <div className="mt-auto flex items-center justify-between gap-2 pt-2">
           <Price value={planter.price} />
-          <Button size="icon" variant="secondary" onClick={handleAdd} aria-label="Thêm vào giỏ">
+          <Button
+            size="icon"
+            variant="secondary"
+            onClick={handleAdd}
+            disabled={!available}
+            aria-label="Thêm vào giỏ"
+          >
             <ShoppingBag className="size-4" />
           </Button>
         </div>

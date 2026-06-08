@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
+import { clampOrderQuantity } from "@/lib/stock"
 
 export interface CartItem {
   /** Encoded cart id (see lib/cart-id.ts). Authoritative for the backend. */
@@ -10,6 +11,8 @@ export interface CartItem {
   /** Display label for planter add-on, e.g. "Có (Kèm Chậu gốm trắng)". */
   planter: string
   quantity: number
+  /** Client-side cap from stock at add-to-cart time; backend re-validates at checkout. */
+  maxQuantity?: number
 }
 
 interface CartState {
@@ -32,22 +35,47 @@ export const useCartStore = create<CartState>()(
       items: [],
       addItem: (item, quantity = 1) =>
         set((state) => {
+          const maxQuantity = item.maxQuantity
           const existing = state.items.find((i) => i.id === item.id)
           if (existing) {
+            const mergedMax = Math.min(
+              existing.maxQuantity ?? Number.POSITIVE_INFINITY,
+              maxQuantity ?? Number.POSITIVE_INFINITY,
+            )
+            const nextQuantity = clampOrderQuantity(
+              existing.quantity + quantity,
+              Number.isFinite(mergedMax) ? mergedMax : 99,
+            )
             return {
               items: state.items.map((i) =>
-                i.id === item.id ? { ...i, quantity: i.quantity + quantity } : i,
+                i.id === item.id
+                  ? {
+                      ...i,
+                      quantity: nextQuantity,
+                      maxQuantity: Number.isFinite(mergedMax) ? mergedMax : i.maxQuantity,
+                    }
+                  : i,
               ),
             }
           }
-          return { items: [...state.items, { ...item, quantity }] }
+          const initialQuantity = clampOrderQuantity(
+            quantity,
+            maxQuantity ?? 99,
+          )
+          return {
+            items: [...state.items, { ...item, quantity: initialQuantity }],
+          }
         }),
       removeItem: (id) =>
         set((state) => ({ items: state.items.filter((i) => i.id !== id) })),
       setQuantity: (id, quantity) =>
         set((state) => ({
           items: state.items
-            .map((i) => (i.id === id ? { ...i, quantity: Math.max(1, quantity) } : i))
+            .map((i) => {
+              if (i.id !== id) return i
+              const max = i.maxQuantity ?? 99
+              return { ...i, quantity: clampOrderQuantity(quantity, max) }
+            })
             .filter((i) => i.quantity > 0),
         })),
       clear: () => set({ items: [] }),

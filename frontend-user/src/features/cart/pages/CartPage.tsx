@@ -86,6 +86,7 @@ export function CartPage() {
                       variant="ghost"
                       size="icon"
                       className="size-8"
+                      disabled={item.maxQuantity != null && item.quantity >= item.maxQuantity}
                       onClick={() => setQuantity(item.id, item.quantity + 1)}
                     >
                       <Plus className="size-3.5" />

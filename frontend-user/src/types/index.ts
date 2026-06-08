@@ -27,6 +27,7 @@ export interface Product {
   category: string
   bio?: string | null
   inStock?: boolean
+  stockQuantity?: number
   careGuide?: CareGuide[]
   planterOptions?: Array<string | number>
   isFavorite?: boolean
@@ -45,6 +46,7 @@ export interface Planter {
   imageUrl: string
   sizes: string[]
   inStock: boolean
+  stockQuantity?: number
   type: PlanterType
 }
 

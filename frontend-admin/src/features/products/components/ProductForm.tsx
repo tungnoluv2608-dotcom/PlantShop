@@ -362,6 +362,29 @@ export function ProductForm({
                 />
                 <FormField
                   control={form.control}
+                  name="stockQuantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Số lượng tồn kho</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          {...field}
+                          onChange={(e) => {
+                            const next = Math.max(0, e.target.valueAsNumber || 0)
+                            field.onChange(next)
+                            form.setValue("inStock", next > 0, { shouldDirty: true })
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>Nhập 0 để đánh dấu hết hàng.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="inStock"
                   render={({ field }) => (
                     <FormItem className="flex items-center justify-between rounded-lg border border-border p-3">
@@ -369,7 +392,14 @@ export function ProductForm({
                       <FormControl>
                         <Switch
                           checked={field.value}
-                          onCheckedChange={field.onChange}
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked)
+                            if (!checked) {
+                              form.setValue("stockQuantity", 0, { shouldDirty: true })
+                            } else if (form.getValues("stockQuantity") <= 0) {
+                              form.setValue("stockQuantity", 1, { shouldDirty: true })
+                            }
+                          }}
                         />
                       </FormControl>
                     </FormItem>

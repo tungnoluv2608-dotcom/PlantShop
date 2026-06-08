@@ -14,6 +14,7 @@ export function toProductPayload(values: ProductFormValues): ProductPayload {
     categoryId: values.categoryId,
     bio: values.bio || null,
     inStock: values.inStock,
+    stockQuantity: values.stockQuantity,
     images: values.images,
     careGuide: values.careGuide,
     planterOptions: values.planterOptions.map((id) =>
@@ -38,6 +39,7 @@ export function toProductFormValues(
     categoryId,
     bio: product.bio ?? "",
     inStock: product.inStock ?? true,
+    stockQuantity: product.stockQuantity ?? 0,
     images: product.images ?? [],
     careGuide: product.careGuide ?? [],
     planterOptions: (product.planterOptions ?? []).map((p) => String(p)),

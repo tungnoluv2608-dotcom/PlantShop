@@ -6,6 +6,12 @@ const {
   calculateOrderTotalsWithVoucher,
   normalizeVoucherCode,
 } = require("../services/voucherService");
+const {
+  mapStockRow,
+  validateOrderItemStock,
+  deductStockForOrderItems,
+  restoreOrderStock,
+} = require("../services/stockService");
 
 const VALID_PAYMENT_METHODS = new Set(["cod", "payos", "vnpay"]);
 const { normalizeShippingMethod: normalizeZoneShippingMethod } = require("../services/shippingService");
@@ -249,25 +255,27 @@ async function loadCatalogMaps(pool, normalizedItems) {
   if (productIds.length > 0) {
     const productResult = await pool.request().query(`
       SELECT id, title, price, image_url AS imageUrl, in_stock AS inStock,
+             stock_quantity AS stockQuantity,
              planter_options AS planterOptions, category_id AS categoryId
       FROM Products
       WHERE id IN (${productIds.join(",")})
     `);
 
     for (const row of productResult.recordset) {
-      productMap.set(Number(row.id), row);
+      productMap.set(Number(row.id), mapStockRow(row));
     }
   }
 
   if (planterIds.length > 0) {
     const planterResult = await pool.request().query(`
-      SELECT id, name, price, image_url AS imageUrl, in_stock AS inStock, type
+      SELECT id, name, price, image_url AS imageUrl, in_stock AS inStock,
+             stock_quantity AS stockQuantity, type
       FROM Planters
       WHERE id IN (${planterIds.join(",")})
     `);
 
     for (const row of planterResult.recordset) {
-      planterMap.set(Number(row.id), row);
+      planterMap.set(Number(row.id), mapStockRow(row));
     }
   }
 
@@ -337,6 +345,7 @@ function buildCanonicalOrderItems(normalizedItems, productMap, planterMap) {
       return {
         itemType: "product",
         productId: Number(product.id),
+        planterId: selectedPlanter ? Number(selectedPlanter.id) : null,
         categoryId: product.categoryId != null ? Number(product.categoryId) : null,
         quantity: item.quantity,
         title: String(product.title || "").trim(),
@@ -462,6 +471,7 @@ async function createOrder(req, res, next) {
     const pool = await getPool();
     const { productMap, planterMap } = await loadCatalogMaps(pool, normalizedItems);
     const canonicalItems = buildCanonicalOrderItems(normalizedItems, productMap, planterMap);
+    validateOrderItemStock(canonicalItems, productMap, planterMap);
 
     transaction = new sql.Transaction(pool);
     await transaction.begin();
@@ -549,6 +559,8 @@ async function createOrder(req, res, next) {
         );
     }
 
+    await deductStockForOrderItems(transaction, canonicalItems);
+
     for (const item of canonicalItems) {
       await transaction
         .request()
@@ -559,11 +571,22 @@ async function createOrder(req, res, next) {
         .input("quantity", sql.Int, item.quantity)
         .input("imageUrl", sql.NVarChar, item.imageUrl || null)
         .input("planterName", sql.NVarChar, item.planterName || "")
+        .input("itemType", sql.NVarChar, item.itemType)
+        .input("planterId", sql.Int, item.planterId || null)
         .query(
-          `INSERT INTO OrderItems (order_id, product_id, title, price, quantity, image_url, planter_name)
-           VALUES (@orderId, @productId, @title, @price, @quantity, @imageUrl, @planterName)`
+          `INSERT INTO OrderItems (
+             order_id, product_id, title, price, quantity, image_url, planter_name, item_type, planter_id
+           )
+           VALUES (
+             @orderId, @productId, @title, @price, @quantity, @imageUrl, @planterName, @itemType, @planterId
+           )`
         );
     }
+
+    await transaction
+      .request()
+      .input("orderId", sql.NVarChar, orderId)
+      .query("UPDATE Orders SET stock_reserved = 1 WHERE id = @orderId");
 
     await transaction
       .request()
@@ -627,6 +650,8 @@ async function cancelOrder(req, res, next) {
     if (!["pending", "confirmed"].includes(status)) {
       return res.status(400).json({ message: "Không thể hủy đơn hàng ở trạng thái này." });
     }
+
+    await restoreOrderStock(pool, req.params.id);
 
     await pool
       .request()

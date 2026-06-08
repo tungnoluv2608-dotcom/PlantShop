@@ -10,14 +10,17 @@ import { Price } from "@/components/common/Price"
 import { encodeCartId } from "@/lib/cart-id"
 import { useCartStore } from "@/stores/cartStore"
 import { usePlanter } from "../api"
+import { formatStockLabel, getMaxOrderQuantity } from "@/lib/stock"
 
 export function PlanterDetailPage({ type }: { type: PlanterType }) {
   const { id = "" } = useParams()
   const { data: item, isLoading } = usePlanter(id, type)
   const addItem = useCartStore((s) => s.addItem)
 
+  const maxQuantity = item ? getMaxOrderQuantity(item.stockQuantity, item.inStock) : 0
+
   const handleAdd = () => {
-    if (!item) return
+    if (!item || maxQuantity <= 0) return
     addItem({
       id: encodeCartId(
         type === "accessory"
@@ -28,6 +31,7 @@ export function PlanterDetailPage({ type }: { type: PlanterType }) {
       price: item.price,
       image: item.imageUrl,
       planter: "Không",
+      maxQuantity,
     })
     toast.success("Đã thêm vào giỏ hàng", { description: item.name })
   }
@@ -72,8 +76,12 @@ export function PlanterDetailPage({ type }: { type: PlanterType }) {
 
           <div className="flex items-center gap-3">
             <Price value={item.price} size="lg" />
-            {!item.inStock && <Badge variant="secondary">Hết hàng</Badge>}
+            {maxQuantity <= 0 && <Badge variant="secondary">Hết hàng</Badge>}
           </div>
+
+          <p className="text-sm text-muted-foreground">
+            {formatStockLabel(item.stockQuantity, item.inStock)}
+          </p>
 
           {item.accessoryBrand && (
             <p className="text-sm text-muted-foreground">Thương hiệu: {item.accessoryBrand}</p>
@@ -104,7 +112,7 @@ export function PlanterDetailPage({ type }: { type: PlanterType }) {
 
           <Separator />
 
-          <Button onClick={handleAdd} disabled={!item.inStock} size="lg">
+          <Button onClick={handleAdd} disabled={maxQuantity <= 0} size="lg">
             <ShoppingBag className="size-4" /> Thêm vào giỏ
           </Button>
         </div>

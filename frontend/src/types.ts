@@ -11,6 +11,7 @@ export interface Product {
   careGuide?: CareGuide[];
   bio?: string;
   inStock?: boolean;
+  stockQuantity?: number;
   planterOptions?: Array<string | number>;
   isFavorite?: boolean;
   favoriteCreatedAt?: string;
@@ -76,6 +77,7 @@ export interface Planter {
   imageUrl: string;
   sizes: string[];
   inStock: boolean;
+  stockQuantity?: number;
   type: 'planter' | 'accessory';
 }
 

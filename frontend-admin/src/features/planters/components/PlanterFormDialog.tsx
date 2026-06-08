@@ -65,6 +65,7 @@ export function PlanterFormDialog({
               price: item.price,
               imageUrl: item.imageUrl,
               inStock: item.inStock,
+              stockQuantity: item.stockQuantity ?? 0,
               type: item.type,
               sizes: item.sizes ?? [],
             }
@@ -82,6 +83,7 @@ export function PlanterFormDialog({
       price: values.price,
       imageUrl: values.imageUrl,
       inStock: values.inStock,
+      stockQuantity: values.stockQuantity,
       type: values.type,
       sizes: isAccessory ? [] : values.sizes,
     }
@@ -235,12 +237,44 @@ export function PlanterFormDialog({
 
             <FormField
               control={form.control}
+              name="stockQuantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Số lượng tồn kho</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      {...field}
+                      onChange={(e) => {
+                        const next = Math.max(0, e.target.valueAsNumber || 0)
+                        field.onChange(next)
+                        form.setValue("inStock", next > 0, { shouldDirty: true })
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="inStock"
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border border-border p-3">
                   <FormLabel className="mb-0">Còn hàng</FormLabel>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked)
+                        if (!checked) {
+                          form.setValue("stockQuantity", 0, { shouldDirty: true })
+                        } else if (form.getValues("stockQuantity") <= 0) {
+                          form.setValue("stockQuantity", 1, { shouldDirty: true })
+                        }
+                      }}
+                    />
                   </FormControl>
                 </FormItem>
               )}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate, useParams, Link } from "react-router"
 import { Heart, Minus, Plus, ShoppingBag, Truck, Leaf } from "lucide-react"
 import { toast } from "sonner"
@@ -26,6 +26,11 @@ import { ReviewsSection } from "@/features/reviews/components/ReviewsSection"
 import { useProduct, useRelatedProducts } from "../api"
 import { ProductGallery } from "../components/ProductGallery"
 import { PlanterAddOnSelector } from "../components/PlanterAddOnSelector"
+import {
+  clampOrderQuantity,
+  formatStockLabel,
+  getMaxOrderQuantity,
+} from "@/lib/stock"
 
 export function ProductDetailPage() {
   const { id = "" } = useParams()
@@ -50,6 +55,18 @@ export function ProductDetailPage() {
 
   const selectedPlanter = planterOptions.find((p) => p.id === planterChoice)
   const unitPrice = (product?.price ?? 0) + (selectedPlanter?.price ?? 0)
+  const maxQuantity = useMemo(() => {
+    if (!product) return 0
+    const productMax = getMaxOrderQuantity(product.stockQuantity, product.inStock)
+    if (!selectedPlanter) return productMax
+    const planterMax = getMaxOrderQuantity(selectedPlanter.stockQuantity, selectedPlanter.inStock)
+    return Math.min(productMax, planterMax)
+  }, [product, selectedPlanter])
+  const canPurchase = maxQuantity > 0
+
+  useEffect(() => {
+    setQuantity((current) => clampOrderQuantity(current, maxQuantity))
+  }, [maxQuantity])
 
   const buildCartItem = () => {
     if (!product) return null
@@ -64,6 +81,7 @@ export function ProductDetailPage() {
       price: unitPrice,
       image: product.imageUrl,
       planter: selectedPlanter ? `Có (Kèm ${selectedPlanter.name})` : "Không",
+      maxQuantity,
     }
   }
 
@@ -135,8 +153,15 @@ export function ProductDetailPage() {
             {product.discount && (
               <Badge className="bg-accent text-accent-foreground">-{product.discount}</Badge>
             )}
-            {product.inStock === false && <Badge variant="secondary">Hết hàng</Badge>}
+            {!canPurchase && <Badge variant="secondary">Hết hàng</Badge>}
           </div>
+
+          <p className="text-sm text-muted-foreground">
+            {formatStockLabel(product.stockQuantity, product.inStock)}
+            {selectedPlanter
+              ? ` · Chậu kèm: ${formatStockLabel(selectedPlanter.stockQuantity, selectedPlanter.inStock)}`
+              : ""}
+          </p>
 
           {product.description && (
             <p className="text-muted-foreground">{product.description}</p>
@@ -162,18 +187,23 @@ export function ProductDetailPage() {
                 <Minus className="size-4" />
               </Button>
               <span className="w-10 text-center">{quantity}</span>
-              <Button variant="ghost" size="icon" onClick={() => setQuantity((q) => q + 1)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={quantity >= maxQuantity}
+                onClick={() => setQuantity((q) => clampOrderQuantity(q + 1, maxQuantity))}
+              >
                 <Plus className="size-4" />
               </Button>
             </div>
 
-            <Button onClick={handleAddToCart} disabled={product.inStock === false} className="flex-1 sm:flex-none">
+            <Button onClick={handleAddToCart} disabled={!canPurchase} className="flex-1 sm:flex-none">
               <ShoppingBag className="size-4" /> Thêm vào giỏ
             </Button>
             <Button
               variant="secondary"
               onClick={handleBuyNow}
-              disabled={product.inStock === false}
+              disabled={!canPurchase}
               className="flex-1 sm:flex-none"
             >
               Mua ngay

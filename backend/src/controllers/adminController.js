@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const { getPool, sql } = require("../libs/db");
+const { resolveStockFields, mapStockRow, restoreOrderStock } = require("../services/stockService");
 const { buildTrackingUrl, normalizeTrackingProvider } = require("../services/trackingService");
 
 function stripMarkdownFence(text) {
@@ -150,20 +151,25 @@ async function listProducts(req, res, next) {
     const result = await pool.request().query(
       `SELECT p.id, p.title, p.price, p.original_price AS originalPrice, p.discount,
               p.description, p.image_url AS imageUrl, c.name AS category,
-              p.bio, p.in_stock AS inStock, p.planter_options AS planterOptions
+              p.bio, p.in_stock AS inStock, p.stock_quantity AS stockQuantity,
+              p.planter_options AS planterOptions
        FROM Products p LEFT JOIN Categories c ON p.category_id = c.id ORDER BY p.id DESC`
     );
-    const products = result.recordset.map(p => ({
-      ...p,
-      planterOptions: p.planterOptions ? JSON.parse(p.planterOptions) : []
-    }));
+    const products = result.recordset.map((p) => {
+      const mapped = mapStockRow(p);
+      return {
+        ...mapped,
+        planterOptions: p.planterOptions ? JSON.parse(p.planterOptions) : [],
+      };
+    });
     return res.json(products);
   } catch (err) { next(err); }
 }
 
 async function createProduct(req, res, next) {
   try {
-    const { title, price, originalPrice, discount, description, imageUrl, categoryId, bio, inStock, images, careGuide, planterOptions } = req.body;
+    const { title, price, originalPrice, discount, description, imageUrl, categoryId, bio, inStock, stockQuantity, images, careGuide, planterOptions } = req.body;
+    const stock = resolveStockFields({ stockQuantity, inStock });
     const pool = await getPool();
     const result = await pool.request()
       .input("title", sql.NVarChar, title)
@@ -174,10 +180,11 @@ async function createProduct(req, res, next) {
       .input("imageUrl", sql.NVarChar, imageUrl)
       .input("categoryId", sql.Int, categoryId)
       .input("bio", sql.NVarChar, bio || null)
-      .input("inStock", sql.Bit, inStock !== false)
+      .input("inStock", sql.Bit, stock.inStock)
+      .input("stockQuantity", sql.Int, stock.stockQuantity)
       .input("planterOptions", sql.NVarChar, planterOptions ? JSON.stringify(planterOptions) : null)
-      .query(`INSERT INTO Products (title, price, original_price, discount, description, image_url, category_id, bio, in_stock, planter_options)
-              OUTPUT INSERTED.id VALUES (@title, @price, @originalPrice, @discount, @description, @imageUrl, @categoryId, @bio, @inStock, @planterOptions)`);
+      .query(`INSERT INTO Products (title, price, original_price, discount, description, image_url, category_id, bio, in_stock, stock_quantity, planter_options)
+              OUTPUT INSERTED.id VALUES (@title, @price, @originalPrice, @discount, @description, @imageUrl, @categoryId, @bio, @inStock, @stockQuantity, @planterOptions)`);
 
     const productId = result.recordset[0].id;
     if (images?.length) {
@@ -199,8 +206,14 @@ async function createProduct(req, res, next) {
 
 async function updateProduct(req, res, next) {
   try {
-    const { title, price, originalPrice, discount, description, imageUrl, categoryId, bio, inStock, images, careGuide, planterOptions } = req.body;
+    const { title, price, originalPrice, discount, description, imageUrl, categoryId, bio, inStock, stockQuantity, images, careGuide, planterOptions } = req.body;
     const pool = await getPool();
+    const currentResult = await pool.request()
+      .input("id", sql.Int, req.params.id)
+      .query("SELECT stock_quantity AS stockQuantity FROM Products WHERE id = @id");
+    const previousStockQuantity = Number(currentResult.recordset[0]?.stockQuantity ?? 0);
+    const stock = resolveStockFields({ stockQuantity, inStock, previousStockQuantity });
+
     await pool.request()
       .input("id", sql.Int, req.params.id)
       .input("title", sql.NVarChar, title)
@@ -211,10 +224,12 @@ async function updateProduct(req, res, next) {
       .input("imageUrl", sql.NVarChar, imageUrl)
       .input("categoryId", sql.Int, categoryId)
       .input("bio", sql.NVarChar, bio || null)
-      .input("inStock", sql.Bit, inStock !== false)
+      .input("inStock", sql.Bit, stock.inStock)
+      .input("stockQuantity", sql.Int, stock.stockQuantity)
       .input("planterOptions", sql.NVarChar, planterOptions ? JSON.stringify(planterOptions) : null)
       .query(`UPDATE Products SET title=@title, price=@price, original_price=@originalPrice, discount=@discount,
-              description=@description, image_url=@imageUrl, category_id=@categoryId, bio=@bio, in_stock=@inStock, planter_options=@planterOptions
+              description=@description, image_url=@imageUrl, category_id=@categoryId, bio=@bio,
+              in_stock=@inStock, stock_quantity=@stockQuantity, planter_options=@planterOptions
               WHERE id=@id`);
 
     // Replace images and care guides
@@ -279,6 +294,10 @@ async function updateOrderStatus(req, res, next) {
   try {
     const { status, timelineEntry, trackingNumber, trackingProvider, trackingUrl } = req.body;
     const pool = await getPool();
+    const normalizedStatus = String(status || "").trim().toLowerCase();
+    if (normalizedStatus === "cancelled") {
+      await restoreOrderStock(pool, req.params.id);
+    }
     const normalizedTrackingNumber = String(trackingNumber || "").trim() || null;
     const normalizedTrackingProvider = normalizeTrackingProvider(trackingProvider);
     const normalizedTrackingUrl = buildTrackingUrl(normalizedTrackingProvider, normalizedTrackingNumber, trackingUrl);
@@ -511,7 +530,8 @@ async function adminListPlanters(req, res, next) {
       `SELECT id, name, material,
               ${hasMeta ? "accessory_brand" : "NULL"} AS accessoryBrand,
               ${hasMeta ? "accessory_uses" : "NULL"} AS accessoryUses,
-              price, image_url AS imageUrl, in_stock AS inStock, type
+              price, image_url AS imageUrl, in_stock AS inStock,
+              stock_quantity AS stockQuantity, type
        FROM Planters
        ${whereClause}
        ORDER BY id`
@@ -522,10 +542,12 @@ async function adminListPlanters(req, res, next) {
       if (!sizesMap[s.planter_id]) sizesMap[s.planter_id] = [];
       sizesMap[s.planter_id].push(s.size_label);
     }
-    return res.json(plantersResult.recordset.map((p) => ({
-      ...p,
+    return res.json(plantersResult.recordset.map((p) => {
+      const mapped = mapStockRow(p);
+      return {
+      ...mapped,
       id: String(p.id),
-      inStock: !!p.inStock,
+      inStock: mapped.inStock,
       accessoryBrand: p.accessoryBrand || "",
       usageTags: (() => {
         if (!p.accessoryUses) return [];
@@ -537,13 +559,15 @@ async function adminListPlanters(req, res, next) {
         }
       })(),
       sizes: sizesMap[p.id] || []
-    })));
+    };
+    }));
   } catch (err) { next(err); }
 }
 
 async function createPlanter(req, res, next) {
   try {
-    const { name, material, accessoryBrand, usageTags, price, imageUrl, inStock, type, sizes = [] } = req.body;
+    const { name, material, accessoryBrand, usageTags, price, imageUrl, inStock, stockQuantity, type, sizes = [] } = req.body;
+    const stock = resolveStockFields({ stockQuantity, inStock });
     const normalizedUsageTags = Array.isArray(usageTags)
       ? usageTags.map((tag) => String(tag).trim()).filter(Boolean)
       : String(usageTags || "").split(",").map((tag) => tag.trim()).filter(Boolean);
@@ -554,7 +578,8 @@ async function createPlanter(req, res, next) {
       .input("material", sql.NVarChar, material)
       .input("price", sql.Decimal(18, 2), price)
       .input("imageUrl", sql.NVarChar, imageUrl)
-      .input("inStock", sql.Bit, inStock !== false)
+      .input("inStock", sql.Bit, stock.inStock)
+      .input("stockQuantity", sql.Int, stock.stockQuantity)
       .input("type", sql.NVarChar, type || "planter");
 
     if (hasMeta) {
@@ -565,8 +590,8 @@ async function createPlanter(req, res, next) {
 
     const result = await request.query(
       hasMeta
-        ? "INSERT INTO Planters (name, material, accessory_brand, accessory_uses, price, image_url, in_stock, type) OUTPUT INSERTED.id VALUES (@name, @material, @accessoryBrand, @accessoryUses, @price, @imageUrl, @inStock, @type)"
-        : "INSERT INTO Planters (name, material, price, image_url, in_stock, type) OUTPUT INSERTED.id VALUES (@name, @material, @price, @imageUrl, @inStock, @type)"
+        ? "INSERT INTO Planters (name, material, accessory_brand, accessory_uses, price, image_url, in_stock, stock_quantity, type) OUTPUT INSERTED.id VALUES (@name, @material, @accessoryBrand, @accessoryUses, @price, @imageUrl, @inStock, @stockQuantity, @type)"
+        : "INSERT INTO Planters (name, material, price, image_url, in_stock, stock_quantity, type) OUTPUT INSERTED.id VALUES (@name, @material, @price, @imageUrl, @inStock, @stockQuantity, @type)"
     );
     const planterId = result.recordset[0].id;
     for (const s of sizes) {
@@ -579,19 +604,25 @@ async function createPlanter(req, res, next) {
 
 async function updatePlanter(req, res, next) {
   try {
-    const { name, material, accessoryBrand, usageTags, price, imageUrl, inStock, type, sizes } = req.body;
+    const { name, material, accessoryBrand, usageTags, price, imageUrl, inStock, stockQuantity, type, sizes } = req.body;
     const normalizedUsageTags = Array.isArray(usageTags)
       ? usageTags.map((tag) => String(tag).trim()).filter(Boolean)
       : String(usageTags || "").split(",").map((tag) => tag.trim()).filter(Boolean);
     const pool = await getPool();
     const hasMeta = await hasAccessoryMetaColumns(pool);
+    const currentResult = await pool.request()
+      .input("id", sql.Int, req.params.id)
+      .query("SELECT stock_quantity AS stockQuantity FROM Planters WHERE id = @id");
+    const previousStockQuantity = Number(currentResult.recordset[0]?.stockQuantity ?? 0);
+    const stock = resolveStockFields({ stockQuantity, inStock, previousStockQuantity });
     const request = pool.request()
       .input("id", sql.Int, req.params.id)
       .input("name", sql.NVarChar, name)
       .input("material", sql.NVarChar, material)
       .input("price", sql.Decimal(18, 2), price)
       .input("imageUrl", sql.NVarChar, imageUrl)
-      .input("inStock", sql.Bit, inStock !== false)
+      .input("inStock", sql.Bit, stock.inStock)
+      .input("stockQuantity", sql.Int, stock.stockQuantity)
       .input("type", sql.NVarChar, type || "planter");
 
     if (hasMeta) {
@@ -602,8 +633,8 @@ async function updatePlanter(req, res, next) {
 
     await request.query(
       hasMeta
-        ? "UPDATE Planters SET name=@name, material=@material, accessory_brand=@accessoryBrand, accessory_uses=@accessoryUses, price=@price, image_url=@imageUrl, in_stock=@inStock, type=@type WHERE id=@id"
-        : "UPDATE Planters SET name=@name, material=@material, price=@price, image_url=@imageUrl, in_stock=@inStock, type=@type WHERE id=@id"
+        ? "UPDATE Planters SET name=@name, material=@material, accessory_brand=@accessoryBrand, accessory_uses=@accessoryUses, price=@price, image_url=@imageUrl, in_stock=@inStock, stock_quantity=@stockQuantity, type=@type WHERE id=@id"
+        : "UPDATE Planters SET name=@name, material=@material, price=@price, image_url=@imageUrl, in_stock=@inStock, stock_quantity=@stockQuantity, type=@type WHERE id=@id"
     );
     if (sizes) {
       await pool.request().input("id", sql.Int, req.params.id).query("DELETE FROM PlanterSizes WHERE planter_id=@id");

@@ -59,6 +59,7 @@ CREATE TABLE Products (
     category_id    INT               REFERENCES Categories(id),
     bio            NVARCHAR(MAX),
     in_stock       BIT               NOT NULL DEFAULT 1,
+    stock_quantity INT               NOT NULL DEFAULT 0,
     planter_options NVARCHAR(MAX)
 );
 GO
@@ -90,6 +91,7 @@ CREATE TABLE Planters (
     price     DECIMAL(18, 2) NOT NULL,
     image_url NVARCHAR(1000),
     in_stock  BIT            NOT NULL DEFAULT 1,
+    stock_quantity INT       NOT NULL DEFAULT 0,
     type      NVARCHAR(50)   NOT NULL DEFAULT 'planter'
 );
 GO
@@ -170,6 +172,7 @@ CREATE TABLE Orders (
     address_line     NVARCHAR(500),
     internal_note    NVARCHAR(1000),
     weight_grams     INT,
+    stock_reserved   BIT      NOT NULL DEFAULT 0,
     created_at       DATETIME NOT NULL DEFAULT GETDATE()
 );
 GO
@@ -182,7 +185,9 @@ CREATE TABLE OrderItems (
     price        DECIMAL(18, 2) NOT NULL,
     quantity     INT            NOT NULL DEFAULT 1,
     image_url    NVARCHAR(1000),
-    planter_name NVARCHAR(255)
+    planter_name NVARCHAR(255),
+    item_type    NVARCHAR(20),
+    planter_id   INT
 );
 GO
 

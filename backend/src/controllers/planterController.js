@@ -1,4 +1,33 @@
 const { getPool, sql } = require("../libs/db");
+const { mapStockRow } = require("../services/stockService");
+
+function mapPlanterResponse(p, sizes = []) {
+  const stock = mapStockRow(p);
+  return {
+    id: String(p.id),
+    name: p.name,
+    material: p.material,
+    accessoryBrand: p.accessoryBrand || "",
+    usageTags: (() => {
+      if (!p.accessoryUses) return [];
+      try {
+        const parsed = JSON.parse(p.accessoryUses);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return String(p.accessoryUses)
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean);
+      }
+    })(),
+    price: p.price,
+    imageUrl: p.imageUrl,
+    stockQuantity: stock.stockQuantity,
+    inStock: stock.inStock,
+    type: p.type === "accessory" ? "accessory" : "planter",
+    sizes,
+  };
+}
 
 async function hasAccessoryMetaColumns(pool) {
   const result = await pool.request().query(
@@ -28,7 +57,8 @@ async function getPlanters(req, res, next) {
           `SELECT id, name, material,
             ${hasMeta ? "accessory_brand" : "NULL"} AS accessoryBrand,
             ${hasMeta ? "accessory_uses" : "NULL"} AS accessoryUses,
-            price, image_url AS imageUrl, in_stock AS inStock, type
+            price, image_url AS imageUrl, in_stock AS inStock,
+            stock_quantity AS stockQuantity, type
        FROM Planters
        ${whereClause}
        ORDER BY id`
@@ -43,29 +73,9 @@ async function getPlanters(req, res, next) {
       sizesMap[s.planter_id].push(s.size_label);
     }
 
-    const planters = plantersResult.recordset.map((p) => ({
-      id: String(p.id),
-      name: p.name,
-      material: p.material,
-      accessoryBrand: p.accessoryBrand || "",
-      usageTags: (() => {
-        if (!p.accessoryUses) return [];
-        try {
-          const parsed = JSON.parse(p.accessoryUses);
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return String(p.accessoryUses)
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter(Boolean);
-        }
-      })(),
-      price: p.price,
-      imageUrl: p.imageUrl,
-      inStock: !!p.inStock,
-      type: p.type === "accessory" ? "accessory" : "planter",
-      sizes: sizesMap[p.id] || [],
-    }));
+    const planters = plantersResult.recordset.map((p) =>
+      mapPlanterResponse(p, sizesMap[p.id] || [])
+    );
 
     return res.json(planters);
   } catch (err) {
@@ -96,7 +106,8 @@ async function getPlanterById(req, res, next) {
       `SELECT id, name, material,
               ${hasMeta ? "accessory_brand" : "NULL"} AS accessoryBrand,
               ${hasMeta ? "accessory_uses" : "NULL"} AS accessoryUses,
-              price, image_url AS imageUrl, in_stock AS inStock, type
+              price, image_url AS imageUrl, in_stock AS inStock,
+            stock_quantity AS stockQuantity, type
        FROM Planters
        WHERE id = @id ${typeWhere}`
     );
@@ -111,29 +122,12 @@ async function getPlanterById(req, res, next) {
       .query("SELECT size_label FROM PlanterSizes WHERE planter_id = @id ORDER BY id");
 
     const p = result.recordset[0];
-    return res.json({
-      id: String(p.id),
-      name: p.name,
-      material: p.material,
-      accessoryBrand: p.accessoryBrand || "",
-      usageTags: (() => {
-        if (!p.accessoryUses) return [];
-        try {
-          const parsed = JSON.parse(p.accessoryUses);
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return String(p.accessoryUses)
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter(Boolean);
-        }
-      })(),
-      price: p.price,
-      imageUrl: p.imageUrl,
-      inStock: !!p.inStock,
-      type: p.type === "accessory" ? "accessory" : "planter",
-      sizes: sizesResult.recordset.map((s) => s.size_label),
-    });
+    return res.json(
+      mapPlanterResponse(
+        p,
+        sizesResult.recordset.map((s) => s.size_label)
+      )
+    );
   } catch (err) {
     next(err);
   }

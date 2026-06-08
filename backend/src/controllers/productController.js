@@ -1,6 +1,7 @@
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const { getPool, sql } = require("../libs/db");
+const { mapStockRow } = require("../services/stockService");
 
 const PRODUCT_ADVISOR_LIMIT = 18;
 const PRODUCT_ADVISOR_HISTORY_LIMIT = 8;
@@ -259,7 +260,7 @@ async function fetchProductsByIds(pool, ids) {
     .query(
       `SELECT p.id, p.title, p.price, p.original_price AS originalPrice, p.discount,
               p.description, p.image_url AS imageUrl, c.name AS category,
-              p.bio, p.in_stock AS inStock, p.planter_options AS planterOptions
+              p.bio, p.in_stock AS inStock, p.stock_quantity AS stockQuantity, p.planter_options AS planterOptions
        FROM Products p
        LEFT JOIN Categories c ON p.category_id = c.id
        WHERE p.id IN (${uniqueIds.join(",")})`
@@ -321,7 +322,7 @@ async function getProducts(req, res, next) {
     const result = await request.query(
       `SELECT p.id, p.title, p.price, p.original_price AS originalPrice, p.discount,
               p.description, p.image_url AS imageUrl, c.name AS category,
-              p.bio, p.in_stock AS inStock, p.planter_options AS planterOptions,
+              p.bio, p.in_stock AS inStock, p.stock_quantity AS stockQuantity, p.planter_options AS planterOptions,
               ISNULL(sales.totalSold, 0) AS totalSold,
               ISNULL(reviews.reviewCount, 0) AS reviewCount
        FROM Products p
@@ -435,10 +436,10 @@ async function getProductAdvisorRecommendations(req, res, next) {
         `SELECT TOP (40)
                 p.id, p.title, p.price, p.original_price AS originalPrice, p.discount,
                 p.description, p.image_url AS imageUrl, c.name AS category,
-                p.bio, p.in_stock AS inStock, p.planter_options AS planterOptions
+                p.bio, p.in_stock AS inStock, p.stock_quantity AS stockQuantity, p.planter_options AS planterOptions
          FROM Products p
          LEFT JOIN Categories c ON p.category_id = c.id
-         WHERE p.in_stock = 1
+         WHERE p.stock_quantity > 0
          ORDER BY CASE WHEN p.price <= @budget THEN 0 ELSE 1 END,
                   ABS(p.price - @budget),
                   p.id DESC`
@@ -596,10 +597,10 @@ async function chatProductAdvisor(req, res, next) {
       `SELECT TOP (${PRODUCT_ADVISOR_CHAT_CATALOG_LIMIT})
               p.id, p.title, p.price, p.original_price AS originalPrice, p.discount,
               p.description, p.image_url AS imageUrl, c.name AS category,
-              p.bio, p.in_stock AS inStock, p.planter_options AS planterOptions
+              p.bio, p.in_stock AS inStock, p.stock_quantity AS stockQuantity, p.planter_options AS planterOptions
        FROM Products p
        LEFT JOIN Categories c ON p.category_id = c.id
-       WHERE p.in_stock = 1
+       WHERE p.stock_quantity > 0
        ORDER BY p.id DESC`
     );
 
@@ -763,7 +764,7 @@ async function getProductById(req, res, next) {
       .query(
         `SELECT p.id, p.title, p.price, p.original_price AS originalPrice, p.discount,
                 p.description, p.image_url AS imageUrl, c.name AS category,
-                p.bio, p.in_stock AS inStock, p.planter_options AS planterOptions
+                p.bio, p.in_stock AS inStock, p.stock_quantity AS stockQuantity, p.planter_options AS planterOptions
          FROM Products p
          LEFT JOIN Categories c ON p.category_id = c.id
          WHERE p.id = @id`
@@ -802,7 +803,7 @@ async function getRelatedProducts(req, res, next) {
       .query(
         `SELECT TOP (@limit) p.id, p.title, p.price, p.original_price AS originalPrice,
                 p.discount, p.description, p.image_url AS imageUrl, c.name AS category,
-                p.bio, p.in_stock AS inStock, p.planter_options AS planterOptions
+                p.bio, p.in_stock AS inStock, p.stock_quantity AS stockQuantity, p.planter_options AS planterOptions
          FROM Products p
          LEFT JOIN Categories c ON p.category_id = c.id
          WHERE p.id <> @id
@@ -843,12 +844,15 @@ async function enrichProducts(pool, products) {
     careMap[c.product_id].push({ title: c.title, content: c.content });
   }
 
-  return products.map((p) => ({
-    ...p,
-    images: imagesMap[p.id] || [p.imageUrl],
-    careGuide: careMap[p.id] || [],
-    planterOptions: p.planterOptions ? JSON.parse(p.planterOptions) : []
-  }));
+  return products.map((p) => {
+    const mapped = mapStockRow(p);
+    return {
+      ...mapped,
+      images: imagesMap[p.id] || [p.imageUrl],
+      careGuide: careMap[p.id] || [],
+      planterOptions: p.planterOptions ? JSON.parse(p.planterOptions) : [],
+    };
+  });
 }
 
 module.exports = {

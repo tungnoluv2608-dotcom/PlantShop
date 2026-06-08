@@ -866,8 +866,9 @@ async function seed() {
       .input("categoryId", sql.Int, catId)
       .input("bio", sql.NVarChar, p.bio || null)
       .input("inStock", sql.Bit, p.inStock)
-      .query(`INSERT INTO Products (title,price,original_price,discount,description,image_url,category_id,bio,in_stock)
-              OUTPUT INSERTED.id VALUES (@title,@price,@originalPrice,@discount,@description,@imageUrl,@categoryId,@bio,@inStock)`);
+      .input("stockQuantity", sql.Int, p.inStock ? 50 : 0)
+      .query(`INSERT INTO Products (title,price,original_price,discount,description,image_url,category_id,bio,in_stock,stock_quantity)
+              OUTPUT INSERTED.id VALUES (@title,@price,@originalPrice,@discount,@description,@imageUrl,@categoryId,@bio,@inStock,@stockQuantity)`);
 
     const productId = result.recordset[0].id;
 
@@ -914,12 +915,13 @@ async function seed() {
       .input("price", sql.Decimal(18, 2), item.price)
       .input("imageUrl", sql.NVarChar, item.imageUrl)
       .input("inStock", sql.Bit, item.inStock)
+      .input("stockQuantity", sql.Int, item.inStock ? 50 : 0)
       .input("type", sql.NVarChar, item.type)
       .input("accessoryBrand", sql.NVarChar, item.accessoryBrand || null)
       .input("accessoryUses", sql.NVarChar, item.usageTags ? JSON.stringify(item.usageTags) : null)
-      .query(`INSERT INTO Planters (name, material, price, image_url, in_stock, type, accessory_brand, accessory_uses)
+      .query(`INSERT INTO Planters (name, material, price, image_url, in_stock, stock_quantity, type, accessory_brand, accessory_uses)
               OUTPUT INSERTED.id
-              VALUES (@name, @material, @price, @imageUrl, @inStock, @type, @accessoryBrand, @accessoryUses)`);
+              VALUES (@name, @material, @price, @imageUrl, @inStock, @stockQuantity, @type, @accessoryBrand, @accessoryUses)`);
     const itemId = r.recordset[0].id;
     if (item.sizes && item.sizes.length > 0) {
       for (const s of item.sizes) {

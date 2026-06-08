@@ -24,6 +24,7 @@ export interface AdminProduct {
   category: string
   bio?: string | null
   inStock: boolean
+  stockQuantity: number
   planterOptions?: Array<string | number>
 }
 
@@ -43,6 +44,7 @@ export interface ProductPayload {
   categoryId: number | string
   bio?: string | null
   inStock: boolean
+  stockQuantity: number
   images: string[]
   careGuide: CareGuide[]
   planterOptions: Array<number | string>
@@ -74,6 +76,7 @@ export interface Planter {
   imageUrl: string
   sizes: string[]
   inStock: boolean
+  stockQuantity: number
   type: PlanterType
 }
 
@@ -85,6 +88,7 @@ export interface PlanterPayload {
   price: number
   imageUrl: string
   inStock: boolean
+  stockQuantity: number
   type: PlanterType
   sizes: string[]
 }

@@ -9,15 +9,22 @@
         "items": {
           "type": "string"
         },
-        "description": "Array of registry names to search (e.g., ['@shadcn', '@acme'])"
+        "description": "Array of registry names to search (e.g., ['@shadcn', '@acme']). Omit to search every registry configured in components.json."
       },
       "query": {
         "type": "string",
         "description": "Search query string for fuzzy matching against item names and descriptions"
       },
+      "types": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Filter by item type. One of: lib, block, component, ui, hook, page, file, theme, style, item, base, font."
+      },
       "limit": {
         "type": "number",
-        "description": "Maximum number of items to return"
+        "description": "Maximum number of items to return (defaults to 100; use 0 for no limit)"
       },
       "offset": {
         "type": "number",
@@ -25,7 +32,6 @@
       }
     },
     "required": [
-      "registries",
       "query"
     ],
     "additionalProperties": false,

@@ -178,6 +178,13 @@ export function ProductListPage() {
       ),
     },
     {
+      accessorKey: "stockQuantity",
+      header: "Số lượng",
+      cell: ({ row }) => (
+        <span className="font-medium tabular-nums">{row.original.stockQuantity ?? 0}</span>
+      ),
+    },
+    {
       accessorKey: "inStock",
       header: "Trạng thái",
       cell: ({ row }) =>

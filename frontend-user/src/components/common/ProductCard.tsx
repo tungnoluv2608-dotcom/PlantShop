@@ -8,6 +8,7 @@ import { Price } from "@/components/common/Price"
 import { useCartStore } from "@/stores/cartStore"
 import { encodeCartId } from "@/lib/cart-id"
 import { toast } from "sonner"
+import { getMaxOrderQuantity, isInStock } from "@/lib/stock"
 
 interface ProductCardProps {
   product: Product
@@ -18,15 +19,19 @@ interface ProductCardProps {
 
 export function ProductCard({ product, isFavorite, onToggleFavorite, className }: ProductCardProps) {
   const addItem = useCartStore((s) => s.addItem)
+  const maxQuantity = getMaxOrderQuantity(product.stockQuantity, product.inStock)
+  const available = isInStock(product.stockQuantity, product.inStock)
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault()
+    if (!available) return
     addItem({
       id: encodeCartId({ kind: "product", productId: product.id }),
       title: product.title,
       price: product.price,
       image: product.imageUrl,
       planter: "Không",
+      maxQuantity,
     })
     toast.success("Đã thêm vào giỏ hàng", { description: product.title })
   }
@@ -51,7 +56,7 @@ export function ProductCard({ product, isFavorite, onToggleFavorite, className }
             -{product.discount}
           </Badge>
         )}
-        {product.inStock === false && (
+        {!available && (
           <Badge variant="secondary" className="absolute right-3 top-3">
             Hết hàng
           </Badge>
@@ -87,6 +92,7 @@ export function ProductCard({ product, isFavorite, onToggleFavorite, className }
             variant="secondary"
             className="shrink-0"
             onClick={handleAdd}
+            disabled={!available}
             aria-label="Thêm vào giỏ"
           >
             <ShoppingBag className="size-4" />

@@ -9,7 +9,7 @@
         "items": {
           "type": "string"
         },
-        "description": "Array of registry names to search (e.g., ['@shadcn', '@acme'])"
+        "description": "Array of registry names to search (e.g., ['@shadcn', '@acme']). Omit to search every registry configured in components.json."
       },
       "query": {
         "type": "string",
@@ -17,7 +17,6 @@
       }
     },
     "required": [
-      "registries",
       "query"
     ],
     "additionalProperties": false,

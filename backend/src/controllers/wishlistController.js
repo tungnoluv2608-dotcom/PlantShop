@@ -1,4 +1,5 @@
 const { getPool, sql } = require("../libs/db");
+const { mapStockRow } = require("../services/stockService");
 
 async function ensureWishlistTable(pool) {
   await pool.request().query(`
@@ -46,13 +47,16 @@ function enrichProducts(pool, products) {
       careMap[c.product_id].push({ title: c.title, content: c.content });
     }
 
-    return products.map((p) => ({
-      ...p,
-      images: imagesMap[p.id] || [p.imageUrl],
-      careGuide: careMap[p.id] || [],
-      planterOptions: p.planterOptions ? JSON.parse(p.planterOptions) : [],
-      isFavorite: true,
-    }));
+    return products.map((p) => {
+      const mapped = mapStockRow(p);
+      return {
+        ...mapped,
+        images: imagesMap[p.id] || [p.imageUrl],
+        careGuide: careMap[p.id] || [],
+        planterOptions: p.planterOptions ? JSON.parse(p.planterOptions) : [],
+        isFavorite: true,
+      };
+    });
   });
 }
 
@@ -67,7 +71,8 @@ async function listMyWishlist(req, res, next) {
       .query(
         `SELECT p.id, p.title, p.price, p.original_price AS originalPrice, p.discount,
                 p.description, p.image_url AS imageUrl, c.name AS category,
-                p.bio, p.in_stock AS inStock, p.planter_options AS planterOptions,
+                p.bio, p.in_stock AS inStock, p.stock_quantity AS stockQuantity,
+                p.planter_options AS planterOptions,
                 w.created_at AS favoriteCreatedAt
          FROM UserWishlistItems w
          INNER JOIN Products p ON p.id = w.product_id
