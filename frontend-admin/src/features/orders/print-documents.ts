@@ -302,6 +302,25 @@ export function printPackingSlips(orders: AdminOrderDetail[], settings: ShopPrin
   printHtmlDocument(`Phiếu soạn hàng (${orders.length})`, html, SLIP_STYLES)
 }
 
-export function countOrdersWithoutTracking(orders: AdminOrderDetail[]): number {
-  return orders.filter((order) => !String(order.trackingNumber || "").trim()).length
+export function getOrdersWithoutTracking(
+  orders: Array<Pick<AdminOrderDetail, "id" | "trackingNumber">>
+): Array<Pick<AdminOrderDetail, "id" | "trackingNumber">> {
+  return orders.filter((order) => !String(order.trackingNumber || "").trim())
+}
+
+export function countOrdersWithoutTracking(
+  orders: Array<Pick<AdminOrderDetail, "id" | "trackingNumber">>
+): number {
+  return getOrdersWithoutTracking(orders).length
+}
+
+export function formatMissingTrackingMessage(
+  orders: Array<Pick<AdminOrderDetail, "id" | "trackingNumber">>
+): string {
+  const missing = getOrdersWithoutTracking(orders)
+  if (missing.length === 0) return ""
+
+  const ids = missing.map((order) => order.id).join(", ")
+  const count = missing.length
+  return `${count} đơn chưa có mã vận đơn (${ids}). Tạo vận đơn trên GHN/GHTK, nhập mã trong chi tiết đơn, rồi in nhãn.`
 }

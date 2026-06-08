@@ -30,12 +30,15 @@ export function isTerminalStatus(status: OrderStatus): boolean {
   return status === "delivered" || status === "cancelled" || status === "returning"
 }
 
-export function getPrimaryActionLabel(status: OrderStatus): string | null {
+export function getPrimaryActionLabel(
+  status: OrderStatus,
+  hasTracking = false
+): string | null {
   switch (status) {
     case "confirmed":
       return "Bắt đầu đóng gói"
     case "packing":
-      return "Giao cho đơn vị VC"
+      return hasTracking ? "Giao cho đơn vị VC" : "Nhập mã vận đơn"
     case "shipping":
       return "Đã giao thành công"
     default:
@@ -43,12 +46,14 @@ export function getPrimaryActionLabel(status: OrderStatus): string | null {
   }
 }
 
-export function getActionHint(status: OrderStatus): string | null {
+export function getActionHint(status: OrderStatus, hasTracking = false): string | null {
   switch (status) {
     case "confirmed":
       return "Gợi ý: in phiếu soạn hàng trước khi đóng gói."
     case "packing":
-      return "Tạo vận đơn trên GHN/GHTK, nhập mã rồi xác nhận giao VC. Có thể in nhãn trước hoặc sau khi có mã."
+      return hasTracking
+        ? "In nhãn giao, dán lên gói rồi bấm Giao cho đơn vị VC."
+        : "Tạo vận đơn trên GHN/GHTK, nhập mã vào admin, sau đó in nhãn giao."
     case "shipping":
       return "Xác nhận khi shipper báo giao thành công cho khách."
     default:

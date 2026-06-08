@@ -37,7 +37,9 @@ function getWorkflowHint(status: string, hasTracking: boolean): string | null {
     case "confirmed":
       return "Bước tiếp theo: in phiếu soạn hàng, đóng gói và chuyển sang Đang đóng gói."
     case "packing":
-      return "Bước tiếp theo: tạo vận đơn với đơn vị VC, in nhãn giao hàng và nhập mã vận đơn."
+      return hasTracking
+        ? "Bước tiếp theo: in nhãn giao, dán lên gói rồi giao cho đơn vị VC."
+        : "Bước tiếp theo: tạo vận đơn trên GHN/GHTK, nhập mã vận đơn, sau đó in nhãn giao."
     case "shipping":
       return hasTracking
         ? "Đơn đang được vận chuyển. Theo dõi qua link vận đơn."

@@ -27,7 +27,7 @@ import {
 } from "../order-workflow"
 import { PROVIDER_LABELS, TRACKING_PROVIDERS } from "../schema"
 
-type PanelMode = "default" | "handoff" | "edit-tracking"
+type PanelMode = "default" | "enter-tracking" | "edit-tracking"
 
 interface OrderStatusActionsProps {
   order: AdminOrderDetail
@@ -59,11 +59,12 @@ export function OrderStatusActions({ order }: OrderStatusActionsProps) {
     setTrackingNumber(order.trackingNumber ?? "")
   }, [order.id, order.status, order.trackingProvider, order.trackingNumber])
 
+  const hasTracking = Boolean(order.trackingNumber?.trim())
   const stepIndex = getWorkflowStepIndex(order.status)
-  const primaryLabel = getPrimaryActionLabel(order.status)
-  const actionHint = getActionHint(order.status)
+  const primaryLabel = getPrimaryActionLabel(order.status, hasTracking)
+  const actionHint = getActionHint(order.status, hasTracking)
   const terminal = isTerminalStatus(order.status)
-  const showTrackingForm = mode === "handoff" || mode === "edit-tracking"
+  const showTrackingForm = mode === "enter-tracking" || mode === "edit-tracking"
 
   const submitUpdate = (payload: OrderStatusPayload, onSuccess?: () => void) => {
     updateStatus.mutate(
@@ -86,21 +87,24 @@ export function OrderStatusActions({ order }: OrderStatusActionsProps) {
     }
 
     if (order.status === "packing") {
-      setMode("handoff")
+      if (!hasTracking) {
+        setMode("enter-tracking")
+        return
+      }
+
+      submitUpdate(
+        buildTrackingPayload(
+          "shipping",
+          order.trackingProvider ?? "ghn",
+          order.trackingNumber ?? ""
+        )
+      )
       return
     }
 
     if (order.status === "shipping") {
       submitUpdate({ status: "delivered" })
     }
-  }
-
-  const handleConfirmHandoff = () => {
-    if (!trackingNumber.trim()) {
-      toast.error("Vui lòng nhập mã vận đơn trước khi giao cho đơn vị VC.")
-      return
-    }
-    submitUpdate(buildTrackingPayload("shipping", trackingProvider, trackingNumber))
   }
 
   const handleSaveTracking = () => {
@@ -118,7 +122,10 @@ export function OrderStatusActions({ order }: OrderStatusActionsProps) {
       return
     }
 
-    submitUpdate(buildTrackingPayload("shipping", trackingProvider, trackingNumber))
+    const targetStatus: OrderStatus =
+      order.status === "packing" ? "packing" : "shipping"
+
+    submitUpdate(buildTrackingPayload(targetStatus, trackingProvider, trackingNumber))
   }
 
   const handleCancelOrder = () => {
@@ -189,11 +196,11 @@ export function OrderStatusActions({ order }: OrderStatusActionsProps) {
             {showTrackingForm && (
               <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
                 <p className="text-sm font-medium">
-                  {mode === "handoff" ? "Nhập mã vận chuyển" : "Cập nhật mã vận chuyển"}
+                  {mode === "enter-tracking" ? "Nhập mã vận đơn" : "Cập nhật mã vận đơn"}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Lấy mã từ web GHN/GHTK/Viettel Post sau khi tạo vận đơn. Link theo dõi sẽ được
-                  tạo tự động.
+                  Tạo vận đơn trên GHN/GHTK/Viettel Post, copy mã về đây. Sau khi lưu, in nhãn
+                  giao rồi dán lên gói trước khi giao cho shipper.
                 </p>
                 <div className="space-y-2">
                   <Label>Đơn vị vận chuyển</Label>
@@ -225,10 +232,10 @@ export function OrderStatusActions({ order }: OrderStatusActionsProps) {
                   <Button
                     className="w-full"
                     disabled={updateStatus.isPending}
-                    onClick={mode === "handoff" ? handleConfirmHandoff : handleSaveTracking}
+                    onClick={handleSaveTracking}
                   >
                     {updateStatus.isPending && <Loader2 className="size-4 animate-spin" />}
-                    {mode === "handoff" ? "Xác nhận giao VC" : "Lưu mã vận đơn"}
+                    Lưu mã vận đơn
                   </Button>
                   <Button
                     type="button"
@@ -258,6 +265,17 @@ export function OrderStatusActions({ order }: OrderStatusActionsProps) {
                   <CheckCircle2 className="size-4" />
                 )}
                 {primaryLabel}
+              </Button>
+            )}
+
+            {!showTrackingForm && order.status === "packing" && hasTracking && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => setMode("edit-tracking")}
+              >
+                Cập nhật mã vận đơn
               </Button>
             )}
 

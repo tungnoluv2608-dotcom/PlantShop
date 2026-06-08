@@ -338,7 +338,11 @@ export function OrderListPage() {
                 Bỏ chọn ({selectedOrderIds.length})
               </Button>
             )}
-            <OrderPrintActions orderIds={selectedOrderIds} size="sm" />
+            <OrderPrintActions
+              orderIds={selectedOrderIds}
+              orders={selectedOrders}
+              size="sm"
+            />
           </div>
         }
         onRowClick={(order) => navigate(`/orders/${order.id}`)}
@@ -349,7 +353,9 @@ export function OrderListPage() {
           Đã chọn {selectedOrderIds.length} đơn.
           {selectedPendingIds.length > 0
             ? ` Có ${selectedPendingIds.length} đơn chờ xử lý có thể xác nhận hàng loạt.`
-            : " Dùng nút in ở góc phải bảng để in hàng loạt."}
+            : statusFilter === "packing"
+              ? " Nhập mã vận đơn trong chi tiết đơn trước khi in nhãn giao."
+              : " Dùng nút in ở góc phải bảng để in hàng loạt."}
         </p>
       )}
     </div>
