@@ -9,6 +9,7 @@ import { Footer } from "../components/layout/Footer";
 import { useCartStore } from "../stores/cartStore";
 import { useAuthStore } from "../stores/authStore";
 import { orderApi } from "../services/apiService";
+import { fetchShippingQuote, type ShippingQuoteResponse } from "../services/shippingService";
 import { toast } from "sonner";
 import { addressService } from "../services/addressService";
 import type { CartItem, ShippingAddress } from "../types";
@@ -17,11 +18,11 @@ import { VIETNAM_PROVINCES, getDistricts } from "../data/vietnamLocations";
 
 const steps = ["Giỏ hàng", "Thông tin giao hàng", "Thanh toán", "Xác nhận"];
 
-const shippingMethods = [
-  { id: "standard", label: "Giao hàng Tiêu chuẩn", time: "3-5 ngày làm việc", price: 0, note: "Miễn phí từ 500.000đ" },
-  { id: "express", label: "Giao hàng Nhanh", time: "1-2 ngày làm việc", price: 30000, note: "GHN / GHTK" },
-  { id: "sameday", label: "Giao hàng Hỏa tốc", time: "Trong ngày", price: 60000, note: "Chỉ nội thành TP.HCM & HN" },
-];
+const shippingMethodMeta = {
+  standard: { label: "Giao hàng Tiêu chuẩn", time: "3-5 ngày làm việc" },
+  express: { label: "Giao hàng Nhanh", time: "1-2 ngày làm việc" },
+  sameday: { label: "Giao hàng Hỏa tốc", time: "Trong ngày" },
+} as const;
 
 const paymentMethods = [
   {
@@ -82,9 +83,50 @@ export default function CheckoutPage() {
   const [savedAddresses, setSavedAddresses] = useState<ShippingAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [useNewAddress, setUseNewAddress] = useState(false);
+  const [shippingQuote, setShippingQuote] = useState<ShippingQuoteResponse | null>(null);
+  const [isQuoteLoading, setIsQuoteLoading] = useState(false);
 
-  const selectedShipping = shippingMethods.find((m) => m.id === shippingMethod)!;
-  const shippingFee = subtotal >= 500000 && shippingMethod === "standard" ? 0 : selectedShipping.price;
+  const activeProvince = form.province;
+  const activeDistrict = form.district;
+
+  useEffect(() => {
+    if (!activeProvince) {
+      setShippingQuote(null);
+      return;
+    }
+
+    let cancelled = false;
+    setIsQuoteLoading(true);
+    fetchShippingQuote({
+      items: items.map((item) => ({ id: item.id, quantity: item.quantity })),
+      shippingMethod: shippingMethod as "standard" | "express" | "sameday",
+      province: activeProvince,
+      district: activeDistrict || null,
+    })
+      .then((quote) => {
+        if (!cancelled) setShippingQuote(quote);
+      })
+      .catch(() => {
+        if (!cancelled) setShippingQuote(null);
+      })
+      .finally(() => {
+        if (!cancelled) setIsQuoteLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [items, shippingMethod, activeProvince, activeDistrict]);
+
+  useEffect(() => {
+    const sameday = shippingQuote?.methods.find((method) => method.method === "sameday");
+    if (shippingMethod === "sameday" && sameday && !sameday.available) {
+      setShippingMethod("standard");
+      toast.message("Giao hàng hỏa tốc không khả dụng tại địa chỉ này.");
+    }
+  }, [shippingQuote, shippingMethod]);
+
+  const shippingFee = shippingQuote?.shippingFee ?? 0;
   const total = subtotal + shippingFee;
 
   const applyAddressToForm = (addr: ShippingAddress) => {
@@ -402,17 +444,49 @@ export default function CheckoutPage() {
                 <div>
                   <h3 className="font-bold text-foreground mb-3 flex items-center gap-2"><Truck size={20} className="text-primary" />Phương thức vận chuyển</h3>
                   <div className="space-y-3">
-                    {shippingMethods.map((method) => {
-                      const freeForStandard = method.id === "standard" && subtotal >= 500000;
+                    {(["standard", "express", "sameday"] as const).map((methodId) => {
+                      const meta = shippingMethodMeta[methodId];
+                      const quoted = shippingQuote?.methods.find((entry) => entry.method === methodId);
+                      const available = quoted?.available ?? Boolean(activeProvince);
+                      const fee = quoted?.fee;
                       return (
-                        <label key={method.id} className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${shippingMethod === method.id ? "border-primary bg-primary/5" : "border-gray-200 hover:border-primary/30"}`}>
-                          <input type="radio" name="shipping" value={method.id} checked={shippingMethod === method.id} onChange={() => setShippingMethod(method.id)} className="accent-primary" />
+                        <label
+                          key={methodId}
+                          className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                            !available
+                              ? "cursor-not-allowed border-gray-100 opacity-60"
+                              : shippingMethod === methodId
+                                ? "cursor-pointer border-primary bg-primary/5"
+                                : "cursor-pointer border-gray-200 hover:border-primary/30"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="shipping"
+                            value={methodId}
+                            checked={shippingMethod === methodId}
+                            disabled={!available}
+                            onChange={() => setShippingMethod(methodId)}
+                            className="accent-primary"
+                          />
                           <div className="flex-1">
-                            <p className="font-semibold text-sm">{method.label}</p>
-                            <p className="text-xs text-foreground/60 mt-0.5">{method.time} · {method.note}</p>
+                            <p className="font-semibold text-sm">{meta.label}</p>
+                            <p className="text-xs text-foreground/60 mt-0.5">
+                              {meta.time}
+                              {shippingQuote?.zone.name ? ` · ${shippingQuote.zone.name}` : activeProvince ? "" : " · Chọn địa chỉ để tính phí"}
+                              {!available && quoted?.reason ? ` · ${quoted.reason}` : ""}
+                            </p>
                           </div>
-                          <span className={`font-bold text-sm ${freeForStandard ? "text-green-600" : "text-primary"}`}>
-                            {freeForStandard ? "MIỄN PHÍ" : method.price === 0 ? "MIỄN PHÍ" : `+${method.price.toLocaleString("vi-VN")}đ`}
+                          <span className={`font-bold text-sm ${fee === 0 ? "text-green-600" : "text-primary"}`}>
+                            {!activeProvince
+                              ? "—"
+                              : isQuoteLoading
+                                ? "..."
+                                : fee === 0
+                                  ? "MIỄN PHÍ"
+                                  : fee != null
+                                    ? `+${fee.toLocaleString("vi-VN")}đ`
+                                    : "—"}
                           </span>
                         </label>
                       );
@@ -535,7 +609,15 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-foreground/70"><span>Tạm tính</span><span>{subtotal.toLocaleString("vi-VN")}đ</span></div>
                 <div className="flex justify-between text-foreground/70">
                   <span>Phí vận chuyển</span>
-                  <span className={shippingFee === 0 ? "text-green-600 font-semibold" : ""}>{shippingFee === 0 ? "MIỄN PHÍ" : `${shippingFee.toLocaleString("vi-VN")}đ`}</span>
+                  <span className={shippingFee === 0 ? "text-green-600 font-semibold" : ""}>
+                    {!activeProvince
+                      ? "Chọn địa chỉ"
+                      : isQuoteLoading
+                        ? "Đang tính..."
+                        : shippingFee === 0
+                          ? "MIỄN PHÍ"
+                          : `${shippingFee.toLocaleString("vi-VN")}đ`}
+                  </span>
                 </div>
               </div>
               <div className="flex justify-between font-black text-lg border-t border-secondary pt-4">

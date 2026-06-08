@@ -18,12 +18,13 @@ import { formatAddressLine } from "@/features/address/schema"
 import { useCreateOrder, createPayosUrl, createVnpayUrl } from "@/features/orders/api"
 import { validateVoucher } from "@/features/vouchers/api"
 import { VoucherPickerSheet } from "@/features/vouchers/components/VoucherPickerSheet"
+import { useShippingQuote } from "@/features/shipping/api"
 
-const SHIPPING_METHODS: { value: ShippingMethod; label: string; note: string }[] = [
-  { value: "standard", label: "Tiêu chuẩn", note: "2–4 ngày · miễn phí cho đơn lớn" },
-  { value: "express", label: "Nhanh", note: "1–2 ngày" },
-  { value: "sameday", label: "Trong ngày", note: "Nội thành" },
-]
+const SHIPPING_METHOD_LABELS: Record<ShippingMethod, string> = {
+  standard: "Tiêu chuẩn",
+  express: "Nhanh",
+  sameday: "Trong ngày",
+}
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string; note: string }[] = [
   { value: "cod", label: "Thanh toán khi nhận hàng (COD)", note: "Trả tiền mặt khi giao" },
@@ -57,14 +58,33 @@ export function CheckoutPage() {
   }, [addresses, selectedAddressId])
 
   const cartItems = items.map((i) => ({ id: i.id, quantity: i.quantity }))
+  const selectedAddress = addresses?.find((a) => a.id === selectedAddressId)
 
-  const refreshAppliedVoucher = async (method: ShippingMethod, code: string) => {
+  const shippingQuoteQuery = useShippingQuote(
+    selectedAddress
+      ? {
+          items: cartItems,
+          shippingMethod,
+          province: selectedAddress.province,
+          district: selectedAddress.district,
+        }
+      : null,
+  )
+
+  const refreshAppliedVoucher = async (
+    method: ShippingMethod,
+    code: string,
+    address = selectedAddress,
+  ) => {
+    if (!address) return
     setIsValidatingVoucher(true)
     try {
       const result = await validateVoucher({
         code,
         items: cartItems,
         shippingMethod: method,
+        province: address.province,
+        district: address.district,
       })
       setAppliedVoucher(result)
     } catch (err) {
@@ -76,14 +96,24 @@ export function CheckoutPage() {
   }
 
   useEffect(() => {
-    if (!appliedVoucher?.code) return
-    void refreshAppliedVoucher(shippingMethod, appliedVoucher.code)
+    if (!appliedVoucher?.code || !selectedAddress) return
+    void refreshAppliedVoucher(shippingMethod, appliedVoucher.code, selectedAddress)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shippingMethod, items])
+  }, [shippingMethod, items, selectedAddress?.id, selectedAddress?.province, selectedAddress?.district])
+
+  useEffect(() => {
+    const quote = shippingQuoteQuery.data
+    if (!quote || shippingMethod !== "sameday") return
+    const sameday = quote.methods.find((method) => method.method === "sameday")
+    if (sameday && !sameday.available) {
+      setShippingMethod("standard")
+      toast.message("Giao trong ngày không khả dụng tại địa chỉ này.")
+    }
+  }, [shippingQuoteQuery.data, shippingMethod])
 
   useEffect(() => {
     const codeFromUrl = searchParams.get("voucher")?.trim()
-    if (!codeFromUrl || items.length === 0 || deepLinkHandled.current) return
+    if (!codeFromUrl || items.length === 0 || !selectedAddress || deepLinkHandled.current) return
 
     deepLinkHandled.current = true
     setIsValidatingVoucher(true)
@@ -91,6 +121,8 @@ export function CheckoutPage() {
       code: codeFromUrl,
       items: cartItems,
       shippingMethod,
+      province: selectedAddress?.province ?? "",
+      district: selectedAddress?.district,
     })
       .then((result) => {
         setAppliedVoucher(result)
@@ -104,7 +136,7 @@ export function CheckoutPage() {
         setSearchParams(next, { replace: true })
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, items.length])
+  }, [searchParams, items.length, selectedAddress?.id])
 
   if (items.length === 0) {
     return (
@@ -116,8 +148,6 @@ export function CheckoutPage() {
       </div>
     )
   }
-
-  const selectedAddress = addresses?.find((a) => a.id === selectedAddressId)
 
   const handleRemoveVoucher = () => {
     setAppliedVoucher(null)
@@ -166,10 +196,26 @@ export function CheckoutPage() {
     }
   }
 
-  const displaySubtotal = appliedVoucher?.subtotal ?? subtotal
-  const displayShippingFee = appliedVoucher?.shippingFee
+  const quote = shippingQuoteQuery.data
+  const displaySubtotal = appliedVoucher?.subtotal ?? quote?.subtotal ?? subtotal
+  const displayShippingFee = appliedVoucher?.shippingFee ?? quote?.shippingFee
   const displayDiscount = appliedVoucher?.discountAmount ?? 0
-  const displayTotal = appliedVoucher?.total
+  const displayTotal =
+    appliedVoucher?.total ??
+    (displayShippingFee != null ? displaySubtotal + displayShippingFee - displayDiscount : null)
+
+  const shippingMethodOptions = (["standard", "express", "sameday"] as ShippingMethod[]).map(
+    (method) => {
+      const quoted = quote?.methods.find((entry) => entry.method === method)
+      return {
+        value: method,
+        label: SHIPPING_METHOD_LABELS[method],
+        fee: quoted?.fee,
+        available: quoted?.available ?? true,
+        reason: quoted?.reason,
+      }
+    },
+  )
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -226,18 +272,33 @@ export function CheckoutPage() {
                 onValueChange={(v) => setShippingMethod(v as ShippingMethod)}
                 className="space-y-2"
               >
-                {SHIPPING_METHODS.map((m) => (
+                {shippingMethodOptions.map((m) => (
                   <label
                     key={m.value}
                     className={cn(
-                      "flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors",
+                      "flex items-center gap-3 rounded-lg border p-3 transition-colors",
+                      !m.available && "cursor-not-allowed opacity-60",
+                      m.available && "cursor-pointer",
                       shippingMethod === m.value ? "border-primary bg-primary/5" : "border-border",
                     )}
                   >
-                    <RadioGroupItem value={m.value} />
-                    <div className="text-sm">
-                      <p className="font-medium">{m.label}</p>
-                      <p className="text-muted-foreground">{m.note}</p>
+                    <RadioGroupItem value={m.value} disabled={!m.available} />
+                    <div className="flex-1 text-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium">{m.label}</p>
+                        {m.fee != null && (
+                          <span className="text-muted-foreground">
+                            {m.fee === 0 ? "Miễn phí" : formatVND(m.fee)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-muted-foreground">
+                        {m.available
+                          ? quote?.zone.name
+                            ? `Vùng: ${quote.zone.name}`
+                            : "Đang tính phí..."
+                          : m.reason ?? "Không khả dụng"}
+                      </p>
                     </div>
                   </label>
                 ))}
@@ -367,9 +428,15 @@ export function CheckoutPage() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Phí vận chuyển</span>
                 <span>
-                  {displayShippingFee != null
-                    ? formatVND(displayShippingFee)
-                    : "Tính khi đặt hàng"}
+                  {shippingQuoteQuery.isLoading && displayShippingFee == null
+                    ? "Đang tính..."
+                    : displayShippingFee != null
+                      ? displayShippingFee === 0
+                        ? "Miễn phí"
+                        : formatVND(displayShippingFee)
+                      : selectedAddress
+                        ? "—"
+                        : "Chọn địa chỉ"}
                 </span>
               </div>
               {displayTotal != null && (
@@ -402,6 +469,8 @@ export function CheckoutPage() {
         onOpenChange={setPickerOpen}
         items={cartItems}
         shippingMethod={shippingMethod}
+        province={selectedAddress?.province ?? ""}
+        district={selectedAddress?.district}
         appliedCode={appliedVoucher?.code}
         onApplied={setAppliedVoucher}
       />

@@ -8,11 +8,7 @@ const {
 } = require("../services/voucherService");
 
 const VALID_PAYMENT_METHODS = new Set(["cod", "payos", "vnpay"]);
-const VALID_SHIPPING_METHODS = new Set(["standard", "express", "sameday"]);
-const SHIPPING_STANDARD_FEE = Number(process.env.SHIPPING_STANDARD_FEE || 0);
-const SHIPPING_STANDARD_FREE_THRESHOLD = Number(process.env.SHIPPING_STANDARD_FREE_THRESHOLD || 500000);
-const SHIPPING_EXPRESS_FEE = Number(process.env.SHIPPING_EXPRESS_FEE || 30000);
-const SHIPPING_SAMEDAY_FEE = Number(process.env.SHIPPING_SAMEDAY_FEE || 60000);
+const { normalizeShippingMethod: normalizeZoneShippingMethod } = require("../services/shippingService");
 
 function buildSortedQuery(obj) {
   return Object.keys(obj)
@@ -99,8 +95,7 @@ function normalizePaymentMethod(value) {
 }
 
 function normalizeShippingMethod(value) {
-  const normalized = String(value || "").trim().toLowerCase();
-  return VALID_SHIPPING_METHODS.has(normalized) ? normalized : "";
+  return normalizeZoneShippingMethod(value);
 }
 
 function normalizeOptionalText(value, maxLength) {
@@ -127,22 +122,6 @@ function buildShippingRecipientFields(body, fallbackShippingAddress) {
     addressLine: addressLine || composedAddress || null,
     shippingAddress: composedAddress,
   };
-}
-
-function computeShippingFee(subtotal, shippingMethod) {
-  if (shippingMethod === "express") {
-    return Math.max(0, SHIPPING_EXPRESS_FEE);
-  }
-
-  if (shippingMethod === "sameday") {
-    return Math.max(0, SHIPPING_SAMEDAY_FEE);
-  }
-
-  if (shippingMethod === "standard") {
-    return subtotal >= SHIPPING_STANDARD_FREE_THRESHOLD ? 0 : Math.max(0, SHIPPING_STANDARD_FEE);
-  }
-
-  throw new Error("Unsupported shipping method");
 }
 
 function parseJsonArray(rawValue) {
@@ -497,14 +476,21 @@ async function createOrder(req, res, next) {
         userId: req.user.id,
         canonicalItems,
         shippingMethod: normalizedShippingMethod,
+        province: shippingRecipient.province,
+        district: shippingRecipient.district,
         lock: true,
       });
     }
 
-    const totals = calculateOrderTotalsWithVoucher(
+    const totals = await calculateOrderTotalsWithVoucher(
+      pool,
       canonicalItems,
       normalizedShippingMethod,
-      voucherResult
+      voucherResult,
+      {
+        province: shippingRecipient.province,
+        district: shippingRecipient.district,
+      }
     );
 
     const year = new Date().getFullYear();

@@ -22,7 +22,6 @@ export default function CartPage() {
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
   const subtotal = useCartStore((s) => s.subtotal());
-  const shipping = useCartStore((s) => s.shipping());
   const total = useCartStore((s) => s.totalPrice());
 
   const handleRemove = (id: string, title: string) => {
@@ -155,18 +154,18 @@ export default function CartPage() {
                     <span>Tạm tính</span>
                     <span className="font-medium">{subtotal.toLocaleString('vi-VN')} đ</span>
                   </div>
-                  <div className="flex justify-between text-foreground/80">
-                    <span>Phí vận chuyển</span>
-                    <span className="font-medium">{shipping.toLocaleString('vi-VN')} đ</span>
-                  </div>
                 </div>
+
+                <p className="mb-6 text-sm text-foreground/60">
+                  Phí vận chuyển được tính theo địa chỉ giao hàng ở bước thanh toán.
+                </p>
 
                 <div className="border-t border-border pt-4 mb-8">
                   <div className="flex justify-between items-end">
-                    <span className="text-foreground font-bold">Tổng cộng</span>
+                    <span className="text-foreground font-bold">Tạm tính</span>
                     <span className="text-2xl font-black text-primary">{total.toLocaleString('vi-VN')} đ</span>
                   </div>
-                  <p className="text-xs text-foreground/60 text-right mt-1">(Đã bao gồm VAT nếu có)</p>
+                  <p className="text-xs text-foreground/60 text-right mt-1">Chưa gồm phí vận chuyển</p>
                 </div>
 
                 <button 

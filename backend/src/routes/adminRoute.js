@@ -29,6 +29,13 @@ const {
   adminDeleteVoucher,
   adminListVoucherRedemptions,
 } = require("../controllers/voucherController");
+const {
+  adminListShippingZones,
+  adminGetShippingZoneById,
+  adminCreateShippingZone,
+  adminUpdateShippingZone,
+  adminDeleteShippingZone,
+} = require("../controllers/shippingController");
 
 // Public admin login
 router.post("/login", adminLogin);
@@ -80,6 +87,13 @@ router.get("/planters", adminListPlanters);
 router.post("/planters", createPlanter);
 router.put("/planters/:id", updatePlanter);
 router.delete("/planters/:id", deletePlanter);
+
+// Shipping zones
+router.get("/shipping-zones", adminListShippingZones);
+router.get("/shipping-zones/:id", adminGetShippingZoneById);
+router.post("/shipping-zones", adminCreateShippingZone);
+router.put("/shipping-zones/:id", adminUpdateShippingZone);
+router.delete("/shipping-zones/:id", adminDeleteShippingZone);
 
 // Vouchers - literal routes first
 router.get("/vouchers/:id/redemptions", adminListVoucherRedemptions);

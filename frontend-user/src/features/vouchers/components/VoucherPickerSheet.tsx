@@ -32,6 +32,8 @@ interface VoucherPickerSheetProps {
   onOpenChange: (open: boolean) => void
   items: Array<{ id: string; quantity: number }>
   shippingMethod: ShippingMethod
+  province: string
+  district?: string | null
   appliedCode?: string | null
   onApplied: (result: ValidateVoucherResponse) => void
 }
@@ -129,6 +131,8 @@ export function VoucherPickerSheet({
   onOpenChange,
   items,
   shippingMethod,
+  province,
+  district,
   appliedCode,
   onApplied,
 }: VoucherPickerSheetProps) {
@@ -138,7 +142,9 @@ export function VoucherPickerSheet({
   const [showIneligible, setShowIneligible] = useState(false)
 
   const availableQuery = useAvailableVouchers(
-    open && items.length > 0 ? { items, shippingMethod } : null,
+    open && items.length > 0 && province
+      ? { items, shippingMethod, province, district }
+      : null,
   )
 
   useEffect(() => {
@@ -167,6 +173,8 @@ export function VoucherPickerSheet({
         code: normalized,
         items,
         shippingMethod,
+        province,
+        district,
       })
       onApplied(result)
       setSelectedCode(result.code)

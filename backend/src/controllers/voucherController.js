@@ -216,12 +216,17 @@ async function listAvailableVouchers(req, res, next) {
   try {
     const items = req.body?.items;
     const shippingMethod = normalizeShippingMethod(req.body?.shippingMethod);
+    const province = String(req.body?.province || "").trim();
+    const district = String(req.body?.district || "").trim() || null;
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Giỏ hàng trống." });
     }
     if (!shippingMethod) {
       return res.status(400).json({ message: "Phương thức vận chuyển không hợp lệ." });
+    }
+    if (!province) {
+      return res.status(400).json({ message: "Vui lòng chọn tỉnh/thành giao hàng." });
     }
 
     const { pool, canonicalItems } = await buildCanonicalCartContext(items);
@@ -241,6 +246,8 @@ async function listAvailableVouchers(req, res, next) {
         userId: req.user.id,
         canonicalItems,
         shippingMethod,
+        province,
+        district,
       });
       entries.push(mapAvailableVoucherEntry(voucher, evaluation, claimedIds));
     }
@@ -346,12 +353,17 @@ async function validateVoucher(req, res, next) {
     const code = req.body?.code;
     const items = req.body?.items;
     const shippingMethod = normalizeShippingMethod(req.body?.shippingMethod);
+    const province = String(req.body?.province || "").trim();
+    const district = String(req.body?.district || "").trim() || null;
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Giỏ hàng trống." });
     }
     if (!shippingMethod) {
       return res.status(400).json({ message: "Phương thức vận chuyển không hợp lệ." });
+    }
+    if (!province) {
+      return res.status(400).json({ message: "Vui lòng chọn tỉnh/thành giao hàng." });
     }
 
     const normalizedItems = normalizeIncomingItems(items);
@@ -366,6 +378,8 @@ async function validateVoucher(req, res, next) {
       userId: req.user.id,
       canonicalItems,
       shippingMethod,
+      province,
+      district,
     });
 
     return res.json({

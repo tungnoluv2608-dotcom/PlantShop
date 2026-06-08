@@ -238,6 +238,30 @@ export interface ValidateVoucherRequest {
   code: string
   items: CreateOrderItem[]
   shippingMethod: ShippingMethod
+  province: string
+  district?: string | null
+}
+
+export interface ShippingQuoteMethod {
+  method: ShippingMethod
+  fee: number
+  available: boolean
+  reason: string | null
+}
+
+export interface ShippingQuoteResponse {
+  subtotal: number
+  shippingMethod: ShippingMethod
+  shippingFee: number
+  total: number
+  zone: {
+    id: number | null
+    name: string
+    allowsSameday: boolean
+    freeShippingThreshold: number
+  }
+  methods: ShippingQuoteMethod[]
+  allowsSameday: boolean
 }
 
 export interface ValidateVoucherResponse {

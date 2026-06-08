@@ -56,15 +56,11 @@ export const useCartStore = create<CartState>()(
 
       totalItems: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
 
-      totalPrice: () => {
-        const subtotal = get().items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        const shipping = get().items.length > 0 ? 30000 : 0;
-        return subtotal + shipping;
-      },
+      totalPrice: () => get().subtotal(),
 
       subtotal: () => get().items.reduce((sum, item) => sum + item.price * item.quantity, 0),
 
-      shipping: () => (get().items.length > 0 ? 30000 : 0),
+      shipping: () => 0,
     }),
     {
       name: "plantweb-cart",

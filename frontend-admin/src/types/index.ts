@@ -388,3 +388,32 @@ export interface VoucherRedemptionsReport {
   }
   redemptions: VoucherRedemption[]
 }
+
+export interface ShippingZone {
+  id: number
+  name: string
+  province: string | null
+  district: string | null
+  standardFee: number
+  expressFee: number
+  samedayFee: number
+  allowsSameday: boolean
+  freeShippingThreshold: number | null
+  priority: number
+  isActive: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface ShippingZonePayload {
+  name: string
+  province: string | null
+  district: string | null
+  standardFee: number
+  expressFee: number
+  samedayFee: number
+  allowsSameday: boolean
+  freeShippingThreshold: number | null
+  priority: number
+  isActive: boolean
+}

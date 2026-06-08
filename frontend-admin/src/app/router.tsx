@@ -22,6 +22,7 @@ import { WholesaleDetailPage } from "@/features/wholesale/pages/WholesaleDetailP
 import { PrintSettingsPage } from "@/features/print-settings/pages/PrintSettingsPage"
 import { VoucherListPage } from "@/features/vouchers/pages/VoucherListPage"
 import { VoucherDetailPage } from "@/features/vouchers/pages/VoucherDetailPage"
+import { ShippingZoneListPage } from "@/features/shipping-zones/pages/ShippingZoneListPage"
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -49,6 +50,7 @@ export const router = createBrowserRouter([
           { path: "/orders/:id", element: <OrderDetailPage /> },
           { path: "/vouchers", element: <VoucherListPage /> },
           { path: "/vouchers/:id", element: <VoucherDetailPage /> },
+          { path: "/shipping-zones", element: <ShippingZoneListPage /> },
           { path: "/print-settings", element: <PrintSettingsPage /> },
 
           { path: "/customers", element: <CustomerListPage /> },

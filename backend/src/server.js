@@ -17,6 +17,7 @@ const wishlistRoute = require("./routes/wishlistRoute");
 const payosRoute = require("./routes/payosRoute");
 const wholesaleRoute = require("./routes/wholesaleRoute");
 const voucherRoute = require("./routes/voucherRoute");
+const shippingRoute = require("./routes/shippingRoute");
 const errorHandler = require("./middlewares/errorHandler");
 const { getPool } = require("./libs/db");
 
@@ -61,6 +62,7 @@ app.use("/api/wishlist", wishlistRoute);
 app.use("/api/webhooks", payosRoute);
 app.use("/api/wholesale-inquiries", wholesaleRoute);
 app.use("/api/vouchers", voucherRoute);
+app.use("/api/shipping", shippingRoute);
 
 // ── Health check ──────────────────────────────────────────────
 app.get("/", (req, res) => {

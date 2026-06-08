@@ -20,6 +20,8 @@ export async function validateVoucher(
 export async function fetchAvailableVouchers(payload: {
   items: ValidateVoucherRequest["items"]
   shippingMethod: ShippingMethod
+  province: string
+  district?: string | null
 }): Promise<AvailableVouchersResponse> {
   const { data } = await apiClient.post<AvailableVouchersResponse>("/vouchers/available", payload)
   return data
@@ -54,7 +56,12 @@ export function useValidateVoucher() {
 }
 
 export function useAvailableVouchers(
-  payload: { items: ValidateVoucherRequest["items"]; shippingMethod: ShippingMethod } | null,
+  payload: {
+    items: ValidateVoucherRequest["items"]
+    shippingMethod: ShippingMethod
+    province: string
+    district?: string | null
+  } | null,
 ) {
   return useQuery({
     queryKey: queryKeys.vouchers.available(payload),

@@ -40,4 +40,8 @@ export const queryKeys = {
     detail: (id: string) => ["admin", "vouchers", id] as const,
     redemptions: (id: string) => ["admin", "vouchers", id, "redemptions"] as const,
   },
+
+  shippingZones: {
+    all: ["admin", "shipping-zones"] as const,
+  },
 } as const

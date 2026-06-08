@@ -1,11 +1,8 @@
 const { sql } = require("../libs/db");
+const { computeShippingFee: computeZoneShippingFee } = require("./shippingService");
 
 const VALID_DISCOUNT_TYPES = new Set(["percent", "fixed", "freeship"]);
 const VALID_APPLIES_TO = new Set(["all", "category", "product"]);
-const SHIPPING_STANDARD_FEE = Number(process.env.SHIPPING_STANDARD_FEE || 0);
-const SHIPPING_STANDARD_FREE_THRESHOLD = Number(process.env.SHIPPING_STANDARD_FREE_THRESHOLD || 500000);
-const SHIPPING_EXPRESS_FEE = Number(process.env.SHIPPING_EXPRESS_FEE || 30000);
-const SHIPPING_SAMEDAY_FEE = Number(process.env.SHIPPING_SAMEDAY_FEE || 60000);
 
 function normalizeVoucherCode(code) {
   return String(code || "").trim().toUpperCase();
@@ -13,19 +10,6 @@ function normalizeVoucherCode(code) {
 
 function roundMoney(amount) {
   return Math.max(0, Math.round(Number(amount) * 100) / 100);
-}
-
-function computeShippingFee(subtotal, shippingMethod) {
-  if (shippingMethod === "express") {
-    return Math.max(0, SHIPPING_EXPRESS_FEE);
-  }
-  if (shippingMethod === "sameday") {
-    return Math.max(0, SHIPPING_SAMEDAY_FEE);
-  }
-  if (shippingMethod === "standard") {
-    return subtotal >= SHIPPING_STANDARD_FREE_THRESHOLD ? 0 : Math.max(0, SHIPPING_STANDARD_FEE);
-  }
-  throw new Error("Unsupported shipping method");
 }
 
 function mapVoucherRow(row) {
@@ -231,8 +215,19 @@ function resolveUserVoucherAvailability(voucher, usage) {
   };
 }
 
-function buildIneligiblePreview(subtotal = 0, shippingMethod = "standard") {
-  const shippingFee = computeShippingFee(subtotal, shippingMethod);
+async function buildIneligiblePreview(
+  pool,
+  subtotal = 0,
+  shippingMethod = "standard",
+  address = {}
+) {
+  const { shippingFee } = await computeZoneShippingFee(pool, {
+    subtotal,
+    shippingMethod,
+    province: address.province,
+    district: address.district,
+    throwOnUnavailable: false,
+  });
   return {
     eligible: false,
     subtotal,
@@ -251,6 +246,8 @@ async function evaluateVoucherEligibility({
   userId,
   canonicalItems,
   shippingMethod,
+  province,
+  district,
   usage,
 }) {
   const scheduleReason = checkVoucherSchedule(voucher);
@@ -261,9 +258,11 @@ async function evaluateVoucherEligibility({
     )
   );
 
+  const address = { province, district };
+
   if (scheduleReason) {
     return {
-      ...buildIneligiblePreview(subtotal, shippingMethod),
+      ...(await buildIneligiblePreview(pool, subtotal, shippingMethod, address)),
       reason: scheduleReason,
     };
   }
@@ -271,7 +270,7 @@ async function evaluateVoucherEligibility({
   const appliesTo = String(voucher.appliesTo || "all").toLowerCase();
   if (appliesTo !== "all" && !scopes.length) {
     return {
-      ...buildIneligiblePreview(subtotal, shippingMethod),
+      ...(await buildIneligiblePreview(pool, subtotal, shippingMethod, address)),
       reason: "Voucher chưa được cấu hình phạm vi áp dụng.",
     };
   }
@@ -280,13 +279,13 @@ async function evaluateVoucherEligibility({
     usage ?? (await countVoucherUsage(pool, voucher.id, userId));
   if (voucher.usageLimit != null && usageData.totalUsed >= voucher.usageLimit) {
     return {
-      ...buildIneligiblePreview(subtotal, shippingMethod),
+      ...(await buildIneligiblePreview(pool, subtotal, shippingMethod, address)),
       reason: "Mã voucher đã hết lượt sử dụng.",
     };
   }
   if (usageData.userUsed >= voucher.usagePerUser) {
     return {
-      ...buildIneligiblePreview(subtotal, shippingMethod),
+      ...(await buildIneligiblePreview(pool, subtotal, shippingMethod, address)),
       reason: "Bạn đã sử dụng hết lượt cho mã voucher này.",
     };
   }
@@ -294,7 +293,7 @@ async function evaluateVoucherEligibility({
   if (subtotal < Number(voucher.minOrderValue || 0)) {
     const gap = roundMoney(Number(voucher.minOrderValue) - subtotal);
     return {
-      ...buildIneligiblePreview(subtotal, shippingMethod),
+      ...(await buildIneligiblePreview(pool, subtotal, shippingMethod, address)),
       reason: `Cần thêm ${gap.toLocaleString("vi-VN")}đ để đủ điều kiện.`,
     };
   }
@@ -302,7 +301,7 @@ async function evaluateVoucherEligibility({
   const eligibleSubtotal = computeEligibleSubtotal(canonicalItems, voucher, scopes);
   if (appliesTo !== "all" && eligibleSubtotal <= 0) {
     return {
-      ...buildIneligiblePreview(subtotal, shippingMethod),
+      ...(await buildIneligiblePreview(pool, subtotal, shippingMethod, address)),
       reason: "Không có sản phẩm phù hợp trong giỏ để áp dụng mã này.",
     };
   }
@@ -312,12 +311,25 @@ async function evaluateVoucherEligibility({
 
   if (discountType !== "freeship" && discountAmount <= 0) {
     return {
-      ...buildIneligiblePreview(subtotal, shippingMethod),
+      ...(await buildIneligiblePreview(pool, subtotal, shippingMethod, address)),
       reason: "Mã voucher không áp dụng được cho đơn hàng này.",
     };
   }
 
-  const baseShippingFee = computeShippingFee(subtotal, shippingMethod);
+  const { shippingFee: baseShippingFee, unavailable } = await computeZoneShippingFee(pool, {
+    subtotal,
+    shippingMethod,
+    province,
+    district,
+    throwOnUnavailable: false,
+  });
+
+  if (unavailable) {
+    return {
+      ...(await buildIneligiblePreview(pool, subtotal, shippingMethod, address)),
+      reason: "Giao hàng trong ngày không khả dụng cho địa chỉ này.",
+    };
+  }
   let shippingFee = baseShippingFee;
   if (discountType === "freeship") {
     shippingFee = 0;
@@ -437,6 +449,8 @@ async function validateVoucherForOrder({
   userId,
   canonicalItems,
   shippingMethod,
+  province,
+  district,
   lock = false,
 }) {
   const normalizedCode = normalizeVoucherCode(code);
@@ -481,7 +495,13 @@ async function validateVoucherForOrder({
     throw buildVoucherError("Mã voucher không áp dụng được cho đơn hàng này.");
   }
 
-  let shippingFee = computeShippingFee(subtotal, shippingMethod);
+  const { shippingFee: computedShippingFee } = await computeZoneShippingFee(pool, {
+    subtotal,
+    shippingMethod,
+    province,
+    district,
+  });
+  let shippingFee = computedShippingFee;
   if (discountType === "freeship") {
     shippingFee = 0;
   }
@@ -500,7 +520,13 @@ async function validateVoucherForOrder({
   };
 }
 
-function calculateOrderTotalsWithVoucher(canonicalItems, shippingMethod, voucherResult) {
+async function calculateOrderTotalsWithVoucher(
+  pool,
+  canonicalItems,
+  shippingMethod,
+  voucherResult,
+  address = {}
+) {
   if (!voucherResult) {
     const subtotal = roundMoney(
       canonicalItems.reduce(
@@ -508,7 +534,12 @@ function calculateOrderTotalsWithVoucher(canonicalItems, shippingMethod, voucher
         0
       )
     );
-    const shippingFee = computeShippingFee(subtotal, shippingMethod);
+    const { shippingFee } = await computeZoneShippingFee(pool, {
+      subtotal,
+      shippingMethod,
+      province: address.province,
+      district: address.district,
+    });
     return {
       subtotal,
       shippingFee,
@@ -632,7 +663,6 @@ module.exports = {
   VALID_APPLIES_TO,
   normalizeVoucherCode,
   roundMoney,
-  computeShippingFee,
   mapVoucherRow,
   loadVoucherScopes,
   loadVoucherByCode,

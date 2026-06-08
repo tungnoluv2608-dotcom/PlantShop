@@ -6,6 +6,7 @@ import {
   Wrench,
   ShoppingCart,
   TicketPercent,
+  Truck,
   Users,
   Star,
   Newspaper,
@@ -46,6 +47,12 @@ export const NAV_GROUPS: NavGroup[] = [
         to: "/vouchers",
         icon: TicketPercent,
         matchPrefixes: ["/vouchers"],
+      },
+      {
+        title: "Vùng vận chuyển",
+        to: "/shipping-zones",
+        icon: Truck,
+        matchPrefixes: ["/shipping-zones"],
       },
       { title: "Khách hàng", to: "/customers", icon: Users },
       {
