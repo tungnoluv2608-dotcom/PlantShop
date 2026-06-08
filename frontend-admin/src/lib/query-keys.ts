@@ -28,9 +28,11 @@ export const queryKeys = {
   reviews: ["admin", "reviews"] as const,
 
   wholesale: {
-    all: (status?: string, q?: string) =>
-      ["admin", "wholesale", { status: status ?? "", q: q ?? "" }] as const,
+    all: (params?: object) =>
+      ["admin", "wholesale", params ?? {}] as const,
     detail: (id: string) => ["admin", "wholesale", "detail", id] as const,
+    activities: (id: string) => ["admin", "wholesale", "activities", id] as const,
+    admins: ["admin", "wholesale", "admins"] as const,
   },
 
   printSettings: ["admin", "print-settings"] as const,

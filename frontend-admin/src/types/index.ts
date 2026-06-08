@@ -264,6 +264,12 @@ export type WholesaleStatus =
   | "lost"
   | "archived"
 
+export interface WholesaleInterestItem {
+  id: string
+  name?: string
+  title?: string
+}
+
 export interface WholesaleInquiry {
   id: string
   company: string
@@ -276,10 +282,14 @@ export interface WholesaleInquiry {
   budget: string
   timeline: string
   note: string
+  interestedCategories: WholesaleInterestItem[]
+  interestedProducts: WholesaleInterestItem[]
   status: WholesaleStatus
   source: string
   assignedTo: string
+  assignedAdminId?: string
   adminNote: string
+  orderId?: string
   createdAt: string
   updatedAt: string
   contactedAt?: string | null
@@ -289,7 +299,43 @@ export interface WholesaleInquiry {
 export interface WholesaleUpdatePayload {
   status?: WholesaleStatus
   assignedTo?: string
+  assignedAdminId?: string
   adminNote?: string
+}
+
+export interface WholesaleAdminOption {
+  id: string
+  name: string
+  email: string
+}
+
+export interface WholesaleActivity {
+  id: string
+  inquiryId: string
+  actorId?: string | null
+  actorName: string
+  action: string
+  details: string
+  createdAt: string
+}
+
+export interface WholesaleListResponse {
+  items: WholesaleInquiry[]
+  total: number
+  page: number
+  pageSize: number
+  statusCounts: Partial<Record<WholesaleStatus | "all", number>>
+}
+
+export interface WholesaleCreateOrderItem {
+  productId: string
+  quantity: number
+}
+
+export interface WholesaleCreateOrderPayload {
+  items?: WholesaleCreateOrderItem[]
+  paymentMethod?: string
+  shippingMethod?: string
 }
 
 export interface DashboardStats {

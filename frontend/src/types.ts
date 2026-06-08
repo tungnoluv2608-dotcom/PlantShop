@@ -178,10 +178,14 @@ export interface WholesaleInquiry {
   budget: string;
   timeline: string;
   note: string;
+  interestedCategories?: Array<{ id: string; name?: string; title?: string }>;
+  interestedProducts?: Array<{ id: string; name?: string; title?: string }>;
   status: WholesaleInquiryStatus;
   source: string;
   assignedTo: string;
+  assignedAdminId?: string;
   adminNote: string;
+  orderId?: string;
   createdAt: string;
   updatedAt: string;
   contactedAt?: string | null;

@@ -121,12 +121,14 @@ export const wholesaleApi = {
     contact: string;
     phone: string;
     email: string;
-    quantity?: string;
+    quantity: string;
     type?: string;
     location?: string;
     budget?: string;
     timeline?: string;
     note?: string;
+    interestedCategories?: Array<{ id: string; name?: string; title?: string }>;
+    interestedProducts?: Array<{ id: string; name?: string; title?: string }>;
   }) => api.post<{ id: string; message: string }>("/wholesale-inquiries", body).then((r) => r.data),
 };
 
@@ -167,8 +169,11 @@ export const adminApi = {
   listCustomers: () => api.get("/admin/customers").then((r) => r.data),
 
   // Wholesale inquiries
-  listWholesaleInquiries: (params?: { status?: string; q?: string }) =>
-    api.get<WholesaleInquiry[]>("/admin/wholesale-inquiries", { params }).then((r) => r.data),
+  listWholesaleInquiries: (params?: { status?: string; q?: string; page?: number; pageSize?: number }) =>
+    api.get<{ items: WholesaleInquiry[]; total: number; page: number; pageSize: number }>(
+      "/admin/wholesale-inquiries",
+      { params }
+    ).then((r) => r.data.items),
   getWholesaleInquiryDetail: (id: string | number) =>
     api.get<WholesaleInquiry>(`/admin/wholesale-inquiries/${id}`).then((r) => r.data),
   updateWholesaleInquiry: (id: string | number, body: {

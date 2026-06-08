@@ -1,18 +1,43 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
 import { queryKeys } from "@/lib/query-keys"
-import type { WholesaleInquiry, WholesaleUpdatePayload } from "@/types"
+import type {
+  WholesaleActivity,
+  WholesaleAdminOption,
+  WholesaleCreateOrderPayload,
+  WholesaleInquiry,
+  WholesaleListResponse,
+  WholesaleUpdatePayload,
+} from "@/types"
 
-export function useWholesaleInquiries(status?: string, q?: string) {
+export interface WholesaleListParams {
+  status?: string
+  q?: string
+  assigned?: string
+  source?: string
+  dateFrom?: string
+  dateTo?: string
+  page?: number
+  pageSize?: number
+}
+
+export function useWholesaleInquiries(params: WholesaleListParams = {}) {
   return useQuery({
-    queryKey: queryKeys.wholesale.all(status, q),
+    queryKey: queryKeys.wholesale.all(params),
     queryFn: async () => {
-      const params: Record<string, string> = {}
-      if (status) params.status = status
-      if (q) params.q = q
-      const { data } = await apiClient.get<WholesaleInquiry[]>(
+      const queryParams: Record<string, string | number> = {}
+      if (params.status && params.status !== "all") queryParams.status = params.status
+      if (params.q) queryParams.q = params.q
+      if (params.assigned && params.assigned !== "all") queryParams.assigned = params.assigned
+      if (params.source && params.source !== "all") queryParams.source = params.source
+      if (params.dateFrom) queryParams.dateFrom = params.dateFrom
+      if (params.dateTo) queryParams.dateTo = params.dateTo
+      queryParams.page = params.page ?? 1
+      queryParams.pageSize = params.pageSize ?? 20
+
+      const { data } = await apiClient.get<WholesaleListResponse>(
         "/admin/wholesale-inquiries",
-        { params }
+        { params: queryParams }
       )
       return data
     },
@@ -32,6 +57,32 @@ export function useWholesaleInquiry(id: string | undefined) {
   })
 }
 
+export function useWholesaleActivities(id: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.wholesale.activities(id ?? ""),
+    enabled: Boolean(id),
+    queryFn: async () => {
+      const { data } = await apiClient.get<WholesaleActivity[]>(
+        `/admin/wholesale-inquiries/${id}/activities`
+      )
+      return data
+    },
+  })
+}
+
+export function useWholesaleAdmins() {
+  return useQuery({
+    queryKey: queryKeys.wholesale.admins,
+    queryFn: async () => {
+      const { data } = await apiClient.get<WholesaleAdminOption[]>(
+        "/admin/wholesale-admins"
+      )
+      return data
+    },
+    staleTime: 5 * 60_000,
+  })
+}
+
 export function useUpdateWholesale() {
   const qc = useQueryClient()
   return useMutation({
@@ -45,6 +96,32 @@ export function useUpdateWholesale() {
     onSuccess: (_data, { id }) => {
       qc.invalidateQueries({ queryKey: ["admin", "wholesale"] })
       qc.invalidateQueries({ queryKey: queryKeys.wholesale.detail(id) })
+      qc.invalidateQueries({ queryKey: queryKeys.wholesale.activities(id) })
+    },
+  })
+}
+
+export function useCreateWholesaleOrder() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      payload,
+    }: {
+      id: string
+      payload?: WholesaleCreateOrderPayload
+    }) => {
+      const { data } = await apiClient.post<{ orderId: string; message: string; total: number }>(
+        `/admin/wholesale-inquiries/${id}/create-order`,
+        payload ?? {}
+      )
+      return data
+    },
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: ["admin", "wholesale"] })
+      qc.invalidateQueries({ queryKey: queryKeys.wholesale.detail(id) })
+      qc.invalidateQueries({ queryKey: queryKeys.wholesale.activities(id) })
+      qc.invalidateQueries({ queryKey: queryKeys.orders.all })
     },
   })
 }

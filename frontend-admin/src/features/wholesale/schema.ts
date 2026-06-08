@@ -13,6 +13,7 @@ export const WHOLESALE_STATUSES = [
 export const wholesaleUpdateSchema = z.object({
   status: z.enum(WHOLESALE_STATUSES),
   assignedTo: z.string(),
+  assignedAdminId: z.string(),
   adminNote: z.string(),
 })
 

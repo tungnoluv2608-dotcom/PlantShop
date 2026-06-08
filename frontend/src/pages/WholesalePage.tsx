@@ -211,8 +211,9 @@ export default function WholesalePage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-foreground/75">Số lượng dự kiến</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-foreground/75">Số lượng dự kiến *</label>
                   <input
+                    required
                     value={form.quantity}
                     onChange={(e) => setForm((prev) => ({ ...prev, quantity: e.target.value }))}
                     className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15"

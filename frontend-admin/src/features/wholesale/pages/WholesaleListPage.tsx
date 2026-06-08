@@ -15,6 +15,7 @@ import {
   buildFilterChips,
   countAdvancedFilters,
 } from "@/components/common/FilterBar"
+import { Button } from "@/components/ui/button"
 import { formatDate } from "@/lib/format"
 import { useDebouncedValue } from "@/hooks/useDebouncedValue"
 import { useListFilters } from "@/hooks/useListFilters"
@@ -24,8 +25,7 @@ import { WHOLESALE_STATUSES } from "../schema"
 import { useWholesaleInquiries } from "../api"
 import {
   WHOLESALE_FILTER_DEFAULTS,
-  countWholesaleByStatus,
-  filterWholesaleInquiries,
+  WHOLESALE_LIST_FILTER_DEFAULTS,
   type WholesaleFilterState,
 } from "../wholesale-filters"
 
@@ -42,43 +42,47 @@ const STATUS_TABS: Array<{
 
 export function WholesaleListPage() {
   const navigate = useNavigate()
-  const { values: filters, setFilter, clearFilters, hasActiveFilters } =
-    useListFilters(WHOLESALE_FILTER_DEFAULTS)
+  const { values: filters, setFilter, setFilters, clearFilters, hasActiveFilters } =
+    useListFilters(WHOLESALE_LIST_FILTER_DEFAULTS)
+
+  const resetPage = (updates: Partial<Record<keyof WholesaleFilterState, string>>) => {
+    setFilters({ ...updates, page: "1" })
+  }
 
   const debouncedQ = useDebouncedValue(filters.q, 350)
-  const { data: serverData, isLoading } = useWholesaleInquiries(
-    undefined,
-    debouncedQ.trim() || undefined
-  )
+  const page = Math.max(1, Number.parseInt(filters.page, 10) || 1)
 
-  const clientFiltered = useMemo(
-    () => filterWholesaleInquiries(serverData ?? [], filters),
-    [serverData, filters]
-  )
+  const { data, isLoading } = useWholesaleInquiries({
+    status: filters.status,
+    q: debouncedQ.trim() || undefined,
+    assigned: filters.assigned,
+    source: filters.source,
+    dateFrom: filters.dateFrom || undefined,
+    dateTo: filters.dateTo || undefined,
+    page,
+    pageSize: 20,
+  })
 
-  const statusCounts = useMemo(
-    () => countWholesaleByStatus(serverData ?? []),
-    [serverData]
-  )
+  const items = data?.items ?? []
+  const total = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / (data?.pageSize ?? 20)))
 
   const assigneeOptions = useMemo(() => {
-    const names = uniqueSorted(
-      (serverData ?? []).map((item) => item.assignedTo).filter(Boolean)
-    )
+    const names = uniqueSorted(items.map((item) => item.assignedTo).filter(Boolean))
     return [
       { value: "all", label: "Tất cả phụ trách" },
       { value: "unassigned", label: "Chưa gán" },
       ...names.map((name) => ({ value: name, label: name })),
     ]
-  }, [serverData])
+  }, [items])
 
   const sourceOptions = useMemo(() => {
-    const sources = uniqueSorted((serverData ?? []).map((item) => item.source))
+    const sources = uniqueSorted(items.map((item) => item.source))
     return [
       { value: "all", label: "Tất cả nguồn" },
       ...sources.map((source) => ({ value: source, label: source })),
     ]
-  }, [serverData])
+  }, [items])
 
   const chips = useMemo(
     () =>
@@ -88,8 +92,7 @@ export function WholesaleListPage() {
           value: filters.assigned,
           defaultValue: "all",
           label: "Phụ trách",
-          formatValue: (v) =>
-            v === "unassigned" ? "Chưa gán" : v,
+          formatValue: (v) => (v === "unassigned" ? "Chưa gán" : v),
         },
         {
           key: "source",
@@ -166,23 +169,26 @@ export function WholesaleListPage() {
 
       <StatusFilterTabs<WholesaleStatus | "all">
         value={(filters.status as WholesaleStatus | "all")}
-        onChange={(v) => setFilter("status", v)}
+        onChange={(v) => resetPage({ status: v })}
         options={STATUS_TABS}
-        counts={statusCounts}
+        counts={data?.statusCounts}
       />
 
       <ListFilterToolbar
         search={filters.q}
-        onSearchChange={(v) => setFilter("q", v)}
+        onSearchChange={(v) => resetPage({ q: v })}
         searchPlaceholder="Tìm theo công ty, liên hệ, email, SĐT..."
         advancedFilterCount={countAdvancedFilters(filters, WHOLESALE_FILTER_DEFAULTS, [
           "q",
           "status",
+          "page",
         ])}
         sheetTitle="Bộ lọc yêu cầu B2B"
         chips={chips}
         onRemoveChip={(key) =>
-          setFilter(key, WHOLESALE_FILTER_DEFAULTS[key as keyof WholesaleFilterState] ?? "")
+          resetPage({
+            [key]: WHOLESALE_FILTER_DEFAULTS[key as keyof WholesaleFilterState] ?? "",
+          })
         }
         onClearAll={clearFilters}
         hasActiveFilters={hasActiveFilters}
@@ -192,7 +198,7 @@ export function WholesaleListPage() {
               <FilterField label="Người phụ trách">
                 <FilterSelect
                   value={filters.assigned}
-                  onChange={(v) => setFilter("assigned", v)}
+                  onChange={(v) => resetPage({ assigned: v })}
                   placeholder="Phụ trách"
                   options={assigneeOptions}
                 />
@@ -200,7 +206,7 @@ export function WholesaleListPage() {
               <FilterField label="Nguồn yêu cầu">
                 <FilterSelect
                   value={filters.source}
-                  onChange={(v) => setFilter("source", v)}
+                  onChange={(v) => resetPage({ source: v })}
                   placeholder="Nguồn"
                   options={sourceOptions}
                 />
@@ -211,8 +217,8 @@ export function WholesaleListPage() {
                 stacked
                 from={filters.dateFrom}
                 to={filters.dateTo}
-                onFromChange={(v) => setFilter("dateFrom", v)}
-                onToChange={(v) => setFilter("dateTo", v)}
+                onFromChange={(v) => resetPage({ dateFrom: v })}
+                onToChange={(v) => resetPage({ dateTo: v })}
               />
             </FilterSection>
           </>
@@ -221,11 +227,35 @@ export function WholesaleListPage() {
 
       <DataTable
         columns={columns}
-        data={clientFiltered}
+        data={items}
         isLoading={isLoading}
-        totalCount={serverData?.length}
+        totalCount={total}
         onRowClick={(inquiry) => navigate(`/wholesale/${inquiry.id}`)}
       />
+
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          Trang {page} / {totalPages} · {total} yêu cầu
+        </p>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1 || isLoading}
+            onClick={() => setFilter("page", String(page - 1))}
+          >
+            Trước
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages || isLoading}
+            onClick={() => setFilter("page", String(page + 1))}
+          >
+            Sau
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

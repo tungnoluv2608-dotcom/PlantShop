@@ -1,15 +1,14 @@
-import { useEffect } from "react"
-import { useParams, Link } from "react-router"
+import { useEffect, useState } from "react"
+import { useParams, Link, useNavigate } from "react-router"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeft, Loader2, Mail, Phone } from "lucide-react"
+import { ArrowLeft, ExternalLink, Loader2, Mail, Phone, ShoppingCart } from "lucide-react"
 import { toast } from "sonner"
 
 import { PageHeader } from "@/components/common/PageHeader"
 import { QueryBoundary } from "@/components/common/QueryBoundary"
 import { WholesaleStatusBadge, WHOLESALE_STATUS } from "@/components/common/StatusBadge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,7 +31,14 @@ import { getApiErrorMessage } from "@/lib/api-client"
 import { formatDateTime } from "@/lib/format"
 import type { WholesaleInquiry } from "@/types"
 import { WHOLESALE_STATUSES, wholesaleUpdateSchema, type WholesaleUpdateFormValues } from "../schema"
-import { useWholesaleInquiry, useUpdateWholesale } from "../api"
+import {
+  useWholesaleInquiry,
+  useWholesaleActivities,
+  useWholesaleAdmins,
+  useUpdateWholesale,
+} from "../api"
+import { ActivityTimeline } from "../components/ActivityTimeline"
+import { CreateOrderDialog } from "../components/CreateOrderDialog"
 
 function Field({ label, value }: { label: string; value?: string }) {
   return (
@@ -43,15 +49,45 @@ function Field({ label, value }: { label: string; value?: string }) {
   )
 }
 
+function InterestList({
+  label,
+  items,
+}: {
+  label: string
+  items: Array<{ id: string; name?: string; title?: string }>
+}) {
+  if (!items.length) return null
+  return (
+    <div className="col-span-2">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {items.map((item) => (
+          <span
+            key={item.id}
+            className="rounded-full border bg-muted/40 px-3 py-1 text-xs"
+          >
+            {item.title || item.name || `#${item.id}`}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function WholesaleDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const [createOrderOpen, setCreateOrderOpen] = useState(false)
+
   const inquiryQuery = useWholesaleInquiry(id)
+  const activitiesQuery = useWholesaleActivities(id)
+  const adminsQuery = useWholesaleAdmins()
   const updateInquiry = useUpdateWholesale()
   const inquiry: WholesaleInquiry | undefined = inquiryQuery.data
 
   const form = useForm<WholesaleUpdateFormValues>({
     resolver: zodResolver(wholesaleUpdateSchema),
-    defaultValues: { status: "new", assignedTo: "", adminNote: "" },
+    defaultValues: { status: "new", assignedTo: "", assignedAdminId: "", adminNote: "" },
   })
 
   useEffect(() => {
@@ -59,6 +95,7 @@ export function WholesaleDetailPage() {
       form.reset({
         status: inquiry.status,
         assignedTo: inquiry.assignedTo ?? "",
+        assignedAdminId: inquiry.assignedAdminId ?? "",
         adminNote: inquiry.adminNote ?? "",
       })
     }
@@ -66,14 +103,28 @@ export function WholesaleDetailPage() {
 
   const onSubmit = (values: WholesaleUpdateFormValues) => {
     if (!id) return
+    const selectedAdmin = adminsQuery.data?.find((admin) => admin.id === values.assignedAdminId)
     updateInquiry.mutate(
-      { id, payload: values },
+      {
+        id,
+        payload: {
+          status: values.status,
+          assignedAdminId: values.assignedAdminId || undefined,
+          assignedTo: selectedAdmin?.name || values.assignedTo,
+          adminNote: values.adminNote,
+        },
+      },
       {
         onSuccess: () => toast.success("Đã cập nhật yêu cầu"),
         onError: (err) => toast.error(getApiErrorMessage(err)),
       }
     )
   }
+
+  const canCreateOrder =
+    inquiry &&
+    !inquiry.orderId &&
+    ["qualified", "quoted", "won"].includes(inquiry.status)
 
   return (
     <div className="space-y-6">
@@ -105,9 +156,25 @@ export function WholesaleDetailPage() {
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-row items-center justify-between gap-3">
                   <CardTitle>Thông tin yêu cầu</CardTitle>
-                  <WholesaleStatusBadge status={inquiry.status} />
+                  <div className="flex items-center gap-2">
+                    <WholesaleStatusBadge status={inquiry.status} />
+                    {canCreateOrder && (
+                      <Button size="sm" onClick={() => setCreateOrderOpen(true)}>
+                        <ShoppingCart className="size-4" />
+                        Tạo đơn
+                      </Button>
+                    )}
+                    {inquiry.orderId && (
+                      <Button size="sm" variant="outline" asChild>
+                        <Link to={`/orders/${inquiry.orderId}`}>
+                          <ExternalLink className="size-4" />
+                          Xem đơn {inquiry.orderId}
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
                   <Field label="Người liên hệ" value={inquiry.contact} />
@@ -117,6 +184,15 @@ export function WholesaleDetailPage() {
                   <Field label="Ngân sách" value={inquiry.budget} />
                   <Field label="Thời gian" value={inquiry.timeline} />
                   <Field label="Nguồn" value={inquiry.source} />
+                  <Field label="Phụ trách" value={inquiry.assignedTo} />
+                  <InterestList
+                    label="Danh mục quan tâm"
+                    items={inquiry.interestedCategories ?? []}
+                  />
+                  <InterestList
+                    label="Sản phẩm quan tâm"
+                    items={inquiry.interestedProducts ?? []}
+                  />
                   <div className="col-span-2 flex gap-3">
                     <Button variant="outline" size="sm" asChild>
                       <a href={`mailto:${inquiry.email}`}>
@@ -132,11 +208,21 @@ export function WholesaleDetailPage() {
                   {inquiry.note && (
                     <div className="col-span-2">
                       <p className="text-xs text-muted-foreground">Ghi chú khách hàng</p>
-                      <p className="mt-1 rounded-lg bg-muted/50 p-3 text-sm">
-                        {inquiry.note}
-                      </p>
+                      <p className="mt-1 rounded-lg bg-muted/50 p-3 text-sm">{inquiry.note}</p>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Nhật ký hoạt động</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ActivityTimeline
+                    activities={activitiesQuery.data}
+                    isLoading={activitiesQuery.isLoading}
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -174,13 +260,31 @@ export function WholesaleDetailPage() {
                     />
                     <FormField
                       control={form.control}
-                      name="assignedTo"
+                      name="assignedAdminId"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Người phụ trách</FormLabel>
-                          <FormControl>
-                            <Input placeholder="vd: Admin 1" {...field} />
-                          </FormControl>
+                          <Select
+                            onValueChange={(value) => {
+                              field.onChange(value)
+                              const admin = adminsQuery.data?.find((item) => item.id === value)
+                              if (admin) form.setValue("assignedTo", admin.name)
+                            }}
+                            value={field.value || undefined}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Chọn admin phụ trách" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {adminsQuery.data?.map((admin) => (
+                                <SelectItem key={admin.id} value={admin.id}>
+                                  {admin.name} ({admin.email})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -209,6 +313,15 @@ export function WholesaleDetailPage() {
           </div>
         )}
       </QueryBoundary>
+
+      {inquiry && (
+        <CreateOrderDialog
+          inquiry={inquiry}
+          open={createOrderOpen}
+          onOpenChange={setCreateOrderOpen}
+          onCreated={(orderId) => navigate(`/orders/${orderId}`)}
+        />
+      )}
     </div>
   )
 }

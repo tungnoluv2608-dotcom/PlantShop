@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
+import type { WholesaleInterestItem } from "./schema"
 
 export interface WholesalePayload {
   company: string
@@ -12,6 +13,8 @@ export interface WholesalePayload {
   budget: string
   timeline: string
   note: string
+  interestedCategories: WholesaleInterestItem[]
+  interestedProducts: WholesaleInterestItem[]
 }
 
 export function useSubmitWholesale() {

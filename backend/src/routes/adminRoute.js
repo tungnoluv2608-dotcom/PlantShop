@@ -15,6 +15,9 @@ const {
   listWholesaleInquiries,
   getWholesaleInquiryById,
   updateWholesaleInquiry,
+  getWholesaleInquiryActivities,
+  getWholesaleAdminOptions,
+  createWholesaleOrder,
 } = require("../controllers/wholesaleController");
 const {
   getPrintSettings,
@@ -67,7 +70,10 @@ router.patch("/orders/:id/note", updateOrderNote);
 router.get("/customers", listCustomers);
 
 // Wholesale inquiries
+router.get("/wholesale-admins", getWholesaleAdminOptions);
 router.get("/wholesale-inquiries", listWholesaleInquiries);
+router.get("/wholesale-inquiries/:id/activities", getWholesaleInquiryActivities);
+router.post("/wholesale-inquiries/:id/create-order", createWholesaleOrder);
 router.get("/wholesale-inquiries/:id", getWholesaleInquiryById);
 router.patch("/wholesale-inquiries/:id", updateWholesaleInquiry);
 
