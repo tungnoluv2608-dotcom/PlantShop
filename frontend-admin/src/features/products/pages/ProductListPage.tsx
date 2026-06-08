@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { type ColumnDef } from "@tanstack/react-table"
 import { Plus, Pencil, Trash2, MoreHorizontal } from "lucide-react"
@@ -6,6 +6,15 @@ import { toast } from "sonner"
 
 import { PageHeader } from "@/components/common/PageHeader"
 import { DataTable } from "@/components/common/DataTable"
+import {
+  ListFilterToolbar,
+  FilterSelect,
+  FilterField,
+  FilterSection,
+  FilterNumberRange,
+  buildFilterChips,
+  countAdvancedFilters,
+} from "@/components/common/FilterBar"
 import { ConfirmDialog } from "@/components/common/ConfirmDialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,16 +24,111 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useListFilters } from "@/hooks/useListFilters"
 import { getApiErrorMessage } from "@/lib/api-client"
 import { formatVND } from "@/lib/format"
+import { uniqueSorted } from "@/lib/filters"
 import type { AdminProduct } from "@/types"
 import { useAdminProducts, useDeleteProduct } from "../api"
+import {
+  PRODUCT_FILTER_DEFAULTS,
+  filterProducts,
+  type ProductFilterState,
+} from "../product-filters"
+
+const STOCK_OPTIONS = [
+  { value: "all", label: "Tất cả tồn kho" },
+  { value: "in_stock", label: "Còn hàng" },
+  { value: "out_of_stock", label: "Hết hàng" },
+]
+
+const TRI_OPTIONS = [
+  { value: "all", label: "Tất cả" },
+  { value: "yes", label: "Có" },
+  { value: "no", label: "Không" },
+]
+
+const SORT_OPTIONS = [
+  { value: "default", label: "Mặc định" },
+  { value: "name_asc", label: "Tên A → Z" },
+  { value: "name_desc", label: "Tên Z → A" },
+  { value: "price_asc", label: "Giá thấp → cao" },
+  { value: "price_desc", label: "Giá cao → thấp" },
+]
 
 export function ProductListPage() {
   const navigate = useNavigate()
   const { data, isLoading } = useAdminProducts()
   const deleteProduct = useDeleteProduct()
   const [pendingDelete, setPendingDelete] = useState<AdminProduct | null>(null)
+
+  const { values: filters, setFilter, clearFilters, hasActiveFilters } =
+    useListFilters(PRODUCT_FILTER_DEFAULTS)
+
+  const categoryOptions = useMemo(
+    () => [
+      { value: "all", label: "Tất cả danh mục" },
+      ...uniqueSorted((data ?? []).map((p) => p.category)).map((name) => ({
+        value: name,
+        label: name,
+      })),
+    ],
+    [data]
+  )
+
+  const filteredData = useMemo(
+    () => filterProducts(data ?? [], filters),
+    [data, filters]
+  )
+
+  const chips = useMemo(
+    () =>
+      buildFilterChips([
+        {
+          key: "category",
+          value: filters.category,
+          defaultValue: "all",
+          label: "Danh mục",
+        },
+        {
+          key: "stock",
+          value: filters.stock,
+          defaultValue: "all",
+          label: "Tồn kho",
+          formatValue: (v) =>
+            STOCK_OPTIONS.find((o) => o.value === v)?.label ?? v,
+        },
+        {
+          key: "discounted",
+          value: filters.discounted,
+          defaultValue: "all",
+          label: "Giảm giá",
+          formatValue: (v) => (v === "yes" ? "Có giảm giá" : "Không giảm giá"),
+        },
+        {
+          key: "noPlanter",
+          value: filters.noPlanter,
+          defaultValue: "all",
+          label: "Chậu cây",
+          formatValue: (v) => (v === "yes" ? "Chưa gắn chậu" : "Đã gắn chậu"),
+        },
+        {
+          key: "priceMin",
+          value: filters.priceMin,
+          defaultValue: "",
+          label: "Giá từ",
+          formatValue: (v) => formatVND(Number(v)),
+        },
+        {
+          key: "priceMax",
+          value: filters.priceMax,
+          defaultValue: "",
+          label: "Giá đến",
+          formatValue: (v) => formatVND(Number(v)),
+        },
+      ]),
+    [filters]
+  )
 
   const handleDelete = () => {
     if (!pendingDelete) return
@@ -131,12 +235,82 @@ export function ProductListPage() {
         }
       />
 
+      <ListFilterToolbar
+        search={filters.q}
+        onSearchChange={(v) => setFilter("q", v)}
+        searchPlaceholder="Tìm theo tên, mã, mô tả..."
+        sort={filters.sort}
+        sortOptions={SORT_OPTIONS}
+        onSortChange={(v) => setFilter("sort", v)}
+        advancedFilterCount={countAdvancedFilters(filters, PRODUCT_FILTER_DEFAULTS)}
+        sheetTitle="Bộ lọc sản phẩm"
+        chips={chips}
+        onRemoveChip={(key) =>
+          setFilter(key, PRODUCT_FILTER_DEFAULTS[key as keyof ProductFilterState] ?? "")
+        }
+        onClearAll={clearFilters}
+        hasActiveFilters={hasActiveFilters}
+        quickFilters={
+          <FilterSelect
+            variant="toolbar"
+            value={filters.category}
+            onChange={(v) => setFilter("category", v)}
+            placeholder="Danh mục"
+            options={categoryOptions}
+          />
+        }
+        sheetContent={
+          <>
+            <FilterSection title="Trạng thái">
+              <FilterField label="Tồn kho">
+                <FilterSelect
+                  value={filters.stock}
+                  onChange={(v) => setFilter("stock", v)}
+                  placeholder="Tồn kho"
+                  options={STOCK_OPTIONS}
+                />
+              </FilterField>
+              <FilterField label="Giảm giá">
+                <FilterSelect
+                  value={filters.discounted}
+                  onChange={(v) => setFilter("discounted", v)}
+                  placeholder="Giảm giá"
+                  options={TRI_OPTIONS}
+                />
+              </FilterField>
+              <FilterField label="Gắn chậu cây">
+                <FilterSelect
+                  value={filters.noPlanter}
+                  onChange={(v) => setFilter("noPlanter", v)}
+                  placeholder="Chậu cây"
+                  options={[
+                    { value: "all", label: "Tất cả" },
+                    { value: "yes", label: "Chưa gắn chậu" },
+                    { value: "no", label: "Đã gắn chậu" },
+                  ]}
+                />
+              </FilterField>
+            </FilterSection>
+            <FilterSection title="Khoảng giá">
+              <FilterNumberRange
+                stacked
+                min={filters.priceMin}
+                max={filters.priceMax}
+                onMinChange={(v) => setFilter("priceMin", v)}
+                onMaxChange={(v) => setFilter("priceMax", v)}
+                minLabel="Giá từ (₫)"
+                maxLabel="Giá đến (₫)"
+              />
+            </FilterSection>
+          </>
+        }
+      />
+
       <DataTable
         columns={columns}
-        data={data ?? []}
+        data={filteredData}
         isLoading={isLoading}
-        searchKey="title"
-        searchPlaceholder="Tìm theo tên sản phẩm..."
+        totalCount={data?.length}
       />
 
       <ConfirmDialog

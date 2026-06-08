@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Link } from "react-router"
 import {
   Area,
@@ -20,6 +20,8 @@ import {
 } from "lucide-react"
 
 import { PageHeader } from "@/components/common/PageHeader"
+import { FilterSelect } from "@/components/common/FilterBar"
+import { daysAgo, isDateOnOrAfter } from "@/lib/filters"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
@@ -71,6 +73,22 @@ const ordersConfig = {
   count: { label: "Đơn hàng", color: "var(--chart-2)" },
 } satisfies ChartConfig
 
+type DashboardRange = "7" | "14" | "30" | "90" | "all"
+
+const RANGE_OPTIONS = [
+  { value: "7", label: "7 ngày" },
+  { value: "14", label: "14 ngày" },
+  { value: "30", label: "30 ngày" },
+  { value: "90", label: "90 ngày" },
+  { value: "all", label: "Tất cả" },
+]
+
+function filterOrdersByRange(orders: AdminOrderRow[], range: DashboardRange) {
+  if (range === "all") return orders
+  const minDate = daysAgo(Number(range))
+  return orders.filter((order) => isDateOnOrAfter(order.date, minDate))
+}
+
 /** Builds a revenue-by-day series from the recent orders feed. */
 function buildRevenueSeries(orders: AdminOrderRow[]) {
   const byDate = new Map<string, { revenue: number; count: number }>()
@@ -86,14 +104,19 @@ function buildRevenueSeries(orders: AdminOrderRow[]) {
   return Array.from(byDate.entries())
     .map(([date, v]) => ({ date, ...v }))
     .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-14)
 }
 
 export function DashboardPage() {
+  const [range, setRange] = useState<DashboardRange>("14")
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
   const { data: orders, isLoading: ordersLoading } = useRecentOrders()
 
-  const series = useMemo(() => buildRevenueSeries(orders ?? []), [orders])
+  const rangedOrders = useMemo(
+    () => filterOrdersByRange(orders ?? [], range),
+    [orders, range]
+  )
+
+  const series = useMemo(() => buildRevenueSeries(rangedOrders), [rangedOrders])
   const recent = useMemo(
     () => (orders ?? []).slice(0, 6),
     [orders]
@@ -103,11 +126,23 @@ export function DashboardPage() {
     [orders]
   )
 
+  const rangeLabel =
+    RANGE_OPTIONS.find((option) => option.value === range)?.label ?? "14 ngày"
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Bảng điều khiển"
         description="Tổng quan hoạt động kinh doanh của PlantShop."
+        actions={
+          <FilterSelect
+            value={range}
+            onChange={(v) => setRange(v as DashboardRange)}
+            placeholder="Khoảng thời gian"
+            options={RANGE_OPTIONS}
+            className="w-36"
+          />
+        }
       />
 
       {!ordersLoading && pendingCount > 0 && (
@@ -162,7 +197,7 @@ export function DashboardPage() {
         <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle>Doanh thu gần đây</CardTitle>
-            <CardDescription>14 ngày gần nhất (theo đơn hàng)</CardDescription>
+            <CardDescription>{rangeLabel} gần nhất (theo đơn hàng)</CardDescription>
           </CardHeader>
           <CardContent>
             {ordersLoading ? (
@@ -218,7 +253,7 @@ export function DashboardPage() {
         <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Đơn hàng theo ngày</CardTitle>
-            <CardDescription>Số lượng đơn 14 ngày gần nhất</CardDescription>
+            <CardDescription>Số lượng đơn {rangeLabel.toLowerCase()} gần nhất</CardDescription>
           </CardHeader>
           <CardContent>
             {ordersLoading ? (

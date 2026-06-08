@@ -1,25 +1,39 @@
 import { useMemo, useState } from "react"
-import { Link, useNavigate, useSearchParams } from "react-router"
+import { Link, useNavigate } from "react-router"
 import { type ColumnDef } from "@tanstack/react-table"
-import { Check, Loader2, Search } from "lucide-react"
+import { Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { PageHeader } from "@/components/common/PageHeader"
 import { DataTable } from "@/components/common/DataTable"
 import { OrderStatusBadge } from "@/components/common/StatusBadge"
+import {
+  ListFilterToolbar,
+  FilterSelect,
+  FilterField,
+  FilterSection,
+  FilterDateRange,
+  FilterNumberRange,
+  StatusFilterTabs,
+  buildFilterChips,
+  countAdvancedFilters,
+} from "@/components/common/FilterBar"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatVND, formatDate } from "@/lib/format"
 import { getApiErrorMessage } from "@/lib/api-client"
+import { useListFilters } from "@/hooks/useListFilters"
 import type { AdminOrderRow, OrderStatus } from "@/types"
 import { OrderPrintActions } from "../components/OrderPrintActions"
 import { getRecipientPhone } from "../order-display"
-import { matchesOrderSearch } from "../order-search"
 import { PROVIDER_LABELS } from "../schema"
 import { useAdminOrders, useBulkConfirmOrders, useConfirmOrder } from "../api"
+import {
+  ORDER_FILTER_DEFAULTS,
+  countOrdersByStatus,
+  filterOrders,
+  type OrderFilterState,
+} from "../order-filters"
 
 const PAYMENT_LABELS: Record<string, string> = {
   cod: "COD",
@@ -30,9 +44,7 @@ const PAYMENT_LABELS: Record<string, string> = {
   bank: "Chuyển khoản",
 }
 
-type StatusFilter = "all" | OrderStatus
-
-const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+const STATUS_FILTERS: { value: OrderStatus | "all"; label: string }[] = [
   { value: "all", label: "Tất cả" },
   { value: "pending", label: "Chờ xử lý" },
   { value: "confirmed", label: "Đã xác nhận" },
@@ -42,43 +54,42 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "cancelled", label: "Đã hủy" },
 ]
 
-function isStatusFilter(value: string | null): value is StatusFilter {
-  return STATUS_FILTERS.some((filter) => filter.value === value)
-}
+const PAYMENT_OPTIONS = [
+  { value: "all", label: "Tất cả thanh toán" },
+  ...Object.entries(PAYMENT_LABELS).map(([value, label]) => ({ value, label })),
+]
+
+const TRACKING_OPTIONS = [
+  { value: "all", label: "Tất cả vận đơn" },
+  { value: "yes", label: "Đã có vận đơn" },
+  { value: "no", label: "Chưa có vận đơn" },
+]
+
+const PROVIDER_OPTIONS = [
+  { value: "all", label: "Tất cả đơn vị" },
+  ...Object.entries(PROVIDER_LABELS).map(([value, label]) => ({ value, label })),
+]
 
 export function OrderListPage() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const initialStatus = searchParams.get("status")
   const { data, isLoading } = useAdminOrders()
   const confirmOrder = useConfirmOrder()
   const bulkConfirm = useBulkConfirmOrders()
 
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>(
-    isStatusFilter(initialStatus) ? initialStatus : "all"
-  )
-  const [searchQuery, setSearchQuery] = useState("")
+  const { values: filters, setFilter, clearFilters, hasActiveFilters } =
+    useListFilters(ORDER_FILTER_DEFAULTS)
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
-  const statusCounts = useMemo(() => {
-    const counts: Partial<Record<StatusFilter, number>> = { all: data?.length ?? 0 }
-    for (const order of data ?? []) {
-      const key = order.status as StatusFilter
-      counts[key] = (counts[key] ?? 0) + 1
-    }
-    return counts
-  }, [data])
+  const statusCounts = useMemo(
+    () => countOrdersByStatus(data ?? []),
+    [data]
+  )
 
-  const filteredData = useMemo(() => {
-    let rows = data ?? []
-    if (statusFilter !== "all") {
-      rows = rows.filter((order) => order.status === statusFilter)
-    }
-    if (searchQuery.trim()) {
-      rows = rows.filter((order) => matchesOrderSearch(order, searchQuery))
-    }
-    return rows
-  }, [data, statusFilter, searchQuery])
+  const filteredData = useMemo(
+    () => filterOrders(data ?? [], filters),
+    [data, filters]
+  )
 
   const selectedOrders = useMemo(
     () => (data ?? []).filter((order) => selectedIds.has(order.id)),
@@ -89,7 +100,8 @@ export function OrderListPage() {
     .map((order) => order.id)
 
   const allVisibleSelected =
-    filteredData.length > 0 && filteredData.every((order) => selectedIds.has(order.id))
+    filteredData.length > 0 &&
+    filteredData.every((order) => selectedIds.has(order.id))
 
   const toggleSelectAll = () => {
     setSelectedIds((prev) => {
@@ -138,6 +150,51 @@ export function OrderListPage() {
       onError: (err) => toast.error(getApiErrorMessage(err)),
     })
   }
+
+  const chips = useMemo(
+    () =>
+      buildFilterChips([
+        {
+          key: "payment",
+          value: filters.payment,
+          defaultValue: "all",
+          label: "Thanh toán",
+          formatValue: (v) => PAYMENT_LABELS[v] ?? v,
+        },
+        {
+          key: "tracking",
+          value: filters.tracking,
+          defaultValue: "all",
+          label: "Vận đơn",
+          formatValue: (v) =>
+            TRACKING_OPTIONS.find((o) => o.value === v)?.label ?? v,
+        },
+        {
+          key: "provider",
+          value: filters.provider,
+          defaultValue: "all",
+          label: "Đơn vị VC",
+          formatValue: (v) => PROVIDER_LABELS[v as keyof typeof PROVIDER_LABELS] ?? v,
+        },
+        { key: "dateFrom", value: filters.dateFrom, defaultValue: "", label: "Từ" },
+        { key: "dateTo", value: filters.dateTo, defaultValue: "", label: "Đến" },
+        {
+          key: "totalMin",
+          value: filters.totalMin,
+          defaultValue: "",
+          label: "Tổng từ",
+          formatValue: (v) => formatVND(Number(v)),
+        },
+        {
+          key: "totalMax",
+          value: filters.totalMax,
+          defaultValue: "",
+          label: "Tổng đến",
+          formatValue: (v) => formatVND(Number(v)),
+        },
+      ]),
+    [filters]
+  )
 
   const selectedOrderIds = [...selectedIds]
 
@@ -278,41 +335,86 @@ export function OrderListPage() {
         }
       />
 
-      <Tabs
-        value={statusFilter}
-        onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-      >
-        <TabsList className="h-auto flex-wrap justify-start">
-          {STATUS_FILTERS.map((filter) => {
-            const count = statusCounts[filter.value]
-            return (
-              <TabsTrigger key={filter.value} value={filter.value} className="gap-2">
-                {filter.label}
-                {typeof count === "number" && count > 0 && (
-                  <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">
-                    {count}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            )
-          })}
-        </TabsList>
-      </Tabs>
+      <StatusFilterTabs<OrderStatus | "all">
+        value={filters.status as OrderStatus | "all"}
+        onChange={(v) => setFilter("status", v)}
+        options={STATUS_FILTERS}
+        counts={statusCounts}
+      />
 
-      <div className="relative max-w-md">
-        <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Tìm theo mã đơn, tên hoặc SĐT..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
-      </div>
+      <ListFilterToolbar
+        search={filters.q}
+        onSearchChange={(v) => setFilter("q", v)}
+        searchPlaceholder="Tìm theo mã đơn, tên hoặc SĐT..."
+        advancedFilterCount={countAdvancedFilters(filters, ORDER_FILTER_DEFAULTS, [
+          "q",
+          "status",
+        ])}
+        sheetTitle="Bộ lọc đơn hàng"
+        chips={chips}
+        onRemoveChip={(key) =>
+          setFilter(key, ORDER_FILTER_DEFAULTS[key as keyof OrderFilterState] ?? "")
+        }
+        onClearAll={clearFilters}
+        hasActiveFilters={hasActiveFilters}
+        quickFilters={
+          <FilterSelect
+            variant="toolbar"
+            value={filters.payment}
+            onChange={(v) => setFilter("payment", v)}
+            placeholder="Thanh toán"
+            options={PAYMENT_OPTIONS}
+          />
+        }
+        sheetContent={
+          <>
+            <FilterSection title="Vận chuyển">
+              <FilterField label="Vận đơn">
+                <FilterSelect
+                  value={filters.tracking}
+                  onChange={(v) => setFilter("tracking", v)}
+                  placeholder="Vận đơn"
+                  options={TRACKING_OPTIONS}
+                />
+              </FilterField>
+              <FilterField label="Đơn vị vận chuyển">
+                <FilterSelect
+                  value={filters.provider}
+                  onChange={(v) => setFilter("provider", v)}
+                  placeholder="Đơn vị VC"
+                  options={PROVIDER_OPTIONS}
+                />
+              </FilterField>
+            </FilterSection>
+            <FilterSection title="Thời gian">
+              <FilterDateRange
+                stacked
+                from={filters.dateFrom}
+                to={filters.dateTo}
+                onFromChange={(v) => setFilter("dateFrom", v)}
+                onToChange={(v) => setFilter("dateTo", v)}
+              />
+            </FilterSection>
+            <FilterSection title="Giá trị đơn">
+              <FilterNumberRange
+                stacked
+                min={filters.totalMin}
+                max={filters.totalMax}
+                onMinChange={(v) => setFilter("totalMin", v)}
+                onMaxChange={(v) => setFilter("totalMax", v)}
+                minLabel="Tổng từ (₫)"
+                maxLabel="Tổng đến (₫)"
+              />
+            </FilterSection>
+          </>
+        }
+      />
 
       <DataTable
         columns={columns}
         data={filteredData}
         isLoading={isLoading}
+        totalCount={data?.length}
         toolbar={
           <div className="flex flex-wrap items-center gap-2">
             {selectedPendingIds.length > 0 && (
@@ -353,7 +455,7 @@ export function OrderListPage() {
           Đã chọn {selectedOrderIds.length} đơn.
           {selectedPendingIds.length > 0
             ? ` Có ${selectedPendingIds.length} đơn chờ xử lý có thể xác nhận hàng loạt.`
-            : statusFilter === "packing"
+            : filters.status === "packing"
               ? " Nhập mã vận đơn trong chi tiết đơn trước khi in nhãn giao."
               : " Dùng nút in ở góc phải bảng để in hàng loạt."}
         </p>

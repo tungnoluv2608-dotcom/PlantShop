@@ -1,10 +1,18 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
 import { Plus, Pencil, Trash2, MoreHorizontal } from "lucide-react"
 import { toast } from "sonner"
 
 import { PageHeader } from "@/components/common/PageHeader"
 import { DataTable } from "@/components/common/DataTable"
+import {
+  ListFilterToolbar,
+  FilterSelect,
+  FilterField,
+  FilterSection,
+  buildFilterChips,
+  countAdvancedFilters,
+} from "@/components/common/FilterBar"
 import { ConfirmDialog } from "@/components/common/ConfirmDialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -14,10 +22,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useListFilters } from "@/hooks/useListFilters"
 import { getApiErrorMessage } from "@/lib/api-client"
 import type { Category } from "@/types"
 import { useCategories, useDeleteCategory } from "../api"
 import { CategoryFormDialog } from "../components/CategoryFormDialog"
+import {
+  CATEGORY_FILTER_DEFAULTS,
+  filterCategories,
+  type CategoryFilterState,
+} from "../category-filters"
+
+const TRI_OPTIONS = [
+  { value: "all", label: "Tất cả" },
+  { value: "yes", label: "Có" },
+  { value: "no", label: "Không" },
+]
+
+const SORT_OPTIONS = [
+  { value: "name_asc", label: "Tên A → Z" },
+  { value: "name_desc", label: "Tên Z → A" },
+  { value: "subcategories_desc", label: "Nhiều danh mục con" },
+]
 
 export function CategoryListPage() {
   const { data, isLoading } = useCategories()
@@ -26,6 +52,35 @@ export function CategoryListPage() {
   const [editing, setEditing] = useState<Category | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Category | null>(null)
+
+  const { values: filters, setFilter, clearFilters, hasActiveFilters } =
+    useListFilters(CATEGORY_FILTER_DEFAULTS)
+
+  const filteredData = useMemo(
+    () => filterCategories(data ?? [], filters),
+    [data, filters]
+  )
+
+  const chips = useMemo(
+    () =>
+      buildFilterChips([
+        {
+          key: "hasSubcategories",
+          value: filters.hasSubcategories,
+          defaultValue: "all",
+          label: "Danh mục con",
+          formatValue: (v) => (v === "yes" ? "Có danh mục con" : "Không có"),
+        },
+        {
+          key: "hasImage",
+          value: filters.hasImage,
+          defaultValue: "all",
+          label: "Ảnh",
+          formatValue: (v) => (v === "yes" ? "Có ảnh" : "Không ảnh"),
+        },
+      ]),
+    [filters]
+  )
 
   const openCreate = () => {
     setEditing(null)
@@ -125,12 +180,48 @@ export function CategoryListPage() {
         }
       />
 
+      <ListFilterToolbar
+        search={filters.q}
+        onSearchChange={(v) => setFilter("q", v)}
+        searchPlaceholder="Tìm danh mục hoặc danh mục con..."
+        sort={filters.sort}
+        sortOptions={SORT_OPTIONS}
+        onSortChange={(v) => setFilter("sort", v)}
+        advancedFilterCount={countAdvancedFilters(filters, CATEGORY_FILTER_DEFAULTS)}
+        sheetTitle="Bộ lọc danh mục"
+        chips={chips}
+        onRemoveChip={(key) =>
+          setFilter(key, CATEGORY_FILTER_DEFAULTS[key as keyof CategoryFilterState] ?? "")
+        }
+        onClearAll={clearFilters}
+        hasActiveFilters={hasActiveFilters}
+        sheetContent={
+          <FilterSection title="Thuộc tính">
+            <FilterField label="Có danh mục con">
+              <FilterSelect
+                value={filters.hasSubcategories}
+                onChange={(v) => setFilter("hasSubcategories", v)}
+                placeholder="Danh mục con"
+                options={TRI_OPTIONS}
+              />
+            </FilterField>
+            <FilterField label="Có ảnh đại diện">
+              <FilterSelect
+                value={filters.hasImage}
+                onChange={(v) => setFilter("hasImage", v)}
+                placeholder="Ảnh"
+                options={TRI_OPTIONS}
+              />
+            </FilterField>
+          </FilterSection>
+        }
+      />
+
       <DataTable
         columns={columns}
-        data={data ?? []}
+        data={filteredData}
         isLoading={isLoading}
-        searchKey="name"
-        searchPlaceholder="Tìm danh mục..."
+        totalCount={data?.length}
       />
 
       <CategoryFormDialog

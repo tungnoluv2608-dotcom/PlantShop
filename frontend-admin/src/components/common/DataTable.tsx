@@ -32,6 +32,8 @@ interface DataTableProps<TData, TValue> {
   searchKey?: string
   searchPlaceholder?: string
   pageSize?: number
+  /** Total records before filtering (shows "filtered / total" when set). */
+  totalCount?: number
   /** Optional right-aligned toolbar content (e.g. a "Create" button). */
   toolbar?: React.ReactNode
   onRowClick?: (row: TData) => void
@@ -44,6 +46,7 @@ export function DataTable<TData, TValue>({
   searchKey,
   searchPlaceholder = "Tìm kiếm...",
   pageSize = 10,
+  totalCount,
   toolbar,
   onRowClick,
 }: DataTableProps<TData, TValue>) {
@@ -146,7 +149,10 @@ export function DataTable<TData, TValue>({
 
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} bản ghi
+          {typeof totalCount === "number" &&
+          totalCount !== table.getFilteredRowModel().rows.length
+            ? `${table.getFilteredRowModel().rows.length} / ${totalCount} bản ghi`
+            : `${table.getFilteredRowModel().rows.length} bản ghi`}
         </p>
         <div className="flex items-center gap-2">
           <Button
