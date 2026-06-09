@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { MagnifyingGlass, Eye, FunnelSimple } from "@phosphor-icons/react";
 import { adminApi } from "../../services/apiService";
 import type { Order } from "../../types";
@@ -23,6 +23,8 @@ const filterTabs = [
 ];
 
 export default function AdminOrders() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const customerId = searchParams.get("customerId") ?? "";
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -35,11 +37,13 @@ export default function AdminOrders() {
   }, []);
 
   const filtered = orders.filter((o) => {
+    const matchCustomer =
+      !customerId || String((o as Order & { userId?: number | string }).userId ?? "") === customerId;
     const matchSearch = !search.trim() ||
       o.id.toLowerCase().includes(search.toLowerCase()) ||
       o.shippingAddress.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
-    return matchSearch && matchStatus;
+    return matchCustomer && matchSearch && matchStatus;
   });
 
   return (
@@ -50,6 +54,27 @@ export default function AdminOrders() {
           <p className="text-muted-foreground text-sm">{filtered.length} đơn hàng</p>
         </div>
       </div>
+
+      {customerId && (
+        <div className="rounded-2xl border border-border bg-card px-4 py-3 text-sm flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <span>Đang lọc đơn hàng của khách <strong>#{customerId}</strong>.</span>
+          <div className="flex gap-2">
+            <Link
+              to={`/admin/customers`}
+              className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10"
+            >
+              Về khách hàng
+            </Link>
+            <button
+              type="button"
+              onClick={() => setSearchParams({})}
+              className="rounded-xl px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-secondary/40"
+            >
+              Bỏ lọc
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Search + Filter Tabs */}
       <div className="bg-card rounded-2xl shadow-sm border border-border p-4 space-y-3">

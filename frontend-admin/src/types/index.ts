@@ -152,6 +152,7 @@ export type ShippingMethod = "standard" | "express" | "sameday"
 
 export interface AdminOrderRow {
   id: string
+  userId?: number | string
   date: string
   status: OrderStatus
   customerName: string
@@ -225,14 +226,61 @@ export interface OrderStatusPayload {
   trackingUrl?: string
 }
 
+export type CustomerSegment = "vip" | "loyal" | "new" | "regular" | "no_orders"
+
 export interface Customer {
   id: number | string
   name: string
   email: string
   role: string
+  phone?: string | null
   orderCount: number
+  deliveredOrderCount?: number
   totalSpent: number
+  lastOrderDate?: string | null
   created_at: string
+  segment?: CustomerSegment
+}
+
+export interface CustomerAddress {
+  id: number | string
+  label: string
+  fullName: string
+  phone: string
+  province: string
+  district: string
+  ward?: string | null
+  addressLine: string
+  isDefault: boolean
+  createdAt?: string
+}
+
+export interface CustomerOrderSummary {
+  id: string
+  date: string
+  status: OrderStatus
+  total: number
+  paymentMethod: string
+  itemCount: number
+}
+
+export interface CustomerReviewSummary {
+  id: number | string
+  productId: number | string
+  productTitle: string
+  rating: number
+  title: string
+  content: string
+  verified: boolean
+  visible: boolean
+  createdAt: string
+}
+
+export interface CustomerDetail extends Customer {
+  addresses: CustomerAddress[]
+  orders: CustomerOrderSummary[]
+  reviews: CustomerReviewSummary[]
+  wishlistCount: number
 }
 
 export interface AdminReview {

@@ -16,6 +16,7 @@ import { BlogEditPage } from "@/features/blog/pages/BlogEditPage"
 import { OrderListPage } from "@/features/orders/pages/OrderListPage"
 import { OrderDetailPage } from "@/features/orders/pages/OrderDetailPage"
 import { CustomerListPage } from "@/features/customers/pages/CustomerListPage"
+import { CustomerDetailPage } from "@/features/customers/pages/CustomerDetailPage"
 import { ReviewListPage } from "@/features/reviews/pages/ReviewListPage"
 import { WholesaleListPage } from "@/features/wholesale/pages/WholesaleListPage"
 import { WholesaleDetailPage } from "@/features/wholesale/pages/WholesaleDetailPage"
@@ -54,6 +55,7 @@ export const router = createBrowserRouter([
           { path: "/print-settings", element: <PrintSettingsPage /> },
 
           { path: "/customers", element: <CustomerListPage /> },
+          { path: "/customers/:id", element: <CustomerDetailPage /> },
           { path: "/reviews", element: <ReviewListPage /> },
 
           { path: "/wholesale", element: <WholesaleListPage /> },

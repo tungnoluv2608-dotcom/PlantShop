@@ -1,0 +1,13 @@
+---
+pid: 31288
+cwd: "D:\Theris\PlantWeb"
+command: "cd D:\\Theris\\PlantWeb\\frontend && npm run build 2>&1"
+started_at: 2026-06-09T03:25:05.067Z
+running_for_ms: 539988   
+---
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+vite v7.3.1 building client environment for production...
+transforming...

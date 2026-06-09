@@ -1,11 +1,11 @@
 import { useMemo } from "react"
+import { useNavigate } from "react-router"
 import { type ColumnDef } from "@tanstack/react-table"
 
 import { PageHeader } from "@/components/common/PageHeader"
 import { DataTable } from "@/components/common/DataTable"
 import {
   ListFilterToolbar,
-  FilterSelect,
   FilterSection,
   FilterDateRange,
   FilterNumberRange,
@@ -14,22 +14,27 @@ import {
   countAdvancedFilters,
 } from "@/components/common/FilterBar"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { useListFilters } from "@/hooks/useListFilters"
 import { formatVND, formatDate } from "@/lib/format"
-import { uniqueSorted } from "@/lib/filters"
+import { useListFilters } from "@/hooks/useListFilters"
 import type { Customer } from "@/types"
 import { useCustomers } from "../api"
+import { CustomerSegmentBadge } from "../components/CustomerSegmentBadge"
 import {
   CUSTOMER_FILTER_DEFAULTS,
   filterCustomers,
   type CustomerFilterState,
-  type CustomerSegment,
+  type CustomerListSegment,
 } from "../customer-filters"
+import {
+  VIP_SPENT_THRESHOLD,
+  VIP_DELIVERED_ORDER_THRESHOLD,
+  getCustomerSegment,
+} from "../customer-segments"
 
-const SEGMENT_TABS: Array<{ value: CustomerSegment; label: string }> = [
+const SEGMENT_TABS: Array<{ value: CustomerListSegment; label: string }> = [
   { value: "all", label: "Tất cả" },
   { value: "vip", label: "VIP" },
+  { value: "loyal", label: "Thân thiết" },
   { value: "new", label: "Mới (7 ngày)" },
   { value: "no_orders", label: "Chưa mua" },
 ]
@@ -39,19 +44,21 @@ const SORT_OPTIONS = [
   { value: "oldest", label: "Cũ nhất" },
   { value: "spent_desc", label: "Chi tiêu cao" },
   { value: "orders_desc", label: "Nhiều đơn" },
+  { value: "last_order_desc", label: "Mua gần đây" },
   { value: "name_asc", label: "Tên A → Z" },
 ]
 
 function initials(name: string): string {
   return name
     .split(" ")
-    .map((p) => p[0])
+    .map((part) => part[0])
     .slice(0, 2)
     .join("")
     .toUpperCase()
 }
 
 export function CustomerListPage() {
+  const navigate = useNavigate()
   const { data, isLoading } = useCustomers()
 
   const { values: filters, setFilter, clearFilters, hasActiveFilters } =
@@ -62,41 +69,26 @@ export function CustomerListPage() {
     [data, filters]
   )
 
-  const roleOptions = useMemo(
-    () => [
-      { value: "all", label: "Tất cả vai trò" },
-      ...uniqueSorted((data ?? []).map((c) => c.role)).map((role) => ({
-        value: role,
-        label: role,
-      })),
-    ],
-    [data]
-  )
-
   const segmentCounts = useMemo(() => {
     const all = data ?? []
     return {
       all: all.length,
-      vip: all.filter((c) => c.totalSpent >= 5_000_000).length,
-      new: all.filter((c) => {
-        const d = new Date(c.created_at)
-        const weekAgo = new Date()
-        weekAgo.setDate(weekAgo.getDate() - 7)
-        return d >= weekAgo
-      }).length,
-      no_orders: all.filter((c) => c.orderCount === 0).length,
+      vip: all.filter(
+        (customer) =>
+          customer.totalSpent >= VIP_SPENT_THRESHOLD ||
+          (customer.deliveredOrderCount ?? 0) >= VIP_DELIVERED_ORDER_THRESHOLD
+      ).length,
+      loyal: all.filter(
+        (customer) => getCustomerSegment(customer) === "loyal"
+      ).length,
+      new: all.filter((customer) => getCustomerSegment(customer) === "new").length,
+      no_orders: all.filter((customer) => customer.orderCount === 0).length,
     }
   }, [data])
 
   const chips = useMemo(
     () =>
       buildFilterChips([
-        {
-          key: "role",
-          value: filters.role,
-          defaultValue: "all",
-          label: "Vai trò",
-        },
         { key: "dateFrom", value: filters.dateFrom, defaultValue: "", label: "Từ" },
         { key: "dateTo", value: filters.dateTo, defaultValue: "", label: "Đến" },
       ]),
@@ -124,12 +116,19 @@ export function CustomerListPage() {
       ),
     },
     {
-      accessorKey: "role",
-      header: "Vai trò",
+      accessorKey: "phone",
+      header: "SĐT",
       cell: ({ row }) => (
-        <Badge variant="outline" className="capitalize">
-          {row.original.role}
-        </Badge>
+        <span className="text-sm text-muted-foreground">
+          {row.original.phone || "—"}
+        </span>
+      ),
+    },
+    {
+      id: "segment",
+      header: "Phân loại",
+      cell: ({ row }) => (
+        <CustomerSegmentBadge segment={getCustomerSegment(row.original)} />
       ),
     },
     {
@@ -147,6 +146,17 @@ export function CustomerListPage() {
       ),
     },
     {
+      accessorKey: "lastOrderDate",
+      header: "Đơn gần nhất",
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.original.lastOrderDate
+            ? formatDate(row.original.lastOrderDate)
+            : "—"}
+        </span>
+      ),
+    },
+    {
       accessorKey: "created_at",
       header: "Ngày tham gia",
       cell: ({ row }) => (
@@ -159,22 +169,25 @@ export function CustomerListPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Khách hàng" description="Danh sách khách hàng và chi tiêu." />
+      <PageHeader
+        title="Khách hàng"
+        description="Danh sách khách hàng, chi tiêu và lịch sử mua hàng."
+      />
 
-      <StatusFilterTabs<CustomerSegment>
-        value={filters.segment as CustomerSegment}
-        onChange={(v) => setFilter("segment", v)}
+      <StatusFilterTabs<CustomerListSegment>
+        value={filters.segment}
+        onChange={(value) => setFilter("segment", value)}
         options={SEGMENT_TABS}
         counts={segmentCounts}
       />
 
       <ListFilterToolbar
         search={filters.q}
-        onSearchChange={(v) => setFilter("q", v)}
-        searchPlaceholder="Tìm theo tên, email, mã..."
+        onSearchChange={(value) => setFilter("q", value)}
+        searchPlaceholder="Tìm theo tên, email, SĐT, mã..."
         sort={filters.sort}
         sortOptions={SORT_OPTIONS}
-        onSortChange={(v) => setFilter("sort", v)}
+        onSortChange={(value) => setFilter("sort", value)}
         advancedFilterCount={countAdvancedFilters(filters, CUSTOMER_FILTER_DEFAULTS, [
           "q",
           "sort",
@@ -187,24 +200,15 @@ export function CustomerListPage() {
         }
         onClearAll={clearFilters}
         hasActiveFilters={hasActiveFilters}
-        quickFilters={
-          <FilterSelect
-            variant="toolbar"
-            value={filters.role}
-            onChange={(v) => setFilter("role", v)}
-            placeholder="Vai trò"
-            options={roleOptions}
-          />
-        }
         sheetContent={
           <>
-            <FilterSection title="Thời gian">
+            <FilterSection title="Thời gian đăng ký">
               <FilterDateRange
                 stacked
                 from={filters.dateFrom}
                 to={filters.dateTo}
-                onFromChange={(v) => setFilter("dateFrom", v)}
-                onToChange={(v) => setFilter("dateTo", v)}
+                onFromChange={(value) => setFilter("dateFrom", value)}
+                onToChange={(value) => setFilter("dateTo", value)}
               />
             </FilterSection>
             <FilterSection title="Hoạt động mua hàng">
@@ -212,8 +216,8 @@ export function CustomerListPage() {
                 stacked
                 min={filters.ordersMin}
                 max={filters.ordersMax}
-                onMinChange={(v) => setFilter("ordersMin", v)}
-                onMaxChange={(v) => setFilter("ordersMax", v)}
+                onMinChange={(value) => setFilter("ordersMin", value)}
+                onMaxChange={(value) => setFilter("ordersMax", value)}
                 minLabel="Số đơn từ"
                 maxLabel="Số đơn đến"
               />
@@ -221,8 +225,8 @@ export function CustomerListPage() {
                 stacked
                 min={filters.spentMin}
                 max={filters.spentMax}
-                onMinChange={(v) => setFilter("spentMin", v)}
-                onMaxChange={(v) => setFilter("spentMax", v)}
+                onMinChange={(value) => setFilter("spentMin", value)}
+                onMaxChange={(value) => setFilter("spentMax", value)}
                 minLabel="Chi tiêu từ (₫)"
                 maxLabel="Chi tiêu đến (₫)"
               />
@@ -236,6 +240,7 @@ export function CustomerListPage() {
         data={filteredData}
         isLoading={isLoading}
         totalCount={data?.length}
+        onRowClick={(row) => navigate(`/customers/${row.id}`)}
       />
     </div>
   )

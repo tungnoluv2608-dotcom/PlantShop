@@ -24,7 +24,10 @@ export const queryKeys = {
     detail: (id: string) => ["admin", "orders", id] as const,
   },
 
-  customers: ["admin", "customers"] as const,
+  customers: {
+    all: ["admin", "customers"] as const,
+    detail: (id: string) => ["admin", "customers", id] as const,
+  },
   reviews: ["admin", "reviews"] as const,
 
   wholesale: {

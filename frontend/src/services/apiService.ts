@@ -167,6 +167,8 @@ export const adminApi = {
 
   // Customers
   listCustomers: () => api.get("/admin/customers").then((r) => r.data),
+  getCustomerDetail: (id: string | number) =>
+    api.get(`/admin/customers/${id}`).then((r) => r.data),
 
   // Wholesale inquiries
   listWholesaleInquiries: (params?: { status?: string; q?: string; page?: number; pageSize?: number }) =>

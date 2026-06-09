@@ -4,6 +4,10 @@ const axios = require("axios");
 const { getPool, sql } = require("../libs/db");
 const { resolveStockFields, mapStockRow, restoreOrderStock } = require("../services/stockService");
 const { buildTrackingUrl, normalizeTrackingProvider } = require("../services/trackingService");
+const {
+  VALID_ORDER_STATUS_SQL,
+  resolveCustomerSegment,
+} = require("../constants/customerSegments");
 
 function stripMarkdownFence(text) {
   const raw = String(text || "").trim();
@@ -267,7 +271,7 @@ async function listAllOrders(req, res, next) {
   try {
     const pool = await getPool();
     const result = await pool.request().query(
-      `SELECT o.id, CONVERT(varchar, o.created_at, 23) AS date, o.status,
+      `SELECT o.id, o.user_id AS userId, CONVERT(varchar, o.created_at, 23) AS date, o.status,
               u.name AS customerName, u.email AS customerEmail,
               (SELECT TOP 1 ua.phone
                FROM UserAddresses ua
@@ -388,17 +392,121 @@ async function adminGetOrderById(req, res, next) {
 }
 
 // ── Customers ──────────────────────────────────────────────────
+function mapCustomerRow(row) {
+  const orderCount = Number(row.orderCount) || 0;
+  const deliveredOrderCount = Number(row.deliveredOrderCount) || 0;
+  const totalSpent = Number(row.totalSpent) || 0;
+  const segment = resolveCustomerSegment({
+    totalSpent,
+    deliveredOrderCount,
+    createdAt: row.created_at,
+  });
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    role: row.role,
+    phone: row.phone || null,
+    orderCount,
+    deliveredOrderCount,
+    totalSpent,
+    lastOrderDate: row.lastOrderDate || null,
+    created_at: row.created_at,
+    segment,
+  };
+}
+
+const CUSTOMER_LIST_SQL = `
+  SELECT u.id, u.name, u.email, u.role,
+         (SELECT COUNT(*) FROM Orders o WHERE o.user_id = u.id AND ${VALID_ORDER_STATUS_SQL}) AS orderCount,
+         (SELECT COUNT(*) FROM Orders o WHERE o.user_id = u.id AND o.status = 'delivered') AS deliveredOrderCount,
+         (SELECT ISNULL(SUM(o.total), 0) FROM Orders o WHERE o.user_id = u.id AND ${VALID_ORDER_STATUS_SQL}) AS totalSpent,
+         (SELECT TOP 1 CONVERT(varchar, o.created_at, 23)
+          FROM Orders o WHERE o.user_id = u.id AND ${VALID_ORDER_STATUS_SQL}
+          ORDER BY o.created_at DESC) AS lastOrderDate,
+         (SELECT TOP 1 ua.phone
+          FROM UserAddresses ua
+          WHERE ua.user_id = u.id
+          ORDER BY ua.is_default DESC, ua.id ASC) AS phone,
+         CONVERT(varchar, u.created_at, 23) AS created_at
+  FROM Users u
+  WHERE u.role = 'customer'
+`;
+
 async function listCustomers(req, res, next) {
   try {
     const pool = await getPool();
     const result = await pool.request().query(
-      `SELECT u.id, u.name, u.email, u.role,
-              (SELECT COUNT(*) FROM Orders o WHERE o.user_id = u.id) AS orderCount,
-              (SELECT ISNULL(SUM(total),0) FROM Orders o WHERE o.user_id = u.id) AS totalSpent,
-              CONVERT(varchar, u.created_at, 23) AS created_at
-       FROM Users u WHERE u.role = 'customer' ORDER BY u.created_at DESC`
+      `${CUSTOMER_LIST_SQL} ORDER BY u.created_at DESC`
     );
-    return res.json(result.recordset);
+    return res.json(result.recordset.map(mapCustomerRow));
+  } catch (err) { next(err); }
+}
+
+async function getCustomerById(req, res, next) {
+  try {
+    const pool = await getPool();
+    const userId = Number(req.params.id);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ message: "Mã khách hàng không hợp lệ." });
+    }
+
+    const userResult = await pool.request()
+      .input("id", sql.Int, userId)
+      .query(`${CUSTOMER_LIST_SQL} AND u.id = @id`);
+
+    if (!userResult.recordset.length) {
+      return res.status(404).json({ message: "Không tìm thấy khách hàng." });
+    }
+
+    const customer = mapCustomerRow(userResult.recordset[0]);
+
+    const [addressesResult, ordersResult, reviewsResult, wishlistResult] = await Promise.all([
+      pool.request().input("userId", sql.Int, userId).query(
+        `SELECT id, label, full_name AS fullName, phone, province, district, ward,
+                address_line AS addressLine, is_default AS isDefault,
+                CONVERT(varchar, created_at, 23) AS createdAt
+         FROM UserAddresses
+         WHERE user_id = @userId
+         ORDER BY is_default DESC, id ASC`
+      ),
+      pool.request().input("userId", sql.Int, userId).query(
+        `SELECT o.id, CONVERT(varchar, o.created_at, 23) AS date, o.status,
+                o.total, o.payment_method AS paymentMethod,
+                ISNULL((SELECT SUM(oi.quantity) FROM OrderItems oi WHERE oi.order_id = o.id), 0) AS itemCount
+         FROM Orders o
+         WHERE o.user_id = @userId
+         ORDER BY o.created_at DESC`
+      ),
+      pool.request().input("userId", sql.Int, userId).query(
+        `SELECT r.id, r.product_id AS productId, p.title AS productTitle,
+                r.rating, r.title, r.content, r.verified,
+                CONVERT(varchar, r.created_at, 23) AS createdAt,
+                ISNULL(r.visible, 1) AS visible
+         FROM Reviews r
+         JOIN Products p ON r.product_id = p.id
+         WHERE r.user_id = @userId
+         ORDER BY r.created_at DESC`
+      ),
+      pool.request().input("userId", sql.Int, userId).query(
+        `SELECT COUNT(*) AS count FROM UserWishlistItems WHERE user_id = @userId`
+      ),
+    ]);
+
+    return res.json({
+      ...customer,
+      addresses: addressesResult.recordset.map((row) => ({
+        ...row,
+        isDefault: !!row.isDefault,
+      })),
+      orders: ordersResult.recordset,
+      reviews: reviewsResult.recordset.map((row) => ({
+        ...row,
+        verified: !!row.verified,
+        visible: !!row.visible,
+      })),
+      wishlistCount: Number(wishlistResult.recordset[0]?.count) || 0,
+    });
   } catch (err) { next(err); }
 }
 
@@ -879,7 +987,7 @@ module.exports = {
   adminLogin, getStats,
   listProducts, createProduct, updateProduct, deleteProduct,
   listAllOrders, updateOrderStatus, updateOrderNote, adminGetOrderById,
-  listCustomers,
+  listCustomers, getCustomerById,
   listCategories, createCategory, updateCategory, deleteCategory,
   listAllReviews, updateReview, deleteReview,
   adminListPlanters, createPlanter, updatePlanter, deletePlanter,

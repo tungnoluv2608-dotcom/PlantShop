@@ -18,8 +18,10 @@ import {
   buildFilterChips,
   countAdvancedFilters,
 } from "@/components/common/FilterBar"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useCustomer } from "@/features/customers/api"
 import { formatVND, formatDate } from "@/lib/format"
 import { getApiErrorMessage } from "@/lib/api-client"
 import { useListFilters } from "@/hooks/useListFilters"
@@ -78,6 +80,8 @@ export function OrderListPage() {
 
   const { values: filters, setFilter, clearFilters, hasActiveFilters } =
     useListFilters(ORDER_FILTER_DEFAULTS)
+  const customerFilterQuery = useCustomer(filters.customerId || undefined)
+  const filteredCustomer = customerFilterQuery.data
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
@@ -227,16 +231,27 @@ export function OrderListPage() {
     {
       accessorKey: "customerName",
       header: "Khách hàng",
-      cell: ({ row }) => (
-        <div className="min-w-0">
-          <p className="truncate font-medium">
-            {row.original.recipientName || row.original.customerName}
-          </p>
-          <p className="truncate text-xs text-muted-foreground">
-            {getRecipientPhone(row.original)}
-          </p>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const displayName = row.original.recipientName || row.original.customerName
+        return (
+          <div className="min-w-0">
+            {row.original.userId ? (
+              <Link
+                to={`/customers/${row.original.userId}`}
+                className="truncate font-medium text-primary hover:underline"
+                onClick={(event) => event.stopPropagation()}
+              >
+                {displayName}
+              </Link>
+            ) : (
+              <p className="truncate font-medium">{displayName}</p>
+            )}
+            <p className="truncate text-xs text-muted-foreground">
+              {getRecipientPhone(row.original)}
+            </p>
+          </div>
+        )
+      },
     },
     {
       accessorKey: "date",
@@ -335,6 +350,30 @@ export function OrderListPage() {
         }
       />
 
+      {filters.customerId && (
+        <Alert>
+          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              Đang lọc đơn hàng của{" "}
+              <strong>{filteredCustomer?.name ?? `khách #${filters.customerId}`}</strong>
+              {filteredCustomer?.email ? ` (${filteredCustomer.email})` : ""}.
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/customers/${filters.customerId}`}>Xem hồ sơ khách</Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFilter("customerId", "")}
+              >
+                Bỏ lọc khách
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <StatusFilterTabs<OrderStatus | "all">
         value={filters.status as OrderStatus | "all"}
         onChange={(v) => setFilter("status", v)}
@@ -349,6 +388,7 @@ export function OrderListPage() {
         advancedFilterCount={countAdvancedFilters(filters, ORDER_FILTER_DEFAULTS, [
           "q",
           "status",
+          "customerId",
         ])}
         sheetTitle="Bộ lọc đơn hàng"
         chips={chips}

@@ -5,7 +5,7 @@ const {
   adminLogin, getStats,
   listProducts, createProduct, updateProduct, deleteProduct,
   listAllOrders, updateOrderStatus, updateOrderNote, adminGetOrderById,
-  listCustomers,
+  listCustomers, getCustomerById,
   listCategories, createCategory, updateCategory, deleteCategory,
   listAllReviews, updateReview, deleteReview,
   adminListPlanters, createPlanter, updatePlanter, deletePlanter,
@@ -68,6 +68,7 @@ router.patch("/orders/:id/note", updateOrderNote);
 
 // Customers
 router.get("/customers", listCustomers);
+router.get("/customers/:id", getCustomerById);
 
 // Wholesale inquiries
 router.get("/wholesale-admins", getWholesaleAdminOptions);

@@ -10,6 +10,7 @@ import { matchesOrderSearch } from "./order-search"
 export interface OrderFilterState {
   [key: string]: string
   q: string
+  customerId: string
   status: string
   payment: string
   tracking: TriState
@@ -22,6 +23,7 @@ export interface OrderFilterState {
 
 export const ORDER_FILTER_DEFAULTS: OrderFilterState = {
   q: "",
+  customerId: "",
   status: "all",
   payment: "all",
   tracking: "all",
@@ -37,6 +39,12 @@ export function filterOrders(
   filters: OrderFilterState
 ): AdminOrderRow[] {
   return orders.filter((order) => {
+    if (
+      filters.customerId &&
+      String(order.userId ?? "") !== filters.customerId
+    ) {
+      return false
+    }
     if (filters.status !== "all" && order.status !== filters.status) {
       return false
     }
