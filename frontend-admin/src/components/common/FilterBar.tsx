@@ -481,7 +481,7 @@ export function StatusFilterTabs<T extends string>({
 }: StatusFilterTabsProps<T>) {
   return (
     <Tabs value={value} onValueChange={(v) => onChange(v as T)}>
-      <div className="overflow-x-auto pb-0.5">
+      <div className="scrollbar-thin -mx-1 overflow-x-auto px-1 pb-1">
         <TabsList className="inline-flex h-auto w-max min-w-0 flex-nowrap justify-start">
           {options.map((option) => {
             const count = counts?.[option.value]
