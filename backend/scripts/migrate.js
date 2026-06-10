@@ -109,6 +109,10 @@ async function executeSqlFile(pool, filePath) {
   }
 }
 
+// Fresh databases are created from schema.sql, then every migration is
+// baselined as applied WITHOUT running. schema.sql must therefore always
+// contain the end state of all migrations — when adding a migration,
+// apply the same change to schema.sql.
 async function bootstrapSchemaIfNeeded(pool) {
   const existingTables = await getExistingAppTables(pool);
 

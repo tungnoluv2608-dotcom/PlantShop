@@ -26,6 +26,10 @@ async function seed() {
   console.log("[seed] Clearing old data...");
   await pool.request().query(`
     DELETE FROM UserWishlistItems;
+    IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'UserPlantAdvisorHistory') DELETE FROM UserPlantAdvisorHistory;
+    IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'VoucherRedemptions') DELETE FROM VoucherRedemptions;
+    IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'UserVoucherClaims') DELETE FROM UserVoucherClaims;
+    IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'WholesaleInquiryActivities') DELETE FROM WholesaleInquiryActivities;
     IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'WholesaleInquiries') DELETE FROM WholesaleInquiries;
     DELETE FROM ReviewImages;
     DELETE FROM ReviewTags;
@@ -46,6 +50,10 @@ async function seed() {
 
     -- Reset Identity counters
     IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'UserWishlistItems') DBCC CHECKIDENT ('UserWishlistItems', RESEED, 0);
+    IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'UserPlantAdvisorHistory') DBCC CHECKIDENT ('UserPlantAdvisorHistory', RESEED, 0);
+    IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'VoucherRedemptions') DBCC CHECKIDENT ('VoucherRedemptions', RESEED, 0);
+    IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'UserVoucherClaims') DBCC CHECKIDENT ('UserVoucherClaims', RESEED, 0);
+    IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'WholesaleInquiryActivities') DBCC CHECKIDENT ('WholesaleInquiryActivities', RESEED, 0);
     IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'WholesaleInquiries') DBCC CHECKIDENT ('WholesaleInquiries', RESEED, 0);
     IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'ReviewImages') DBCC CHECKIDENT ('ReviewImages', RESEED, 0);
     IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'ReviewTags') DBCC CHECKIDENT ('ReviewTags', RESEED, 0);

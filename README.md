@@ -212,6 +212,23 @@ Shop cơ bản (xem sản phẩm, giỏ hàng, đặt hàng COD) chạy được
 | `ESOCKET` | SQL Server chưa chạy hoặc sai `DB_SERVER` |
 | `Missing required env var: VITE_API_URL` | Chưa tạo file `.env` cho frontend |
 | CORS error | Thêm URL frontend vào `CORS_ORIGINS` trong `backend/.env` |
+| `Invalid object name 'ShippingZones'` (lỗi 500 khi đặt hàng / báo giá ship) | Database được tạo bằng phiên bản `schema.sql` cũ (thiếu bảng). Chạy lệnh sửa bên dưới |
+
+**Sửa lỗi thiếu bảng `ShippingZones`** (chỉ gặp trên database đã setup trước bản vá này):
+
+```sql
+-- Chạy trong SSMS hoặc sqlcmd, trên database PlantShopDB:
+DELETE FROM SchemaMigrations WHERE filename = 'add_shipping_zones.sql';
+```
+
+Sau đó chạy lại migration để tạo bảng:
+
+```bash
+cd backend
+npm run migrate
+```
+
+> **Ghi chú cho dev:** database mới được khởi tạo từ `backend/schema.sql`, sau đó **tất cả** migrations được đánh dấu "đã áp dụng" mà không chạy thật. Vì vậy khi thêm migration mới, bắt buộc phải cập nhật cả `schema.sql` cho khớp — nếu không, máy clone mới sẽ thiếu thay đổi đó.
 
 ---
 

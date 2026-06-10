@@ -3,7 +3,7 @@ pid: 31288
 cwd: "D:\Theris\PlantWeb"
 command: "cd D:\\Theris\\PlantWeb\\frontend && npm run build 2>&1"
 started_at: 2026-06-09T03:25:05.067Z
-running_for_ms: 539988   
+running_for_ms: 584981   
 ---
 
 > frontend@0.0.0 build
@@ -11,3 +11,22 @@ running_for_ms: 539988
 
 vite v7.3.1 building client environment for production...
 transforming...
+✓ 5558 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                       0.47 kB │ gzip:   0.30 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+dist/assets/jetbrains-mono-vietnamese-wght-normal-Bt-aOZkq.woff2      7.50 kB
+dist/assets/jetbrains-mono-greek-wght-normal-Bw9x6K1M.woff2           9.00 kB
+dist/assets/jetbrains-mono-cyrillic-wght-normal-D73BlboJ.woff2       12.11 kB
+dist/assets/jetbrains-mono-latin-ext-wght-normal-DBQx-q_a.woff2      15.20 kB
+dist/assets/jetbrains-mono-latin-wght-normal-B9CIFXIH.woff2          40.40 kB
+dist/assets/forest_pattern-Be8EDu_x.jpg                           5,930.21 kB
+dist/assets/tab_logo-D7Sv-w-B.jpg                                 7,155.69 kB
+dist/assets/index-BvWyokTV.css                                      119.40 kB │ gzip:  20.58 kB
+dist/assets/index-BtKWmnGY.js                                     1,310.67 kB │ gzip: 360.96 kB
+✓ built in 2m 7s

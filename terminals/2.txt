@@ -3,7 +3,7 @@ pid: 5568
 cwd: "D:\Theris\PlantWeb"
 command: "cd D:\\Theris\\PlantWeb\\frontend-admin && npm run build 2>&1"
 started_at: 2026-06-09T03:25:05.063Z
-running_for_ms: 539995   
+running_for_ms: 585000   
 ---
 
 > frontend-admin@0.0.0 build
