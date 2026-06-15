@@ -5,6 +5,18 @@
 const crypto = require("crypto");
 
 const PAYOS_API_BASE = "https://api-merchant.payos.vn";
+const PAYOS_CHECKOUT_BASE = "https://pay.payos.vn/web";
+const PAYOS_FETCH_TIMEOUT_MS = 4_000;
+
+function payosFetch(url, options = {}) {
+  const signal =
+    options.signal ??
+    (typeof AbortSignal !== "undefined" && AbortSignal.timeout
+      ? AbortSignal.timeout(PAYOS_FETCH_TIMEOUT_MS)
+      : undefined);
+
+  return fetch(url, { ...options, signal });
+}
 
 function getPayosConfig() {
   const clientId = String(process.env.PAYOS_CLIENT_ID || "").trim();
@@ -111,7 +123,7 @@ async function createPaymentLink({
     checksumKey
   );
 
-  const response = await fetch(`${PAYOS_API_BASE}/v2/payment-requests`, {
+  const response = await payosFetch(`${PAYOS_API_BASE}/v2/payment-requests`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -124,9 +136,36 @@ async function createPaymentLink({
   return readPayosResponse(response);
 }
 
+function buildCheckoutUrl(paymentLinkId) {
+  const id = String(paymentLinkId || "").trim();
+  return id ? `${PAYOS_CHECKOUT_BASE}/${id}` : null;
+}
+
+function normalizePaymentLinkResult(data, resumed = false) {
+  const paymentLinkId = data.paymentLinkId || data.id;
+  return {
+    checkoutUrl: data.checkoutUrl || buildCheckoutUrl(paymentLinkId),
+    qrCode: data.qrCode,
+    paymentLinkId,
+    orderCode: data.orderCode,
+    status: data.status,
+    resumed,
+  };
+}
+
+function isPayosNotFoundError(err) {
+  const msg = String(err?.message || "").toLowerCase();
+  return msg.includes("không tồn tại") || msg.includes("not exist") || msg.includes("not found");
+}
+
+function isPayosDuplicateOrderError(err) {
+  const msg = String(err?.message || "").toLowerCase();
+  return msg.includes("đã tồn tại") || msg.includes("already exist");
+}
+
 async function getPaymentLinkStatus(paymentLinkIdOrOrderCode) {
   const { clientId, apiKey } = getPayosConfig();
-  const response = await fetch(
+  const response = await payosFetch(
     `${PAYOS_API_BASE}/v2/payment-requests/${encodeURIComponent(String(paymentLinkIdOrOrderCode).trim())}`,
     {
       method: "GET",
@@ -140,6 +179,94 @@ async function getPaymentLinkStatus(paymentLinkIdOrOrderCode) {
   return readPayosResponse(response);
 }
 
+async function getPaymentLinkStatusSafe(paymentLinkIdOrOrderCode) {
+  try {
+    return await getPaymentLinkStatus(paymentLinkIdOrOrderCode);
+  } catch (err) {
+    if (isPayosNotFoundError(err)) return null;
+    throw err;
+  }
+}
+
+async function cancelPaymentLink(paymentLinkIdOrOrderCode, cancellationReason = "Retry payment") {
+  const { clientId, apiKey } = getPayosConfig();
+  const response = await payosFetch(
+    `${PAYOS_API_BASE}/v2/payment-requests/${encodeURIComponent(String(paymentLinkIdOrOrderCode).trim())}/cancel`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-client-id": clientId,
+        "x-api-key": apiKey,
+      },
+      body: JSON.stringify({ cancellationReason: String(cancellationReason) }),
+    }
+  );
+
+  return readPayosResponse(response);
+}
+
+/**
+ * Resume an open PayOS checkout when possible; otherwise cancel stale links and create a new one.
+ * PayOS rejects duplicate orderCode — retry must reuse PENDING links or cancel before recreate.
+ */
+async function createOrResumePaymentLink(options) {
+  const orderCode = options.orderCode;
+  const existing = await getPaymentLinkStatusSafe(orderCode);
+
+  if (existing) {
+    const status = String(existing.status || "").trim().toUpperCase();
+
+    if (status === "PAID") {
+      throw new Error("Đơn hàng đã được thanh toán qua PayOS.");
+    }
+
+    if (status === "PENDING") {
+      const resumed = normalizePaymentLinkResult(existing, true);
+      if (resumed.checkoutUrl) return resumed;
+    }
+
+    if (["PENDING", "PROCESSING"].includes(status)) {
+      try {
+        await cancelPaymentLink(orderCode, "User retry payment");
+      } catch {
+        const retryExisting = await getPaymentLinkStatusSafe(orderCode);
+        if (retryExisting) {
+          const resumed = normalizePaymentLinkResult(retryExisting, true);
+          if (resumed.checkoutUrl) return resumed;
+        }
+      }
+    }
+  }
+
+  try {
+    const created = await createPaymentLink(options);
+    return normalizePaymentLinkResult(created, false);
+  } catch (err) {
+    if (!isPayosDuplicateOrderError(err)) throw err;
+
+    const fallback = await getPaymentLinkStatusSafe(orderCode);
+    if (!fallback) throw err;
+
+    const status = String(fallback.status || "").trim().toUpperCase();
+    if (status === "PAID") {
+      throw new Error("Đơn hàng đã được thanh toán qua PayOS.");
+    }
+
+    const resumed = normalizePaymentLinkResult(fallback, true);
+    if (resumed.checkoutUrl) return resumed;
+
+    try {
+      await cancelPaymentLink(orderCode, "Recreate payment link");
+    } catch {
+      // PayOS may already be cancelled/expired — attempt create anyway.
+    }
+
+    const recreated = await createPaymentLink(options);
+    return normalizePaymentLinkResult(recreated, false);
+  }
+}
+
 function verifyWebhookSignature(data, signature) {
   const { checksumKey } = getPayosConfig();
   const expectedSignature = createSignature(data, checksumKey);
@@ -148,10 +275,14 @@ function verifyWebhookSignature(data, signature) {
 
 module.exports = {
   PAYOS_API_BASE,
+  buildCheckoutUrl,
   buildSignaturePayload,
+  cancelPaymentLink,
+  createOrResumePaymentLink,
   createPaymentLink,
   createSignature,
   getPayosConfig,
   getPaymentLinkStatus,
+  getPaymentLinkStatusSafe,
   verifyWebhookSignature,
 };

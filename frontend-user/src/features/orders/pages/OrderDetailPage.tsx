@@ -22,6 +22,10 @@ import { useOrder, useCancelOrder } from "../api"
 import { OrderStatusBadge } from "../components/OrderStatusBadge"
 import { OrderTimeline } from "../components/OrderTimeline"
 import { OrderItemsList } from "../components/OrderItemsList"
+import {
+  isOrderAwaitingOnlinePayment,
+  OrderPendingPaymentActions,
+} from "../components/OrderPendingPaymentActions"
 
 const CANCELABLE = new Set(["pending", "confirmed"])
 
@@ -89,6 +93,19 @@ export function OrderDetailPage() {
         </div>
       </div>
 
+      {isOrderAwaitingOnlinePayment(order) && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+          <p className="font-medium">Đơn hàng chưa được thanh toán</p>
+          <p className="mt-1 text-amber-900/80">
+            Bạn đã đặt hàng nhưng chưa hoàn tất thanh toán online. Vui lòng thanh toán để shop xác
+            nhận đơn.
+          </p>
+          <div className="mt-3">
+            <OrderPendingPaymentActions order={order} />
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
           <Card>
@@ -144,6 +161,11 @@ export function OrderDetailPage() {
               <p className="pt-2 text-muted-foreground">
                 Phương thức: {order.paymentMethod.toUpperCase()}
               </p>
+              {isOrderAwaitingOnlinePayment(order) && (
+                <div className="pt-3">
+                  <OrderPendingPaymentActions order={order} className="w-full" />
+                </div>
+              )}
             </CardContent>
           </Card>
 

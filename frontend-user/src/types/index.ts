@@ -135,6 +135,7 @@ export interface Order {
   items: OrderItem[]
   shippingAddress: string
   paymentMethod: string
+  recipientPhone?: string | null
   subtotal: number
   shippingFee: number
   discountAmount?: number

@@ -1,6 +1,6 @@
 const { getPool, sql } = require("../libs/db");
 const {
-  createPaymentLink,
+  createOrResumePaymentLink,
   getPaymentLinkStatus,
   getPayosConfig,
   verifyWebhookSignature,
@@ -95,7 +95,9 @@ async function createPayosPaymentUrl(req, res, next) {
       .input("id", sql.NVarChar, req.params.id)
       .input("userId", sql.Int, req.user.id)
       .query(
-        `SELECT o.id, o.total, o.status, u.name AS buyerName, u.email AS buyerEmail
+        `SELECT o.id, o.total, o.status, o.payment_method AS paymentMethod,
+                o.recipient_phone AS recipientPhone,
+                u.name AS buyerName, u.email AS buyerEmail
          FROM Orders o
          JOIN Users u ON u.id = o.user_id
          WHERE o.id = @id AND o.user_id = @userId`
@@ -121,6 +123,14 @@ async function createPayosPaymentUrl(req, res, next) {
       return res.status(400).json({ message: "Đơn hàng đã hủy, không thể thanh toán PayOS." });
     }
 
+    if (order.status !== "pending") {
+      return res.status(400).json({ message: "Đơn hàng đã được thanh toán hoặc không còn chờ thanh toán." });
+    }
+
+    if (String(order.paymentMethod || "").toLowerCase() !== "payos") {
+      return res.status(400).json({ message: "Đơn hàng này không dùng phương thức PayOS." });
+    }
+
     const itemsResult = await pool
       .request()
       .input("orderId", sql.NVarChar, order.id)
@@ -130,15 +140,15 @@ async function createPayosPaymentUrl(req, res, next) {
          WHERE order_id = @orderId`
       );
 
-    const result = await createPaymentLink({
+    const result = await createOrResumePaymentLink({
       orderCode,
       amount,
       description: buildPayosDescription(order.id),
       returnUrl: `${BASE_URL}/payment/payos-return`,
-      cancelUrl: `${BASE_URL}/payment/payos-cancel`,
+      cancelUrl: `${BASE_URL}/payment/payos-cancel?orderId=${encodeURIComponent(order.id)}`,
       buyerName: order.buyerName,
       buyerEmail: order.buyerEmail,
-      buyerPhone: req.body?.buyerPhone,
+      buyerPhone: req.body?.buyerPhone || order.recipientPhone,
       items: buildPayosItems(itemsResult.recordset),
     });
 

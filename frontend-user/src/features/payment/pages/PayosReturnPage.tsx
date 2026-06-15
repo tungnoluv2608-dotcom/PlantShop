@@ -25,11 +25,16 @@ export function PayosReturnPage() {
   if (!result) {
     return <PaymentStatusView status="loading" title="Đang xác thực thanh toán..." />
   }
+
   return (
     <PaymentStatusView
       status={result.success ? "success" : "pending"}
       title={result.success ? "Thanh toán thành công" : "Thanh toán chưa hoàn tất"}
-      message={result.message ?? (result.status ? `Trạng thái: ${result.status}` : undefined)}
+      message={
+        result.message ??
+        (result.status ? `Trạng thái: ${result.status}` : undefined) ??
+        (result.success ? undefined : "Vui lòng kiểm tra lại đơn hàng trong tài khoản của bạn.")
+      }
       orderId={result.orderId}
     />
   )

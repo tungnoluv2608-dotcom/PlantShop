@@ -82,3 +82,36 @@ export async function verifyPayos(params: {
   const { data } = await apiClient.get<PaymentVerifyResult>("/orders/payos/verify", { params })
   return data
 }
+
+export async function retryOrderPayment(
+  orderId: string,
+  paymentMethod: string,
+  buyerPhone?: string,
+): Promise<void> {
+  const method = paymentMethod.toLowerCase()
+  if (method === "payos") {
+    const { checkoutUrl } = await createPayosUrl(orderId, buyerPhone ?? "")
+    window.location.href = checkoutUrl
+    return
+  }
+  if (method === "vnpay") {
+    const url = await createVnpayUrl(orderId)
+    window.location.href = url
+    return
+  }
+  throw new Error("Phương thức thanh toán không hỗ trợ thanh toán lại.")
+}
+
+export function useRetryOrderPayment() {
+  return useMutation({
+    mutationFn: ({
+      orderId,
+      paymentMethod,
+      buyerPhone,
+    }: {
+      orderId: string
+      paymentMethod: string
+      buyerPhone?: string
+    }) => retryOrderPayment(orderId, paymentMethod, buyerPhone),
+  })
+}

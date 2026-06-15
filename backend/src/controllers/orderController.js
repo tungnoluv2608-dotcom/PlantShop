@@ -15,6 +15,25 @@ const {
 
 const VALID_PAYMENT_METHODS = new Set(["cod", "payos", "vnpay"]);
 const { normalizeShippingMethod: normalizeZoneShippingMethod } = require("../services/shippingService");
+const { cancelPaymentLink, getPayosConfig } = require("../services/payosService");
+
+function toPayosOrderCode(orderId) {
+  const digits = String(orderId || "").replace(/\D/g, "");
+  const orderCode = Number.parseInt(digits, 10);
+  return Number.isSafeInteger(orderCode) ? orderCode : null;
+}
+
+async function cancelPayosLinkForOrder(orderId) {
+  try {
+    getPayosConfig();
+    const orderCode = toPayosOrderCode(orderId);
+    if (orderCode) {
+      await cancelPaymentLink(orderCode, "Order cancelled");
+    }
+  } catch {
+    // PayOS not configured or payment link already closed.
+  }
+}
 
 function buildSortedQuery(obj) {
   return Object.keys(obj)
@@ -390,6 +409,7 @@ function buildCanonicalOrderItems(normalizedItems, productMap, planterMap) {
 const ORDER_SELECT_FIELDS = `
   o.id, CONVERT(varchar, o.created_at, 23) AS date, o.status,
   o.shipping_address AS shippingAddress, o.payment_method AS paymentMethod,
+  o.recipient_phone AS recipientPhone,
   o.subtotal, o.shipping_fee AS shippingFee, o.discount_amount AS discountAmount,
   o.voucher_code AS voucherCode, o.total,
   o.tracking_number AS trackingNumber,
@@ -640,13 +660,15 @@ async function cancelOrder(req, res, next) {
       .request()
       .input("id", sql.NVarChar, req.params.id)
       .input("userId", sql.Int, req.user.id)
-      .query("SELECT status FROM Orders WHERE id = @id AND user_id = @userId");
+      .query(
+        "SELECT status, payment_method AS paymentMethod FROM Orders WHERE id = @id AND user_id = @userId"
+      );
 
     if (orderResult.recordset.length === 0) {
       return res.status(404).json({ message: "Đơn hàng không tồn tại." });
     }
 
-    const { status } = orderResult.recordset[0];
+    const { status, paymentMethod } = orderResult.recordset[0];
     if (!["pending", "confirmed"].includes(status)) {
       return res.status(400).json({ message: "Không thể hủy đơn hàng ở trạng thái này." });
     }
@@ -670,6 +692,11 @@ async function cancelOrder(req, res, next) {
         `INSERT INTO OrderTimeline (order_id, status, event_date, done)
          VALUES (@orderId, N'Đã hủy', GETDATE(), 1)`
       );
+
+    if (String(paymentMethod || "").toLowerCase() === "payos") {
+      // User may already have left PayOS — clean up link in background, don't block response.
+      void cancelPayosLinkForOrder(req.params.id);
+    }
 
     return res.json({ message: "Đơn hàng đã được hủy." });
   } catch (err) {
@@ -705,7 +732,9 @@ async function createVnpayPaymentUrl(req, res, next) {
       .request()
       .input("id", sql.NVarChar, req.params.id)
       .input("userId", sql.Int, req.user.id)
-      .query("SELECT id, total, status FROM Orders WHERE id = @id AND user_id = @userId");
+      .query(
+        "SELECT id, total, status, payment_method AS paymentMethod FROM Orders WHERE id = @id AND user_id = @userId"
+      );
 
     if (orderResult.recordset.length === 0) {
       return res.status(404).json({ message: "Đơn hàng không tồn tại." });
@@ -719,6 +748,14 @@ async function createVnpayPaymentUrl(req, res, next) {
 
     if (order.status === "cancelled") {
       return res.status(400).json({ message: "Đơn hàng đã hủy, không thể thanh toán VNPay." });
+    }
+
+    if (order.status !== "pending") {
+      return res.status(400).json({ message: "Đơn hàng đã được thanh toán hoặc không còn chờ thanh toán." });
+    }
+
+    if (String(order.paymentMethod || "").toLowerCase() !== "vnpay") {
+      return res.status(400).json({ message: "Đơn hàng này không dùng phương thức VNPay." });
     }
 
     const createDate = getDateYmdHis();

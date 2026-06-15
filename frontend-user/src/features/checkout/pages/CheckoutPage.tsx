@@ -48,6 +48,7 @@ export function CheckoutPage() {
   const [appliedVoucher, setAppliedVoucher] = useState<ValidateVoucherResponse | null>(null)
   const [isValidatingVoucher, setIsValidatingVoucher] = useState(false)
   const deepLinkHandled = useRef(false)
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const createOrder = useCreateOrder()
 
   useEffect(() => {
@@ -161,6 +162,8 @@ export function CheckoutPage() {
       toast.error("Vui lòng chọn địa chỉ giao hàng")
       return
     }
+    if (isPlacingOrder) return
+    setIsPlacingOrder(true)
     try {
       const result = await createOrder.mutateAsync({
         items: cartItems,
@@ -196,6 +199,8 @@ export function CheckoutPage() {
       }
     } catch (err) {
       toast.error(getApiErrorMessage(err))
+    } finally {
+      setIsPlacingOrder(false)
     }
   }
 
@@ -457,9 +462,9 @@ export function CheckoutPage() {
               className="w-full"
               size="lg"
               onClick={handlePlaceOrder}
-              disabled={createOrder.isPending || !selectedAddress || isValidatingVoucher}
+              disabled={isPlacingOrder || !selectedAddress || isValidatingVoucher}
             >
-              {createOrder.isPending ? "Đang xử lý..." : "Đặt hàng"}
+              {isPlacingOrder ? "Đang xử lý..." : "Đặt hàng"}
             </Button>
           </CardContent>
         </Card>

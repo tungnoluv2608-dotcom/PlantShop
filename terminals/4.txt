@@ -3,7 +3,7 @@ pid: 22760
 cwd: "D:\Projects\PlantShop"
 command: "cd \"D:\\Projects\\PlantShop\\backend\" && npm run dev"
 started_at: 2026-06-15T05:32:56.661Z
-running_for_ms: 265007   
+running_for_ms: 1435009  
 ---
 
 > plantweb-backend@1.0.0 dev

@@ -9,6 +9,9 @@ interface PaymentStatusViewProps {
   title: string
   message?: string
   orderId?: string
+  onRetryPayment?: () => void
+  retryLabel?: string
+  isRetrying?: boolean
 }
 
 const ICONS = {
@@ -18,7 +21,15 @@ const ICONS = {
   pending: <Clock className="size-14 text-accent" />,
 } as const
 
-export function PaymentStatusView({ status, title, message, orderId }: PaymentStatusViewProps) {
+export function PaymentStatusView({
+  status,
+  title,
+  message,
+  orderId,
+  onRetryPayment,
+  retryLabel = "Thanh toán lại",
+  isRetrying = false,
+}: PaymentStatusViewProps) {
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-5 px-4 py-24 text-center">
       {ICONS[status]}
@@ -33,8 +44,13 @@ export function PaymentStatusView({ status, title, message, orderId }: PaymentSt
       </div>
       {status !== "loading" && (
         <div className="flex flex-wrap justify-center gap-3">
+          {onRetryPayment && (
+            <Button onClick={onRetryPayment} disabled={isRetrying}>
+              {isRetrying ? "Đang chuyển..." : retryLabel}
+            </Button>
+          )}
           {orderId && (
-            <Button asChild>
+            <Button asChild variant={onRetryPayment ? "outline" : "default"}>
               <Link to={`/orders/${orderId}`}>Xem đơn hàng</Link>
             </Button>
           )}
