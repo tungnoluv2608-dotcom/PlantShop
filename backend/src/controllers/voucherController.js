@@ -297,7 +297,8 @@ async function claimVoucher(req, res, next) {
                 discount_type AS discountType, discount_value AS discountValue,
                 max_discount AS maxDiscount, min_order_value AS minOrderValue,
                 usage_limit AS usageLimit, usage_per_user AS usagePerUser,
-                starts_at AS startsAt, expires_at AS expiresAt,
+                CONVERT(varchar, starts_at, 126) AS startsAt,
+                CONVERT(varchar, expires_at, 126) AS expiresAt,
                 is_active AS isActive, applies_to AS appliesTo
          FROM Vouchers
          WHERE id = @id`
@@ -492,8 +493,8 @@ async function adminCreateVoucher(req, res, next) {
       .input("minOrderValue", sql.Decimal(18, 2), payload.minOrderValue)
       .input("usageLimit", sql.Int, payload.usageLimit)
       .input("usagePerUser", sql.Int, payload.usagePerUser)
-      .input("startsAt", sql.DateTime, payload.startsAt)
-      .input("expiresAt", sql.DateTime, payload.expiresAt)
+      .input("startsAt", sql.NVarChar, payload.startsAt)
+      .input("expiresAt", sql.NVarChar, payload.expiresAt)
       .input("isActive", sql.Bit, payload.isActive)
       .input("appliesTo", sql.NVarChar, payload.appliesTo)
       .query(
@@ -505,7 +506,8 @@ async function adminCreateVoucher(req, res, next) {
          OUTPUT INSERTED.id
          VALUES (
            @code, @name, @description, @discountType, @discountValue, @maxDiscount,
-           @minOrderValue, @usageLimit, @usagePerUser, @startsAt, @expiresAt,
+           @minOrderValue, @usageLimit, @usagePerUser,
+           CAST(@startsAt AS DATETIME), CAST(@expiresAt AS DATETIME),
            @isActive, @appliesTo
          )`
       );
@@ -581,8 +583,8 @@ async function adminUpdateVoucher(req, res, next) {
       .input("minOrderValue", sql.Decimal(18, 2), payload.minOrderValue)
       .input("usageLimit", sql.Int, payload.usageLimit)
       .input("usagePerUser", sql.Int, payload.usagePerUser)
-      .input("startsAt", sql.DateTime, payload.startsAt)
-      .input("expiresAt", sql.DateTime, payload.expiresAt)
+      .input("startsAt", sql.NVarChar, payload.startsAt)
+      .input("expiresAt", sql.NVarChar, payload.expiresAt)
       .input("isActive", sql.Bit, payload.isActive)
       .input("appliesTo", sql.NVarChar, payload.appliesTo)
       .query(
@@ -596,8 +598,8 @@ async function adminUpdateVoucher(req, res, next) {
            min_order_value = @minOrderValue,
            usage_limit = @usageLimit,
            usage_per_user = @usagePerUser,
-           starts_at = @startsAt,
-           expires_at = @expiresAt,
+           starts_at = CAST(@startsAt AS DATETIME),
+           expires_at = CAST(@expiresAt AS DATETIME),
            is_active = @isActive,
            applies_to = @appliesTo,
            updated_at = GETDATE()

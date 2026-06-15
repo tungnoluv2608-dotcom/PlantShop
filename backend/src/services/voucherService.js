@@ -12,6 +12,70 @@ function roundMoney(amount) {
   return Math.max(0, Math.round(Number(amount) * 100) / 100);
 }
 
+const WALL_CLOCK_DATETIME_PATTERN =
+  /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/;
+
+function extractWallClockParts(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const match = raw.match(WALL_CLOCK_DATETIME_PATTERN);
+  if (!match) return null;
+
+  const [, year, month, day, hour, minute, second = "0"] = match;
+  return {
+    year: Number(year),
+    month: Number(month),
+    day: Number(day),
+    hour: Number(hour),
+    minute: Number(minute),
+    second: Number(second),
+  };
+}
+
+/** Parse datetime as wall-clock time for schedule checks. */
+function parseWallClockDateTime(value) {
+  const parts = extractWallClockParts(value);
+  if (!parts) return null;
+
+  const date = new Date(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second,
+    0
+  );
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** Format datetime for SQL DATETIME binding without JS Date timezone conversion. */
+function formatWallClockDateTimeForSql(value) {
+  const parts = extractWallClockParts(value);
+  if (!parts) return null;
+
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)} ${pad(parts.hour)}:${pad(parts.minute)}:${pad(parts.second)}`;
+}
+
+/** Normalize DB/API datetime values to a stable wall-clock string. */
+function normalizeDateTimeField(value) {
+  if (value == null || value === "") return value;
+
+  if (value instanceof Date) {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`;
+  }
+
+  const raw = String(value).trim();
+  const match = raw.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/);
+  if (match) return `${match[1]}T${match[2]}`;
+
+  return raw;
+}
+
 function mapVoucherRow(row) {
   if (!row) return null;
   return {
@@ -29,8 +93,8 @@ function mapVoucherRow(row) {
       ? Number(row.usageLimit ?? row.usage_limit)
       : null,
     usagePerUser: Number(row.usagePerUser ?? row.usage_per_user ?? 1),
-    startsAt: row.startsAt ?? row.starts_at,
-    expiresAt: row.expiresAt ?? row.expires_at,
+    startsAt: normalizeDateTimeField(row.startsAt ?? row.starts_at),
+    expiresAt: normalizeDateTimeField(row.expiresAt ?? row.expires_at),
     isActive: Boolean(row.isActive ?? row.is_active),
     appliesTo: String(row.appliesTo ?? row.applies_to ?? "all"),
   };
@@ -120,7 +184,8 @@ async function loadVoucherByCode(request, code, { lock = false } = {}) {
             discount_type AS discountType, discount_value AS discountValue,
             max_discount AS maxDiscount, min_order_value AS minOrderValue,
             usage_limit AS usageLimit, usage_per_user AS usagePerUser,
-            starts_at AS startsAt, expires_at AS expiresAt,
+            CONVERT(varchar, starts_at, 126) AS startsAt,
+            CONVERT(varchar, expires_at, 126) AS expiresAt,
             is_active AS isActive, applies_to AS appliesTo
      FROM Vouchers ${lockClause}
      WHERE UPPER(LTRIM(RTRIM(code))) = @code`
@@ -160,13 +225,13 @@ async function countVoucherUsage(pool, voucherId, userId) {
 }
 
 function checkVoucherSchedule(voucher, now = new Date()) {
-  const startsAt = new Date(voucher.startsAt);
-  const expiresAt = new Date(voucher.expiresAt);
+  const startsAt = parseWallClockDateTime(voucher.startsAt);
+  const expiresAt = parseWallClockDateTime(voucher.expiresAt);
 
   if (!voucher.isActive) {
     return "Mã voucher không còn hiệu lực.";
   }
-  if (Number.isNaN(startsAt.getTime()) || Number.isNaN(expiresAt.getTime())) {
+  if (!startsAt || !expiresAt) {
     return "Cấu hình thời hạn voucher không hợp lệ.";
   }
   if (now < startsAt) {
@@ -580,8 +645,8 @@ function validateAdminVoucherPayload(payload, { isUpdate = false } = {}) {
     ? null
     : Number.parseInt(payload.usageLimit, 10);
   const usagePerUser = Number.parseInt(payload.usagePerUser ?? 1, 10);
-  const startsAt = payload.startsAt ? new Date(payload.startsAt) : null;
-  const expiresAt = payload.expiresAt ? new Date(payload.expiresAt) : null;
+  const startsAt = formatWallClockDateTimeForSql(payload.startsAt);
+  const expiresAt = formatWallClockDateTimeForSql(payload.expiresAt);
   const isActive = payload.isActive !== false;
   const appliesTo = String(payload.appliesTo || "all").trim().toLowerCase();
   const scopes = Array.isArray(payload.scopes) ? payload.scopes : [];
@@ -619,7 +684,7 @@ function validateAdminVoucherPayload(payload, { isUpdate = false } = {}) {
   if (!Number.isInteger(usagePerUser) || usagePerUser <= 0) {
     throw buildVoucherError("Lượt dùng mỗi khách không hợp lệ.");
   }
-  if (!startsAt || !expiresAt || Number.isNaN(startsAt.getTime()) || Number.isNaN(expiresAt.getTime())) {
+  if (!startsAt || !expiresAt) {
     throw buildVoucherError("Thời gian bắt đầu/kết thúc không hợp lệ.");
   }
   if (startsAt >= expiresAt) {

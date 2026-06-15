@@ -10,6 +10,8 @@ const config = {
     trustServerCertificate: process.env.DB_TRUST_CERT === "true",
     encrypt: false,
     enableArithAbort: true,
+    // Store/read SQL DATETIME as local wall-clock time (VN), not UTC components.
+    useUTC: false,
   },
   pool: {
     max: 10,

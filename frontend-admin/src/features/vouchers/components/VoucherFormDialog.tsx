@@ -36,7 +36,13 @@ import { getApiErrorMessage } from "@/lib/api-client"
 import type { Voucher, VoucherPayload } from "@/types"
 import { useCategories } from "@/features/categories/api"
 import { useAdminProducts } from "@/features/products/api"
-import { voucherSchema, toDatetimeLocalValue, type VoucherFormValues } from "../schema"
+import {
+  voucherSchema,
+  fromDatetimeLocalValue,
+  nowDatetimeLocalValue,
+  toDatetimeLocalValue,
+  type VoucherFormValues,
+} from "../schema"
 import { useCreateVoucher, useUpdateVoucher } from "../api"
 
 interface VoucherFormDialogProps {
@@ -57,8 +63,8 @@ function toPayload(values: VoucherFormValues): VoucherPayload {
     minOrderValue: values.minOrderValue,
     usageLimit: values.usageLimit === "" || values.usageLimit == null ? null : Number(values.usageLimit),
     usagePerUser: values.usagePerUser,
-    startsAt: new Date(values.startsAt).toISOString(),
-    expiresAt: new Date(values.expiresAt).toISOString(),
+    startsAt: fromDatetimeLocalValue(values.startsAt),
+    expiresAt: fromDatetimeLocalValue(values.expiresAt),
     isActive: values.isActive,
     appliesTo: values.appliesTo,
     scopes:
@@ -75,7 +81,6 @@ export function VoucherFormDialog({ open, onOpenChange, voucher }: VoucherFormDi
   const createVoucher = useCreateVoucher()
   const updateVoucher = useUpdateVoucher()
   const { data: categories } = useCategories()
-  const { data: products } = useAdminProducts()
   const isEdit = Boolean(voucher)
 
   const form = useForm<VoucherFormValues>({
@@ -100,6 +105,9 @@ export function VoucherFormDialog({ open, onOpenChange, voucher }: VoucherFormDi
 
   const discountType = form.watch("discountType")
   const appliesTo = form.watch("appliesTo")
+  const { data: products, isLoading: productsLoading } = useAdminProducts({
+    enabled: open && appliesTo === "product",
+  })
 
   useEffect(() => {
     if (!open) return
@@ -113,7 +121,7 @@ export function VoucherFormDialog({ open, onOpenChange, voucher }: VoucherFormDi
       minOrderValue: voucher?.minOrderValue ?? 0,
       usageLimit: voucher?.usageLimit ?? "",
       usagePerUser: voucher?.usagePerUser ?? 1,
-      startsAt: toDatetimeLocalValue(voucher?.startsAt) || toDatetimeLocalValue(new Date().toISOString()),
+      startsAt: toDatetimeLocalValue(voucher?.startsAt) || nowDatetimeLocalValue(),
       expiresAt: toDatetimeLocalValue(voucher?.expiresAt),
       isActive: voucher?.isActive ?? true,
       appliesTo: voucher?.appliesTo ?? "all",
@@ -140,8 +148,8 @@ export function VoucherFormDialog({ open, onOpenChange, voucher }: VoucherFormDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogHeader className="shrink-0 border-b px-6 py-4">
           <DialogTitle>{isEdit ? "Chỉnh sửa voucher" : "Tạo voucher mới"}</DialogTitle>
           <DialogDescription>
             Cấu hình mã giảm giá, điều kiện áp dụng và thời hạn hiệu lực.
@@ -149,7 +157,8 @@ export function VoucherFormDialog({ open, onOpenChange, voucher }: VoucherFormDi
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
@@ -202,11 +211,11 @@ export function VoucherFormDialog({ open, onOpenChange, voucher }: VoucherFormDi
                     <FormLabel>Loại giảm</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent position="popper">
                         <SelectItem value="percent">Phần trăm (%)</SelectItem>
                         <SelectItem value="fixed">Số tiền cố định</SelectItem>
                         <SelectItem value="freeship">Miễn phí vận chuyển</SelectItem>
@@ -358,13 +367,19 @@ export function VoucherFormDialog({ open, onOpenChange, voucher }: VoucherFormDi
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Phạm vi áp dụng</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) => {
+                      field.onChange(value)
+                      form.setValue("scopeIds", [])
+                    }}
+                  >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent position="popper">
                       <SelectItem value="all">Toàn bộ giỏ hàng</SelectItem>
                       <SelectItem value="category">Theo danh mục</SelectItem>
                       <SelectItem value="product">Theo sản phẩm</SelectItem>
@@ -382,7 +397,8 @@ export function VoucherFormDialog({ open, onOpenChange, voucher }: VoucherFormDi
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Danh mục áp dụng</FormLabel>
-                    <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border p-3">
+                    <div className="h-40 min-h-0 overflow-y-auto overscroll-contain rounded-md border p-3">
+                      <div className="space-y-2">
                       {(categories ?? []).map((category) => {
                         const id = String(category.id)
                         const checked = field.value.includes(id)
@@ -402,6 +418,7 @@ export function VoucherFormDialog({ open, onOpenChange, voucher }: VoucherFormDi
                           </label>
                         )
                       })}
+                      </div>
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -416,26 +433,34 @@ export function VoucherFormDialog({ open, onOpenChange, voucher }: VoucherFormDi
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Sản phẩm áp dụng</FormLabel>
-                    <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border p-3">
-                      {(products ?? []).map((product) => {
-                        const id = String(product.id)
-                        const checked = field.value.includes(id)
-                        return (
-                          <label key={id} className="flex items-center gap-2 text-sm">
-                            <Checkbox
-                              checked={checked}
-                              onCheckedChange={(value) => {
-                                field.onChange(
-                                  value
-                                    ? [...field.value, id]
-                                    : field.value.filter((item) => item !== id),
-                                )
-                              }}
-                            />
-                            <span className="line-clamp-1">{product.title}</span>
-                          </label>
-                        )
-                      })}
+                    <div className="h-40 min-h-0 overflow-y-auto overscroll-contain rounded-md border p-3">
+                      {productsLoading ? (
+                        <p className="text-sm text-muted-foreground">Đang tải sản phẩm...</p>
+                      ) : (products ?? []).length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Chưa có sản phẩm nào.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {(products ?? []).map((product) => {
+                            const id = String(product.id)
+                            const checked = field.value.includes(id)
+                            return (
+                              <label key={id} className="flex items-center gap-2 text-sm">
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(value) => {
+                                    field.onChange(
+                                      value
+                                        ? [...field.value, id]
+                                        : field.value.filter((item) => item !== id),
+                                    )
+                                  }}
+                                />
+                                <span className="line-clamp-1">{product.title}</span>
+                              </label>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -456,7 +481,9 @@ export function VoucherFormDialog({ open, onOpenChange, voucher }: VoucherFormDi
               )}
             />
 
-            <DialogFooter>
+            </div>
+
+            <DialogFooter className="shrink-0 border-t px-6 py-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Hủy
               </Button>

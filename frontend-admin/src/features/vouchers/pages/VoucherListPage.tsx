@@ -24,14 +24,15 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useListFilters } from "@/hooks/useListFilters"
 import { getApiErrorMessage } from "@/lib/api-client"
-import { formatDateTime } from "@/lib/format"
 import type { Voucher } from "@/types"
 import { useVouchers, useDeleteVoucher } from "../api"
 import { VoucherFormDialog } from "../components/VoucherFormDialog"
+import { VoucherPeriodCell } from "../components/VoucherPeriodCell"
 import {
   VOUCHER_FILTER_DEFAULTS,
   filterVouchers,
   formatDiscountLabel,
+  getVoucherLifecycleStatus,
   type VoucherFilterState,
 } from "../voucher-filters"
 
@@ -58,13 +59,16 @@ const SORT_OPTIONS = [
 ]
 
 function statusBadge(voucher: Voucher) {
-  const now = Date.now()
-  const starts = new Date(voucher.startsAt).getTime()
-  const expires = new Date(voucher.expiresAt).getTime()
-  if (!voucher.isActive) return <Badge variant="secondary">Đã tắt</Badge>
-  if (now > expires) return <Badge variant="destructive">Hết hạn</Badge>
-  if (now < starts) return <Badge variant="outline">Chưa bắt đầu</Badge>
-  return <Badge className="bg-emerald-600 hover:bg-emerald-600">Hiệu lực</Badge>
+  switch (getVoucherLifecycleStatus(voucher)) {
+    case "inactive":
+      return <Badge variant="secondary">Đã tắt</Badge>
+    case "expired":
+      return <Badge variant="destructive">Hết hạn</Badge>
+    case "scheduled":
+      return <Badge variant="outline">Chưa bắt đầu</Badge>
+    default:
+      return <Badge className="bg-emerald-600 hover:bg-emerald-600">Hiệu lực</Badge>
+  }
 }
 
 export function VoucherListPage() {
@@ -153,12 +157,7 @@ export function VoucherListPage() {
     {
       id: "period",
       header: "Thời hạn",
-      cell: ({ row }) => (
-        <div className="text-xs text-muted-foreground">
-          <p>{formatDateTime(row.original.startsAt)}</p>
-          <p>→ {formatDateTime(row.original.expiresAt)}</p>
-        </div>
-      ),
+      cell: ({ row }) => <VoucherPeriodCell voucher={row.original} />,
     },
     {
       id: "status",

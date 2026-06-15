@@ -8,9 +8,10 @@ import type {
   MessageResponse,
 } from "@/types"
 
-export function useAdminProducts() {
+export function useAdminProducts(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.products.all,
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
       const { data } = await apiClient.get<AdminProduct[]>("/admin/products")
       return data
