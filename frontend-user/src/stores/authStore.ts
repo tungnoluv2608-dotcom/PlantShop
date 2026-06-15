@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import type { User } from "@/types"
+import { useWishlistStore } from "@/stores/wishlistStore"
 
 interface AuthState {
   token: string | null
@@ -20,9 +21,15 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       token: null,
       user: null,
-      setSession: (token, user) => set({ token, user }),
+      setSession: (token, user) => {
+        useWishlistStore.getState().clear()
+        set({ token, user })
+      },
       setUser: (user) => set({ user }),
-      clearSession: () => set({ token: null, user: null }),
+      clearSession: () => {
+        set({ token: null, user: null })
+        useWishlistStore.getState().clear()
+      },
       isAuthenticated: () => Boolean(get().token),
     }),
     { name: "plantweb-auth" },

@@ -24,6 +24,9 @@ import { EmptyState } from "@/components/common/EmptyState"
 import { QueryBoundary } from "@/components/common/QueryBoundary"
 import { ProductGridSkeleton } from "../components/ProductGridSkeleton"
 import { ShopFilters, type ShopFilterValues } from "../components/ShopFilters"
+import { useAuthStore } from "@/stores/authStore"
+import { useWishlistStore } from "@/stores/wishlistStore"
+import { useToggleWishlist } from "@/features/wishlist/api"
 import { useCategories, useProducts } from "../api"
 
 const PAGE_SIZE = 12
@@ -41,6 +44,9 @@ const SORT_OPTIONS: { value: ProductSort; label: string }[] = [
 export function ShopPage() {
   const [params, setParams] = useSearchParams()
   const { data: categories } = useCategories()
+  const isAuthenticated = useAuthStore((s) => Boolean(s.token))
+  const toggleWishlist = useToggleWishlist()
+  const hasWishlist = useWishlistStore((s) => s.has)
 
   const filters: ProductFilters = useMemo(() => {
     const page = Number(params.get("page") ?? 1)
@@ -165,7 +171,15 @@ export function ShopPage() {
           >
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
               {query.data?.products.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  enableWishlist={isAuthenticated}
+                  isFavorite={hasWishlist(product.id)}
+                  onToggleFavorite={
+                    isAuthenticated ? (p) => toggleWishlist.mutate(p.id) : undefined
+                  }
+                />
               ))}
             </div>
 

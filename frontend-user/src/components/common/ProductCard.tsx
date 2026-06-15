@@ -14,16 +14,27 @@ interface ProductCardProps {
   product: Product
   isFavorite?: boolean
   onToggleFavorite?: (product: Product) => void
+  enableWishlist?: boolean
+  rank?: number
   className?: string
 }
 
-export function ProductCard({ product, isFavorite, onToggleFavorite, className }: ProductCardProps) {
+export function ProductCard({
+  product,
+  isFavorite,
+  onToggleFavorite,
+  enableWishlist,
+  rank,
+  className,
+}: ProductCardProps) {
   const addItem = useCartStore((s) => s.addItem)
   const maxQuantity = getMaxOrderQuantity(product.stockQuantity, product.inStock)
   const available = isInStock(product.stockQuantity, product.inStock)
+  const showWishlist = Boolean(onToggleFavorite) && (enableWishlist ?? true)
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     if (!available) return
     addItem({
       id: encodeCartId({ kind: "product", productId: product.id }),
@@ -40,7 +51,7 @@ export function ProductCard({ product, isFavorite, onToggleFavorite, className }
     <Link
       to={`/product/${product.id}`}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-lg",
+        "group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-lg",
         className,
       )}
     >
@@ -51,31 +62,57 @@ export function ProductCard({ product, isFavorite, onToggleFavorite, className }
           loading="lazy"
           className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
+
+        {rank !== undefined && rank <= 3 && (
+          <span className="absolute left-3 top-3 flex size-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-md">
+            #{rank}
+          </span>
+        )}
+
         {product.discount && (
-          <Badge className="absolute left-3 top-3 bg-accent text-accent-foreground">
+          <Badge
+            className={cn(
+              "absolute bg-accent text-accent-foreground",
+              rank !== undefined && rank <= 3 ? "left-12 top-3" : "left-3 top-3",
+            )}
+          >
             -{product.discount}
           </Badge>
         )}
+
         {!available && (
           <Badge variant="secondary" className="absolute right-3 top-3">
             Hết hàng
           </Badge>
         )}
-        {onToggleFavorite && (
+
+        {showWishlist && (
           <button
             type="button"
             aria-label="Yêu thích"
             onClick={(e) => {
               e.preventDefault()
-              onToggleFavorite(product)
+              e.stopPropagation()
+              onToggleFavorite?.(product)
             }}
-            className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur transition-colors hover:bg-background"
+            className="absolute right-3 top-3 z-10 flex size-9 items-center justify-center rounded-full bg-background/80 text-foreground opacity-100 backdrop-blur transition-all hover:bg-background md:opacity-0 md:group-hover:opacity-100"
           >
-            <Heart
-              className={cn("size-4", isFavorite && "fill-accent text-accent")}
-            />
+            <Heart className={cn("size-4", isFavorite && "fill-accent text-accent")} />
           </button>
         )}
+
+        {/* Desktop hover add-to-cart */}
+        <div className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/60 to-transparent p-3 transition-transform duration-300 group-hover:translate-y-0 max-md:hidden">
+          <Button
+            size="sm"
+            className="w-full"
+            onClick={handleAdd}
+            disabled={!available}
+          >
+            <ShoppingBag className="size-4" />
+            Thêm vào giỏ
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
@@ -90,7 +127,7 @@ export function ProductCard({ product, isFavorite, onToggleFavorite, className }
           <Button
             size="icon"
             variant="secondary"
-            className="shrink-0"
+            className="shrink-0 md:hidden"
             onClick={handleAdd}
             disabled={!available}
             aria-label="Thêm vào giỏ"

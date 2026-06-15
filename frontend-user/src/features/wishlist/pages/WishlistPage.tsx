@@ -41,6 +41,7 @@ export function WishlistPage() {
             <ProductCard
               key={product.id}
               product={product}
+              enableWishlist
               isFavorite={has(product.id)}
               onToggleFavorite={(p) => toggleWishlist.mutate(p.id)}
             />

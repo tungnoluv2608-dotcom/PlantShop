@@ -42,6 +42,7 @@ export function ProductDetailPage() {
   const addItem = useCartStore((s) => s.addItem)
   const isAuthenticated = useAuthStore((s) => Boolean(s.token))
   const isFavorite = useWishlistStore((s) => s.has(id))
+  const hasWishlist = useWishlistStore((s) => s.has)
   const toggleWishlist = useToggleWishlist()
 
   const [planterChoice, setPlanterChoice] = useState("none")
@@ -261,7 +262,15 @@ export function ProductDetailPage() {
           <h2 className="mb-6 text-2xl font-semibold">Sản phẩm liên quan</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {related.map((p) => (
-              <ProductCard key={p.id} product={p} />
+              <ProductCard
+                key={p.id}
+                product={p}
+                enableWishlist={isAuthenticated}
+                isFavorite={hasWishlist(p.id)}
+                onToggleFavorite={
+                  isAuthenticated ? (item) => toggleWishlist.mutate(item.id) : undefined
+                }
+              />
             ))}
           </div>
         </div>

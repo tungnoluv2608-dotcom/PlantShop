@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { apiClient } from "@/lib/api-client"
+import { toast } from "sonner"
+import { apiClient, getApiErrorMessage } from "@/lib/api-client"
 import { queryKeys } from "@/lib/query-keys"
 import type { Product } from "@/types"
 import { useAuthStore } from "@/stores/authStore"
@@ -31,13 +32,15 @@ export function useToggleWishlist() {
 
   return useMutation({
     mutationFn: async (productId: string) => {
-      const isFavorite = useWishlistStore.getState().has(productId)
-      if (isFavorite) {
-        await apiClient.delete(`/wishlist/${productId}`)
-        return { productId, added: false }
+      // onMutate runs first and toggles the store to the *target* state.
+      // Read that intended state here — not the pre-click state.
+      const shouldBeFavorite = useWishlistStore.getState().has(productId)
+      if (shouldBeFavorite) {
+        await apiClient.post(`/wishlist/${productId}`)
+        return { productId, added: true }
       }
-      await apiClient.post(`/wishlist/${productId}`)
-      return { productId, added: true }
+      await apiClient.delete(`/wishlist/${productId}`)
+      return { productId, added: false }
     },
     onMutate: (productId: string) => {
       const wasFavorite = store.has(productId)
@@ -45,10 +48,15 @@ export function useToggleWishlist() {
       else store.add(productId)
       return { wasFavorite }
     },
-    onError: (_err, productId, context) => {
-      // rollback
+    onSuccess: (result) => {
+      toast.success(
+        result.added ? "Đã thêm vào yêu thích" : "Đã xóa khỏi danh sách yêu thích",
+      )
+    },
+    onError: (err, productId, context) => {
       if (context?.wasFavorite) store.add(productId)
       else store.remove(productId)
+      toast.error(getApiErrorMessage(err, "Không thể cập nhật danh sách yêu thích."))
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: queryKeys.wishlist.all })
