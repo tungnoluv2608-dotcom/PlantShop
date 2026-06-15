@@ -9,7 +9,9 @@ import { ProductCreatePage } from "@/features/products/pages/ProductCreatePage"
 import { ProductEditPage } from "@/features/products/pages/ProductEditPage"
 import { CategoryListPage } from "@/features/categories/pages/CategoryListPage"
 import { PlanterListPage } from "@/features/planters/pages/PlanterListPage"
+import { PlanterCreatePage } from "@/features/planters/pages/PlanterCreatePage"
 import { AccessoryListPage } from "@/features/planters/pages/AccessoryListPage"
+import { AccessoryCreatePage } from "@/features/planters/pages/AccessoryCreatePage"
 import { BlogListPage } from "@/features/blog/pages/BlogListPage"
 import { BlogCreatePage } from "@/features/blog/pages/BlogCreatePage"
 import { BlogEditPage } from "@/features/blog/pages/BlogEditPage"
@@ -41,7 +43,9 @@ export const router = createBrowserRouter([
 
           { path: "/categories", element: <CategoryListPage /> },
           { path: "/planters", element: <PlanterListPage /> },
+          { path: "/planters/new", element: <PlanterCreatePage /> },
           { path: "/accessories", element: <AccessoryListPage /> },
+          { path: "/accessories/new", element: <AccessoryCreatePage /> },
 
           { path: "/blog", element: <BlogListPage /> },
           { path: "/blog/new", element: <BlogCreatePage /> },

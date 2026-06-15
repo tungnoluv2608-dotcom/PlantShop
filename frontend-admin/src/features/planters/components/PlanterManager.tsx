@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react"
+import { Link } from "react-router"
 import { type ColumnDef } from "@tanstack/react-table"
 import { Plus, Pencil, Trash2, MoreHorizontal } from "lucide-react"
 import { toast } from "sonner"
@@ -192,10 +193,15 @@ export function PlanterManager({ type }: PlanterManagerProps) {
     [filters, filterPrefix, isAccessory]
   )
 
-  const openCreate = () => {
-    setEditing(null)
-    setDialogOpen(true)
-  }
+  const createHref = isAccessory ? "/accessories/new" : "/planters/new"
+
+  const createAction = (
+    <Button asChild>
+      <Link to={createHref}>
+        <Plus className="size-4" /> Tạo {noun}
+      </Link>
+    </Button>
+  )
   const openEdit = (item: Planter) => {
     setEditing(item)
     setDialogOpen(true)
@@ -334,11 +340,7 @@ export function PlanterManager({ type }: PlanterManagerProps) {
             ? "Quản lý phụ kiện chăm sóc cây."
             : "Quản lý chậu cây kèm theo sản phẩm."
         }
-        actions={
-          <Button onClick={openCreate}>
-            <Plus className="size-4" /> Tạo {noun}
-          </Button>
-        }
+        actions={createAction}
       />
 
       <ListFilterToolbar

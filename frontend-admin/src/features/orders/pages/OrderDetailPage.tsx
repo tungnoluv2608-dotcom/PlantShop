@@ -26,7 +26,7 @@ import { getApiErrorMessage } from "@/lib/api-client"
 import { formatVND, formatDateTime } from "@/lib/format"
 import { OrderPrintActions } from "../components/OrderPrintActions"
 import { OrderStatusActions } from "../components/OrderStatusActions"
-import { getShippingMethodLabel, resolveRecipient } from "../order-display"
+import { getPaymentMethodLabel, getShippingMethodLabel, resolveRecipient } from "../order-display"
 import { PROVIDER_LABELS } from "../schema"
 import { useAdminOrder, useConfirmOrder, useUpdateOrderNote } from "../api"
 
@@ -277,7 +277,7 @@ export function OrderDetailPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Thanh toán</span>
-                    <span className="font-medium uppercase">{order.paymentMethod}</span>
+                    <span className="font-medium">{getPaymentMethodLabel(order.paymentMethod)}</span>
                   </div>
                   {order.trackingNumber && (
                     <div>

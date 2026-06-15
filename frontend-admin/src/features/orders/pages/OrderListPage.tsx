@@ -27,7 +27,11 @@ import { getApiErrorMessage } from "@/lib/api-client"
 import { useListFilters } from "@/hooks/useListFilters"
 import type { AdminOrderRow, OrderStatus } from "@/types"
 import { OrderPrintActions } from "../components/OrderPrintActions"
-import { getRecipientPhone } from "../order-display"
+import {
+  getPaymentMethodLabel,
+  getRecipientPhone,
+  PAYMENT_METHOD_FILTER_OPTIONS,
+} from "../order-display"
 import { PROVIDER_LABELS } from "../schema"
 import { useAdminOrders, useBulkConfirmOrders, useConfirmOrder } from "../api"
 import {
@@ -37,15 +41,6 @@ import {
   type OrderFilterState,
 } from "../order-filters"
 
-const PAYMENT_LABELS: Record<string, string> = {
-  cod: "COD",
-  payos: "PayOS",
-  vnpay: "VNPay",
-  momo: "MoMo",
-  zalopay: "ZaloPay",
-  bank: "Chuyển khoản",
-}
-
 const STATUS_FILTERS: { value: OrderStatus | "all"; label: string }[] = [
   { value: "all", label: "Tất cả" },
   { value: "pending", label: "Chờ xử lý" },
@@ -54,11 +49,6 @@ const STATUS_FILTERS: { value: OrderStatus | "all"; label: string }[] = [
   { value: "shipping", label: "Đang giao" },
   { value: "delivered", label: "Đã giao" },
   { value: "cancelled", label: "Đã hủy" },
-]
-
-const PAYMENT_OPTIONS = [
-  { value: "all", label: "Tất cả thanh toán" },
-  ...Object.entries(PAYMENT_LABELS).map(([value, label]) => ({ value, label })),
 ]
 
 const TRACKING_OPTIONS = [
@@ -163,7 +153,7 @@ export function OrderListPage() {
           value: filters.payment,
           defaultValue: "all",
           label: "Thanh toán",
-          formatValue: (v) => PAYMENT_LABELS[v] ?? v,
+          formatValue: (v) => getPaymentMethodLabel(String(v)),
         },
         {
           key: "tracking",
@@ -274,7 +264,7 @@ export function OrderListPage() {
       header: "Thanh toán",
       cell: ({ row }) => (
         <span className="text-sm">
-          {PAYMENT_LABELS[row.original.paymentMethod] ?? row.original.paymentMethod}
+          {getPaymentMethodLabel(row.original.paymentMethod)}
         </span>
       ),
     },
@@ -403,7 +393,7 @@ export function OrderListPage() {
             value={filters.payment}
             onChange={(v) => setFilter("payment", v)}
             placeholder="Thanh toán"
-            options={PAYMENT_OPTIONS}
+            options={PAYMENT_METHOD_FILTER_OPTIONS}
           />
         }
         sheetContent={

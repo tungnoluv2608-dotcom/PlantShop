@@ -38,7 +38,17 @@ const SEGMENT_LABELS: Record<string, string> = {
   edit: "Chỉnh sửa",
 }
 
-function labelFor(segment: string): string {
+const NEW_SEGMENT_LABELS: Record<string, string> = {
+  planters: "Tạo chậu cây",
+  accessories: "Tạo phụ kiện",
+  products: "Tạo sản phẩm",
+  blog: "Tạo bài viết",
+}
+
+function labelFor(segment: string, parentSegment?: string): string {
+  if (segment === "new" && parentSegment && NEW_SEGMENT_LABELS[parentSegment]) {
+    return NEW_SEGMENT_LABELS[parentSegment]
+  }
   if (SEGMENT_LABELS[segment]) return SEGMENT_LABELS[segment]
   // numeric / id segment
   return decodeURIComponent(segment)
@@ -71,10 +81,10 @@ function Breadcrumbs() {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 {isLast ? (
-                  <BreadcrumbPage>{labelFor(segment)}</BreadcrumbPage>
+                  <BreadcrumbPage>{labelFor(segment, segments[index - 1])}</BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink asChild>
-                    <Link to={href}>{labelFor(segment)}</Link>
+                    <Link to={href}>{labelFor(segment, segments[index - 1])}</Link>
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>
