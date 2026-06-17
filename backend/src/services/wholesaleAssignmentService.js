@@ -45,7 +45,7 @@ async function pickAutoAssignAdmin(pool) {
 
 async function resolveAssignedAdmin(pool, assignedAdminId) {
   const id = Number(assignedAdminId);
-  if (!Number.isInteger(id) || id <= 0) return null;
+  if (!Number.isInteger(id) || id < 0) return null;
 
   const result = await pool
     .request()

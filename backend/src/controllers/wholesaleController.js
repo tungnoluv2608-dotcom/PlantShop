@@ -110,7 +110,16 @@ async function ensureWholesaleInquiriesTable(pool) {
 
     IF COL_LENGTH('WholesaleInquiries', 'assigned_admin_id') IS NULL
       ALTER TABLE WholesaleInquiries ADD assigned_admin_id INT NULL;
+
+    DECLARE @maxWholesaleId INT = (SELECT ISNULL(MAX(id), 0) FROM WholesaleInquiries);
+    DBCC CHECKIDENT ('WholesaleInquiries', RESEED, @maxWholesaleId);
   `);
+}
+
+function parseInquiryId(rawId) {
+  const id = Number(rawId);
+  if (!Number.isInteger(id) || id < 0) return null;
+  return id;
 }
 
 function parseInterestItems(rawValue) {
@@ -501,8 +510,8 @@ async function listWholesaleInquiries(req, res, next) {
 
 async function getWholesaleInquiryById(req, res, next) {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {
+    const id = parseInquiryId(req.params.id);
+    if (id == null) {
       return res.status(400).json({ message: "Mã yêu cầu không hợp lệ." });
     }
 
@@ -522,8 +531,8 @@ async function getWholesaleInquiryById(req, res, next) {
 
 async function updateWholesaleInquiry(req, res, next) {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {
+    const id = parseInquiryId(req.params.id);
+    if (id == null) {
       return res.status(400).json({ message: "Mã yêu cầu không hợp lệ." });
     }
 
@@ -633,8 +642,8 @@ async function updateWholesaleInquiry(req, res, next) {
 
 async function getWholesaleInquiryActivities(req, res, next) {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {
+    const id = parseInquiryId(req.params.id);
+    if (id == null) {
       return res.status(400).json({ message: "Mã yêu cầu không hợp lệ." });
     }
 
@@ -669,8 +678,8 @@ async function getWholesaleAdminOptions(req, res, next) {
 
 async function createWholesaleOrder(req, res, next) {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {
+    const id = parseInquiryId(req.params.id);
+    if (id == null) {
       return res.status(400).json({ message: "Mã yêu cầu không hợp lệ." });
     }
 
